@@ -1,0 +1,8 @@
+# temp
+*.o
+*.so
+*.swp
+*.ll
+
+# bin
+ctfp-test
