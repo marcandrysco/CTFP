@@ -45,7 +45,7 @@ int main(int argc, char **argv)
 
 		ref.ave[i] = 0.0;
 		ctfp.ave[i] = 0.0;
-		for(n = cnt / 4; n < (cnt - cnt / 4); n++) {
+		for(n = cnt / 3; n < (cnt - cnt / 3); n++) {
 			ref.ave[i] += ref.run[i][n];
 			ctfp.ave[i] += ctfp.run[i][n];
 		}
@@ -53,7 +53,7 @@ int main(int argc, char **argv)
 		ref.ave[i] /= (cnt / 2);
 		ctfp.ave[i] /= (cnt / 2);
 
-		printf("bench %d : %.2f vs %.2f\n", i, (ref.ave[i] - ref.ave[0]) / (ref.ave[1] - ref.ave[0]), (ctfp.ave[i] - ctfp.ave[0]) / (ref.ave[1] - ref.ave[0]));
+		printf("bench %d : %.3f vs %.3f\n", i, (ref.ave[i] - ref.ave[0]) / (ref.ave[1] - ref.ave[0]), (ctfp.ave[i] - ctfp.ave[0]) / (ref.ave[1] - ref.ave[0]));
 	}
 
 	for(i = 0; i < bench_n; i++) {

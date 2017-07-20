@@ -16,7 +16,8 @@ struct CTFP : public BasicBlockPass {
 	LLVMContext ctx;
 	std::unique_ptr<Module> mod;
 
-	BasicBlock *ctfp_dbl_mul1, *ctfp_dbl_add_1;
+	BasicBlock *ctfp_flt_add_1, *ctfp_flt_mul_1, *ctfp_flt_div_1;
+	BasicBlock *ctfp_dbl_add_1, *ctfp_dbl_mul_1, *ctfp_dbl_div_1;
 
 	static void replace(Instruction *inst, BasicBlock *block) {
 		IRBuilder<> builder(inst);
@@ -56,15 +57,30 @@ struct CTFP : public BasicBlockPass {
 
 		Function *func;
 
-		func = mod->getFunction("ctfp_dbl_mul_1");
+		func = mod->getFunction("ctfp_flt_mul_1");
 		assert(func != nullptr);
 		assert(func->size() == 1);
-		ctfp_dbl_mul1 = &*func->begin();
+		ctfp_flt_mul_1 = &*func->begin();
+
+		func = mod->getFunction("ctfp_flt_div_1");
+		assert(func != nullptr);
+		assert(func->size() == 1);
+		ctfp_flt_div_1 = &*func->begin();
 
 		func = mod->getFunction("ctfp_dbl_add_1");
 		assert(func != nullptr);
 		assert(func->size() == 1);
 		ctfp_dbl_add_1 = &*func->begin();
+
+		func = mod->getFunction("ctfp_dbl_mul_1");
+		assert(func != nullptr);
+		assert(func->size() == 1);
+		ctfp_dbl_mul_1 = &*func->begin();
+
+		func = mod->getFunction("ctfp_dbl_div_1");
+		assert(func != nullptr);
+		assert(func->size() == 1);
+		ctfp_dbl_div_1 = &*func->begin();
 	}
 
 	virtual bool runOnBasicBlock(BasicBlock &block) {
@@ -79,7 +95,7 @@ struct CTFP : public BasicBlockPass {
 				if(inst->getType()->isFloatTy()) {
 				}
 				else if(inst->getType()->isDoubleTy()) {
-					replace(inst, ctfp_dbl_add_1);
+					//replace(inst, ctfp_dbl_add_1);
 				}
 				else
 					fprintf(stderr, "Unknown type!\n");
@@ -97,29 +113,20 @@ struct CTFP : public BasicBlockPass {
 				break;
 
 			case Instruction::FMul:
-				if(inst->getType()->isFloatTy()) {
-				}
+				if(inst->getType()->isFloatTy())
+					replace(inst, ctfp_flt_mul_1);
 				else if(inst->getType()->isDoubleTy())
-					replace(inst, ctfp_dbl_mul1);
-					/*
-					std::vector<Value *> args;
-					IRBuilder<> builder(inst);
-
-					args.push_back(inst->getOperand(0));
-					args.push_back(inst->getOperand(1));
-
-					inst->replaceAllUsesWith(builder.CreateCall(dbl_mul_1, args));
-					 */
+					replace(inst, ctfp_dbl_mul_1);
 				else
 					fprintf(stderr, "Unknown type!\n");
 
 				break;
 
 			case Instruction::FDiv:
-				if(inst->getType()->isFloatTy()) {
-				}
-				else if(inst->getType()->isDoubleTy()) {
-				}
+				if(inst->getType()->isFloatTy())
+					replace(inst, ctfp_flt_div_1);
+				else if(inst->getType()->isDoubleTy())
+					replace(inst, ctfp_dbl_div_1);
 				else
 					fprintf(stderr, "Unknown type!\n");
 
