@@ -16,7 +16,7 @@ ctfp.o: ctfp.c Makefile
 	$(CC) -c $(CFLAGS) $< -o $@
 
 ctfp.ll: ctfp.c Makefile
-	clang -c $(CFLAGS) $< -o $@ -emit-llvm
+	clang -c -O2 $< -o $@ -emit-llvm
 
 
 run: test

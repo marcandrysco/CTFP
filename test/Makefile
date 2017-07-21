@@ -7,7 +7,7 @@ DEPS = Makefile common.h
 all: ctfp-test
 
 ctfp-test: main.o bench_ref.o bench_ctfp.o
-	$(LD) $(LDFLAGS) $^ ../lib/ctfp.o -o $@
+	$(LD) $(LDFLAGS) $^ -o $@
 
 main.o: main.c $(DEPS)
 	$(CC) -c $(CFLAGS) $< -o $@

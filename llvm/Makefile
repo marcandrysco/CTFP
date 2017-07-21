@@ -21,5 +21,5 @@ ctfp.so: $(OBJ)
 
 run: all
 	@#./mycc -c test.c -o test.o && clang test.o -o test && ./test
-	#clang -c -S -O2 test.c -o test.ll -fplugin=./ctfp.so -emit-llvm
-	clang -O2 test.c -o test -fplugin=./ctfp.so ../lib/ctfp.o && ./test
+	clang -c -S -O1 test.c -o test.ll -fplugin=./ctfp.so -emit-llvm
+	@#clang -O2 test.c -o test && ./test

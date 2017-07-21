@@ -3,7 +3,7 @@
 #include <math.h>
 
 
-double ctfp_flt_mul_1(float d1, float d2)
+__attribute__((weak)) float ctfp_flt_mul_1(float d1, float d2)
 {
 	__m128 v1, v2, v3;
 
@@ -21,7 +21,7 @@ double ctfp_flt_mul_1(float d1, float d2)
 	return v3[0];
 }
 
-float ctfp_flt_div_1(float d1, float d2)
+__attribute__((weak)) float ctfp_flt_div_1(float d1, float d2)
 {
 	__m128 v1, v2, v3;
 
@@ -35,13 +35,13 @@ float ctfp_flt_div_1(float d1, float d2)
 	v1 = _mm_and_ps(v1, _mm_cmpge_ss(_mm_and_ps(v1, abs), min));
 	v2 = _mm_and_ps(v2, _mm_cmple_ss(_mm_and_ps(v2, abs), max));
 
-	v3 = _mm_mul_ss(v1, v2);
+	v3 = _mm_div_ss(v1, v2);
 
 	return v3[0];
 }
 
 
-double ctfp_dbl_add_1(double d1, double d2)
+__attribute__((weak)) double ctfp_dbl_add_1(double d1, double d2)
 {
 	__m128d v1, v2, v3;
 
@@ -58,7 +58,7 @@ double ctfp_dbl_add_1(double d1, double d2)
 	return v3[0];
 }
 
-double ctfp_dbl_mul_1(double d1, double d2)
+__attribute__((weak)) double ctfp_dbl_mul_1(double d1, double d2)
 {
 	__m128d v1, v2, v3;
 
@@ -76,7 +76,7 @@ double ctfp_dbl_mul_1(double d1, double d2)
 	return v3[0];
 }
 
-double ctfp_dbl_div_1(double d1, double d2)
+__attribute__((weak)) double ctfp_dbl_div_1(double d1, double d2)
 {
 	__m128d v1, v2, v3;
 
@@ -93,7 +93,7 @@ double ctfp_dbl_div_1(double d1, double d2)
 	v1 = _mm_and_pd(v1, _mm_cmpge_sd(_mm_and_pd(v1, abs), min));
 	v2 = _mm_and_pd(v2, _mm_cmple_sd(_mm_and_pd(v2, abs), max));
 
-	v3 = _mm_mul_sd(v1, v2);
+	v3 = _mm_div_sd(v1, v2);
 
 	return v3[0];
 }

@@ -7,130 +7,79 @@
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/LegacyPassManager.h>
 #include <llvm/Transforms/IPO/PassManagerBuilder.h>
+#include <llvm/Transforms/Utils/Cloning.h>
+#include <llvm/Linker/Linker.h>
 #include <llvm/IR/DiagnosticInfo.h>
 
 using namespace llvm;
 
-struct CTFP : public BasicBlockPass {
+struct CTFP : public FunctionPass {
 	static char ID;
-	LLVMContext ctx;
-	std::unique_ptr<Module> mod;
 
-	BasicBlock *ctfp_flt_add_1, *ctfp_flt_mul_1, *ctfp_flt_div_1;
-	BasicBlock *ctfp_dbl_add_1, *ctfp_dbl_mul_1, *ctfp_dbl_div_1;
+	CTFP() : FunctionPass(ID) { }
 
-	static void replace(Instruction *inst, BasicBlock *block) {
+	void insert(Instruction *inst, const char *op) {
+		Module *mod = inst->getParent()->getParent()->getParent();
+		Function *func = mod->getFunction(op);
+		assert(func != nullptr);
+
+		std::vector<Value *> args;
 		IRBuilder<> builder(inst);
-		std::unordered_map<Value *, Value *> map;
 
-		for(auto src = block->begin(); src != block->end(); src++) {
-			if(src->getOpcode() == Instruction::Ret) {
-				auto ret = map.find(cast<ReturnInst>(&*src)->getReturnValue());
-				assert(ret != map.end());
+		args.push_back(inst->getOperand(0));
+		args.push_back(inst->getOperand(1));
 
-				inst->replaceAllUsesWith(ret->second);
-			}
-			else {
-				Instruction *add = src->clone();
-				builder.Insert(add);
+		CallInst *call = builder.CreateCall(func, args);
+		inst->replaceAllUsesWith(call);
+		inst->eraseFromParent();
 
-				for(unsigned int i = 0; i < add->getNumOperands(); i++) {
-					Argument *arg = dyn_cast<Argument>(add->getOperand(i));
-					if(arg != nullptr)
-						add->setOperand(i, inst->getOperand(arg->getArgNo()));
-					else {
-						auto ret = map.find(add->getOperand(i));
-						if(ret != map.end())
-							add->setOperand(i, ret->second);
-					}
-				}
+		InlineFunctionInfo info;
+		bool suc = InlineFunction(call, info);
+		assert(suc == true);
+	}
 
-				map[&*src] = add;
-			}
+	virtual bool runOnFunction(Function &func) {
+		LLVMContext &ctx = func.getContext();
+
+		if(func.getName().str().find("ctfp_") == 0)
+			return false;
+
+		Module *mod = func.getParent();
+		if(func.getParent()->getFunction("ctfp_dbl_mul_1") == nullptr) {
+			SMDiagnostic err;
+			std::unique_ptr<Module> parse = parseIRFile("/data/ctfp/lib/ctfp.ll", err, ctx);
+			assert(mod != nullptr);
+
+			if(Linker::linkModules(*mod, std::move(parse)))
+				fprintf(stderr, "Link failed.\n"), exit(1);
 		}
-	}
 
-	CTFP() : BasicBlockPass(ID) {
-		SMDiagnostic err;
-		mod = parseIRFile("/data/ctfp/lib/ctfp.ll", err, ctx);
-		assert(mod != nullptr);
+		for(auto block = func.begin(); block != func.end(); block++) {
+			auto iter = block->begin();
+			while(iter != block->end()) {
+				Instruction *inst = &*iter++;
 
-		Function *func;
+				switch(inst->getOpcode()) {
+				case Instruction::FMul:
+					if(inst->getType()->isFloatTy())
+						insert(inst, "ctfp_flt_mul_1");
+					else if(inst->getType()->isDoubleTy())
+						insert(inst, "ctfp_dbl_mul_1");
+					else
+						fprintf(stderr, "Unknown type!\n");
 
-		func = mod->getFunction("ctfp_flt_mul_1");
-		assert(func != nullptr);
-		assert(func->size() == 1);
-		ctfp_flt_mul_1 = &*func->begin();
+					break;
 
-		func = mod->getFunction("ctfp_flt_div_1");
-		assert(func != nullptr);
-		assert(func->size() == 1);
-		ctfp_flt_div_1 = &*func->begin();
+				case Instruction::FDiv:
+					if(inst->getType()->isFloatTy())
+						insert(inst, "ctfp_flt_div_1");
+					else if(inst->getType()->isDoubleTy())
+						insert(inst, "ctfp_dbl_div_1");
+					else
+						fprintf(stderr, "Unknown type!\n");
 
-		func = mod->getFunction("ctfp_dbl_add_1");
-		assert(func != nullptr);
-		assert(func->size() == 1);
-		ctfp_dbl_add_1 = &*func->begin();
-
-		func = mod->getFunction("ctfp_dbl_mul_1");
-		assert(func != nullptr);
-		assert(func->size() == 1);
-		ctfp_dbl_mul_1 = &*func->begin();
-
-		func = mod->getFunction("ctfp_dbl_div_1");
-		assert(func != nullptr);
-		assert(func->size() == 1);
-		ctfp_dbl_div_1 = &*func->begin();
-	}
-
-	virtual bool runOnBasicBlock(BasicBlock &block) {
-		//LLVMContext &ctx = block.getContext();
-
-		auto iter = block.begin();
-		while(iter != block.end()) {
-			Instruction *inst = &*iter++;
-
-			switch(inst->getOpcode()) {
-			case Instruction::FAdd:
-				if(inst->getType()->isFloatTy()) {
+					break;
 				}
-				else if(inst->getType()->isDoubleTy()) {
-					//replace(inst, ctfp_dbl_add_1);
-				}
-				else
-					fprintf(stderr, "Unknown type!\n");
-
-				break;
-
-			case Instruction::FSub:
-				if(inst->getType()->isFloatTy()) {
-				}
-				else if(inst->getType()->isDoubleTy()) {
-				}
-				else
-					fprintf(stderr, "Unknown type!\n");
-
-				break;
-
-			case Instruction::FMul:
-				if(inst->getType()->isFloatTy())
-					replace(inst, ctfp_flt_mul_1);
-				else if(inst->getType()->isDoubleTy())
-					replace(inst, ctfp_dbl_mul_1);
-				else
-					fprintf(stderr, "Unknown type!\n");
-
-				break;
-
-			case Instruction::FDiv:
-				if(inst->getType()->isFloatTy())
-					replace(inst, ctfp_flt_div_1);
-				else if(inst->getType()->isDoubleTy())
-					replace(inst, ctfp_dbl_div_1);
-				else
-					fprintf(stderr, "Unknown type!\n");
-
-				break;
 			}
 		}
 
