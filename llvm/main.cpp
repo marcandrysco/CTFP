@@ -26,8 +26,8 @@ struct CTFP : public FunctionPass {
 		std::vector<Value *> args;
 		IRBuilder<> builder(inst);
 
-		args.push_back(inst->getOperand(0));
-		args.push_back(inst->getOperand(1));
+		for(unsigned int i = 0; i < inst->getNumOperands(); i++)
+			args.push_back(inst->getOperand(i));
 
 		CallInst *call = builder.CreateCall(func, args);
 		inst->replaceAllUsesWith(call);
@@ -60,6 +60,32 @@ struct CTFP : public FunctionPass {
 				Instruction *inst = &*iter++;
 
 				switch(inst->getOpcode()) {
+				case Instruction::Call:
+					if(isa<CallInst>(inst)) {
+						CallInst *call = cast<CallInst>(inst);
+						Function *func = call->getCalledFunction();
+						if(func != nullptr) {
+							static std::vector<std::string> list {
+								"exp", "expf", "exp10", "exp10f", "exp2", "exp2f",
+								"log", "logf", "log10", "log10f", "log2", "log2f",
+								"sin", "sinf", "cos", "cosf", "tan", "tanf",
+								"pow", "powf",
+								"gamma", "gammaf",
+							};
+
+							if(func->getName() == "sqrt")
+								insert(inst, "ctfp_sqrt_d_1");
+							else if(func->getName() == "sqrtf")
+								insert(inst, "ctfp_sqrt_f_1");
+							else {
+								auto find = std::find(std::begin(list), std::end(list), func->getName());
+								if(find != std::end(list))
+									printf("special! %s\n", func->getName().data());
+							}
+						}
+					}
+					break;
+
 				case Instruction::FMul:
 					if(inst->getType()->isFloatTy())
 						insert(inst, "ctfp_flt_mul_1");

@@ -10,6 +10,11 @@ double foo(double a, double b)
 	return a  *b;
 }
 
+double bar(double a)
+{
+	return sqrt(a);
+}
+
 int main(int argc, char **argv)
 {
 	return 0;
