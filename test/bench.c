@@ -25,8 +25,7 @@ static uint32_t base(void)
 	asm volatile("" :: "x"(in), "x"(out));
 	begin = perf_begin();
 
-	sink = out;
-	_mm_mfence();
+	asm volatile("movq %%xmm0,%%r15\nadd %%r15,%%r15" ::: "xmm0","r15");
 
 	end = perf_end();
 	asm volatile("" :: "x"(in), "x"(out));
@@ -50,8 +49,9 @@ __attribute__((noinline)) static uint32_t add_dbl(void)
 	begin = perf_begin();
 
 	out = in1 + in2;
-	sink = out;
-	_mm_mfence();
+	asm volatile("movq %0,%%r15\nadd %%r15,%%r15" :: "x"(out) : "r15");
+	//sink = out;
+	//_mm_mfence();
 
 	end = perf_end();
 	asm volatile("" :: "x"(in1), "x"(in2), "x"(out));
@@ -75,8 +75,9 @@ __attribute__((noinline)) static uint32_t mul_dbl(void)
 	begin = perf_begin();
 
 	out = in1 * in2;
-	sink = out;
-	_mm_mfence();
+	asm volatile("movq %0,%%r15\nadd %%r15,%%r15" :: "x"(out) : "r15");
+	//sink = out;
+	//_mm_mfence();
 
 	end = perf_end();
 	asm volatile("" :: "x"(in1), "x"(in2), "x"(out));

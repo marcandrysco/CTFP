@@ -1,7 +1,7 @@
 CC = gcc
 LD = gcc
-CFLAGS = -g -O2 -Wall -march=native
-LDFLAGS = -lm
+CFLAGS = -g -O2 -Wall -mavx2 -march=native
+LDFLAGS = -lm -mavx2
 
 
 all: ctfp.o ctfp.ll test
@@ -16,7 +16,7 @@ ctfp.o: ctfp.c Makefile
 	$(CC) -c $(CFLAGS) $< -o $@
 
 ctfp.ll: ctfp.c Makefile
-	clang -c -O2 $< -o $@ -emit-llvm
+	clang -c $(CFLAGS) -O2 $< -o $@ -emit-llvm
 
 
 run: test

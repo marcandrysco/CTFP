@@ -21,6 +21,9 @@ struct CTFP : public FunctionPass {
 	void insert(Instruction *inst, const char *op) {
 		Module *mod = inst->getParent()->getParent()->getParent();
 		Function *func = mod->getFunction(op);
+
+		if(func == nullptr) printf("missing  %s\n", op);
+		if(func == nullptr) return; // TODO: remove
 		assert(func != nullptr);
 
 		std::vector<Value *> args;
@@ -60,6 +63,154 @@ struct CTFP : public FunctionPass {
 				Instruction *inst = &*iter++;
 
 				switch(inst->getOpcode()) {
+				case Instruction::FAdd:
+					if(inst->getType()->isFloatTy())
+						insert(inst, "ctfp_add_f_1");
+					else if(inst->getType()->isDoubleTy())
+						insert(inst, "ctfp_add_d_1");
+					else if(inst->getType()->isVectorTy()) {
+						VectorType *type = cast<VectorType>(inst->getType());
+						switch(type->getNumElements()) {
+						case 2:
+							if(type->getElementType()->isFloatTy())
+								insert(inst, "ctfp_mul_f_2");
+							else if(type->getElementType()->isDoubleTy())
+								insert(inst, "ctfp_mul_d_2");
+							else
+								printf("Unhandled type\n");
+
+							break;
+
+						case 4:
+							if(type->getElementType()->isFloatTy())
+								insert(inst, "ctfp_add_f_4");
+							else if(type->getElementType()->isDoubleTy())
+								insert(inst, "ctfp_add_d_4");
+							else
+								printf("Unhandled type\n");
+
+							break;
+
+						default:
+							printf("Unhandled fmul%lu", type->getNumElements());
+						}
+					}
+					else
+						fprintf(stderr, "Unknown type!\n");
+
+					break;
+
+				case Instruction::FSub:
+					if(inst->getType()->isFloatTy())
+						insert(inst, "ctfp_sub_f_1");
+					else if(inst->getType()->isDoubleTy())
+						insert(inst, "ctfp_sub_d_1");
+					else if(inst->getType()->isVectorTy()) {
+						VectorType *type = cast<VectorType>(inst->getType());
+						switch(type->getNumElements()) {
+						case 2:
+							if(type->getElementType()->isFloatTy())
+								insert(inst, "ctfp_sub_f_2");
+							else if(type->getElementType()->isDoubleTy())
+								insert(inst, "ctfp_sub_d_2");
+							else
+								printf("Unhandled type\n");
+
+							break;
+
+						case 4:
+							if(type->getElementType()->isFloatTy())
+								printf("ctfp_sub_f_4");
+							else if(type->getElementType()->isDoubleTy())
+								printf("ctfp_sub_d_4");
+							else
+								printf("Unhandled type\n");
+
+							break;
+
+						default:
+							printf("Unhandled fmul%lu", type->getNumElements());
+						}
+					}
+					else
+						fprintf(stderr, "Unknown type!\n");
+
+					break;
+
+				case Instruction::FMul:
+					if(inst->getType()->isFloatTy())
+						insert(inst, "ctfp_flt_mul_1");
+					else if(inst->getType()->isDoubleTy())
+						insert(inst, "ctfp_dbl_mul_1");
+					else if(inst->getType()->isVectorTy()) {
+						VectorType *type = cast<VectorType>(inst->getType());
+						switch(type->getNumElements()) {
+						case 2:
+							if(type->getElementType()->isFloatTy())
+								insert(inst, "ctfp_mul_f_2");
+							else if(type->getElementType()->isDoubleTy())
+								insert(inst, "ctfp_mul_d_2");
+							else
+								printf("Unhandled type\n");
+
+							break;
+
+						case 4:
+							if(type->getElementType()->isFloatTy())
+								insert(inst, "ctfp_mul_f_4");
+							else if(type->getElementType()->isDoubleTy())
+								insert(inst, "ctfp_mul_d_4");
+							else
+								printf("Unhandled type\n");
+
+							break;
+
+						default:
+							printf("Unhandled fmul%lu", type->getNumElements());
+						}
+					}
+					else
+						fprintf(stderr, "Unknown type!\n");
+
+					break;
+
+				case Instruction::FDiv:
+					if(inst->getType()->isFloatTy())
+						insert(inst, "ctfp_flt_div_1");
+					else if(inst->getType()->isDoubleTy())
+						insert(inst, "ctfp_dbl_div_1");
+					else if(inst->getType()->isVectorTy()) {
+						VectorType *type = cast<VectorType>(inst->getType());
+						switch(type->getNumElements()) {
+						case 2:
+							if(type->getElementType()->isFloatTy())
+								insert(inst, "ctfp_div_f_2");
+							else if(type->getElementType()->isDoubleTy())
+								insert(inst, "ctfp_div_d_2");
+							else
+								printf("Unhandled type\n");
+
+							break;
+
+						case 4:
+							if(type->getElementType()->isFloatTy())
+								insert(inst, "ctfp_div_f_4");
+							else if(type->getElementType()->isDoubleTy())
+								insert(inst, "ctfp_div_d_4");
+							else
+								printf("Unhandled type\n");
+
+							break;
+
+						default:
+							printf("Unhandled fmul%lu", type->getNumElements());
+						}
+					}
+					else
+						fprintf(stderr, "Unknown type!\n");
+
+					break;
+
 				case Instruction::Call:
 					if(isa<CallInst>(inst)) {
 						CallInst *call = cast<CallInst>(inst);
@@ -67,10 +218,10 @@ struct CTFP : public FunctionPass {
 						if(func != nullptr) {
 							static std::vector<std::string> list {
 								"exp", "expf", "exp10", "exp10f", "exp2", "exp2f",
-								"log", "logf", "log10", "log10f", "log2", "log2f",
-								"sin", "sinf", "cos", "cosf", "tan", "tanf",
-								"pow", "powf",
-								"gamma", "gammaf",
+									"log", "logf", "log10", "log10f", "log2", "log2f",
+									"sin", "sinf", "cos", "cosf", "tan", "tanf",
+									"pow", "powf",
+									"gamma", "gammaf",
 							};
 
 							if(func->getName() == "sqrt")
@@ -84,27 +235,6 @@ struct CTFP : public FunctionPass {
 							}
 						}
 					}
-					break;
-
-				case Instruction::FMul:
-					if(inst->getType()->isFloatTy())
-						insert(inst, "ctfp_flt_mul_1");
-					else if(inst->getType()->isDoubleTy())
-						insert(inst, "ctfp_dbl_mul_1");
-					else
-						fprintf(stderr, "Unknown type!\n");
-
-					break;
-
-				case Instruction::FDiv:
-					if(inst->getType()->isFloatTy())
-						insert(inst, "ctfp_flt_div_1");
-					else if(inst->getType()->isDoubleTy())
-						insert(inst, "ctfp_dbl_div_1");
-					else
-						fprintf(stderr, "Unknown type!\n");
-
-					break;
 				}
 			}
 		}
@@ -119,4 +249,4 @@ RegisterPass<CTFP> X("ctfp", "Constant Time Floating-Point");
 static void registerCTFP(const PassManagerBuilder &, legacy::PassManagerBase &PM) {
     PM.add(new CTFP());
 }
-static RegisterStandardPasses RegisterCTFP(PassManagerBuilder::EP_EarlyAsPossible, registerCTFP);
+static RegisterStandardPasses RegisterCTFP(PassManagerBuilder::EP_OptimizerLast, registerCTFP);

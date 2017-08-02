@@ -50,10 +50,10 @@ int main(int argc, char **argv)
 			ctfp.ave[i] += ctfp.run[i][n];
 		}
 
-		ref.ave[i] /= (cnt / 2);
-		ctfp.ave[i] /= (cnt / 2);
+		//ref.ave[i] /= (cnt / 2);
+		//ctfp.ave[i] /= (cnt / 2);
 
-		printf("bench %d : %.3f vs %.3f\n", i, (ref.ave[i] - ref.ave[0]) / (ref.ave[1] - ref.ave[0]), (ctfp.ave[i] - ctfp.ave[0]) / (ref.ave[1] - ref.ave[0]));
+		printf("bench %d : %.3f(%.3f) vs %.3f(%.3f)\n", i, (ref.ave[i] - ref.ave[0]) / (ref.ave[1] - ref.ave[0]), ref.ave[i], (ctfp.ave[i] - ctfp.ave[0]) / (ref.ave[1] - ref.ave[0]), ctfp.ave[i]);
 	}
 
 	for(i = 0; i < bench_n; i++) {

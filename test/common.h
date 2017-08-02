@@ -54,7 +54,7 @@ static inline uint32_t perf_begin(void)
 
 	asm volatile(
 		"cpuid\n"
-		"rdtsc\n"
+		"rdtscp\n"
 		"mov %%eax, %0\n"
 		: "=r"(eax)
 		:
