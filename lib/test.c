@@ -3,11 +3,14 @@
 #include <stdio.h>
 #include <emmintrin.h>
 
-double ctfp_dbl_mul_1(double d1, double d2);
+float ctfp_add_f_1(float, float);
 
 int main()
 {
-	ctfp_dbl_mul_1(1.3, INFINITY);
+	//printf("%.2e\n", 1e-310+ 1e-310);
+	printf("%.2e\n", ctfp_add_f_1(FLT_MIN, FLT_MIN));
+
+	exit(0);
 
 	{
 		__m128 v = { -1.0f, -1.0f, -1.0f, -1.0f };

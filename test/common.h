@@ -50,13 +50,14 @@ extern bench_f run_ctfp[bench_n];
  */
 static inline uint32_t perf_begin(void)
 {
-	uint32_t eax;
+	uint32_t eax, edx;
 
 	asm volatile(
 		"cpuid\n"
-		"rdtscp\n"
+		"rdtsc\n"
 		"mov %%eax, %0\n"
-		: "=r"(eax)
+		"mov %%edx, %1\n"
+		: "=r"(eax), "=r"(edx)
 		:
 		: "%rax", "%rbx", "%rcx", "%rdx"
 	);
@@ -70,13 +71,14 @@ static inline uint32_t perf_begin(void)
  */
 static inline uint32_t perf_end(void)
 {
-	uint32_t eax;
+	uint32_t eax, edx;
 
 	asm volatile(
 		"rdtscp\n"
 		"mov %%eax, %0\n"
+		"mov %%edx, %1\n"
 		"cpuid\n"
-		: "=r" (eax)
+		: "=r" (eax), "=r"(edx)
 		:
 		: "%rax", "%rbx", "%rcx", "%rdx"
 	);

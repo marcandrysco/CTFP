@@ -1,3 +1,11 @@
+#define _GNU_SOURCE
+#include <errno.h>
+#include <sched.h>
+#include <string.h>
+#include <sys/resource.h>
+#include <unistd.h>
+
+
 #include "common.h"
 
 
@@ -22,6 +30,15 @@ int main(int argc, char **argv)
 {
 	unsigned int cnt = 200000;
 
+	cpu_set_t set;
+	CPU_ZERO(&set);
+	CPU_SET(0, &set);
+
+	int ret = sched_setaffinity(0, sizeof(set), &set);
+	if(ret < 0)
+		fprintf(stderr, "Unable to set affinity. %s.\n", strerror(errno));
+
+
 	unsigned int i, n, sel;
 	struct bench_t ref, ctfp;
 	//uint32_t *ref[bench_n], *ctfp[bench_n];
@@ -45,13 +62,13 @@ int main(int argc, char **argv)
 
 		ref.ave[i] = 0.0;
 		ctfp.ave[i] = 0.0;
-		for(n = cnt / 3; n < (cnt - cnt / 3); n++) {
+		for(n = cnt / 4; n < (cnt - cnt / 4); n++) {
 			ref.ave[i] += ref.run[i][n];
 			ctfp.ave[i] += ctfp.run[i][n];
 		}
 
-		//ref.ave[i] /= (cnt / 2);
-		//ctfp.ave[i] /= (cnt / 2);
+		ref.ave[i] /= (cnt / 2);
+		ctfp.ave[i] /= (cnt / 2);
 
 		printf("bench %d : %.3f(%.3f) vs %.3f(%.3f)\n", i, (ref.ave[i] - ref.ave[0]) / (ref.ave[1] - ref.ave[0]), ref.ave[i], (ctfp.ave[i] - ctfp.ave[0]) / (ref.ave[1] - ref.ave[0]), ctfp.ave[i]);
 	}

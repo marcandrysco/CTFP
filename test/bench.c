@@ -14,18 +14,22 @@ volatile double sink, src1, src2;
  * Base benchmark of a fenced store.
  *   &returns: The execution time.
  */
-static uint32_t base(void)
+__attribute__((noinline)) static uint32_t base(void)
 {
 	double in, out;
 	uint32_t begin, end;
 
 	src1 = 0.0;
+	asm volatile("");
 	in = src1;
 
 	asm volatile("" :: "x"(in), "x"(out));
 	begin = perf_begin();
 
-	asm volatile("movq %%xmm0,%%r15\nadd %%r15,%%r15" ::: "xmm0","r15");
+	//out = in;
+	//asm volatile("movq %0,%%r15" :: "x"(out) : "r15");
+	//sink = out;
+	//_mm_mfence();
 
 	end = perf_end();
 	asm volatile("" :: "x"(in), "x"(out));
@@ -39,22 +43,31 @@ static uint32_t base(void)
  */
 __attribute__((noinline)) static uint32_t add_dbl(void)
 {
-	double in1, in2, out;
+	double in1, in2, in3, in4, in5, in6, in7, in8, out;
 	uint32_t begin, end;
 
 	in1 = src1;
 	in2 = src2;
+	in3 = src1;
+	in4 = src2;
+	in5 = src1;
+	in6 = src2;
+	in7 = src1;
+	in8 = src2;
 
-	asm volatile("" :: "x"(in1), "x"(in2), "x"(out));
+	asm volatile("" :: "x"(in1), "x"(in2), "x"(in3), "x"(in4), "x"(in5), "x"(in6), "x"(in7), "x"(in8), "x"(out));
 	begin = perf_begin();
 
-	out = in1 + in2;
-	asm volatile("movq %0,%%r15\nadd %%r15,%%r15" :: "x"(out) : "r15");
+	out = in1 + in2 + in3 + in4 + in5 + in6 + in7 + in8;
+	asm volatile("movq %0,%%r15" :: "x"(out) : "r15");
+	asm volatile("add %%r15,%%r15" ::: "r15");
 	//sink = out;
 	//_mm_mfence();
 
 	end = perf_end();
-	asm volatile("" :: "x"(in1), "x"(in2), "x"(out));
+	asm volatile("" :: "x"(in1), "x"(in2), "x"(in3), "x"(in4), "x"(in5), "x"(in6), "x"(in7), "x"(in8), "x"(out));
+
+	sink = out;
 
 	return end - begin;
 }
@@ -65,22 +78,31 @@ __attribute__((noinline)) static uint32_t add_dbl(void)
  */
 __attribute__((noinline)) static uint32_t mul_dbl(void)
 {
-	double in1, in2, out;
+	double in1, in2, in3, in4, in5, in6, in7, in8, out;
 	uint32_t begin, end;
 
 	in1 = src1;
 	in2 = src2;
+	in3 = src1;
+	in4 = src2;
+	in5 = src1;
+	in6 = src2;
+	in7 = src1;
+	in8 = src2;
 
-	asm volatile("" :: "x"(in1), "x"(in2), "x"(out));
+	asm volatile("" :: "x"(in1), "x"(in2), "x"(in3), "x"(in4), "x"(in5), "x"(in6), "x"(in7), "x"(in8), "x"(out));
 	begin = perf_begin();
 
-	out = in1 * in2;
-	asm volatile("movq %0,%%r15\nadd %%r15,%%r15" :: "x"(out) : "r15");
+	out = in1 * in2 * in3 * in4 * in5 * in6 * in7 * in8;
+	asm volatile("movq %0,%%r15" :: "x"(out) : "r15");
+	asm volatile("add %%r15,%%r15" ::: "r15");
 	//sink = out;
 	//_mm_mfence();
 
 	end = perf_end();
-	asm volatile("" :: "x"(in1), "x"(in2), "x"(out));
+	asm volatile("" :: "x"(in1), "x"(in2), "x"(in3), "x"(in4), "x"(in5), "x"(in6), "x"(in7), "x"(in8), "x"(out));
+
+	sink = out;
 
 	return end - begin;
 }
