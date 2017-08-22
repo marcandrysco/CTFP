@@ -2,7 +2,10 @@
 *.o
 *.so
 *.swp
+*.swo
 *.ll
 
 # bin
+ctfp.bc
 ctfp-test
+ctfp-math.so
