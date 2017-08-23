@@ -1,7 +1,9 @@
+#include "../ctfp-math.h"
+
 #define _GNU_SOURCE
 #include <math.h>
 
-int finite(double x)
+int ctfp_finite(double x)
 {
 	return isfinite(x);
 }

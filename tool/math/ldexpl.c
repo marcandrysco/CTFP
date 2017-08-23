@@ -1,6 +1,8 @@
+#include "../ctfp-math.h"
+
 #include <math.h>
 
-long double ldexpl(long double x, int n)
+long double ctfp_ldexpl(long double x, int n)
 {
-	return scalbnl(x, n);
+	return ctfp_scalbnl(x, n);
 }

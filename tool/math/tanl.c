@@ -1,12 +1,14 @@
+#include "../ctfp-math.h"
+
 #include "libm.h"
 
 #if LDBL_MANT_DIG == 53 && LDBL_MAX_EXP == 1024
-long double tanl(long double x)
+long double ctfp_tanl(long double x)
 {
-	return tan(x);
+	return ctfp_tan(x);
 }
 #elif (LDBL_MANT_DIG == 64 || LDBL_MANT_DIG == 113) && LDBL_MAX_EXP == 16384
-long double tanl(long double x)
+long double ctfp_tanl(long double x)
 {
 	union ldshape u = {x};
 	long double y[2];
@@ -21,9 +23,9 @@ long double tanl(long double x)
 			FORCE_EVAL(u.i.se == 0 ? x*0x1p-120f : x+0x1p120f);
 			return x;
 		}
-		return __tanl(x, 0, 0);
+		return ctfp___tanl(x, 0, 0);
 	}
-	n = __rem_pio2l(x, y);
-	return __tanl(y[0], y[1], n&1);
+	n = ctfp___rem_pio2l(x, y);
+	return ctfp___tanl(y[0], y[1], n&1);
 }
 #endif

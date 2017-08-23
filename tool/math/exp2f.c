@@ -1,3 +1,5 @@
+#include "../ctfp-math.h"
+
 /* origin: FreeBSD /usr/src/lib/msun/src/s_exp2f.c */
 /*-
  * Copyright (c) 2005 David Schultz <das@FreeBSD.ORG>
@@ -56,7 +58,7 @@ static const double exp2ft[TBLSIZE] = {
 };
 
 /*
- * exp2f(x): compute the base 2 exponential of x
+ * ctfp_exp2f(x): compute the base 2 exponential of x
  *
  * Accuracy: Peak error < 0.501 ulp; location of peak: -0.030110927.
  *
@@ -64,14 +66,14 @@ static const double exp2ft[TBLSIZE] = {
  *
  *   Reduce x:
  *     x = k + y, for integer k and |y| <= 1/2.
- *     Thus we have exp2f(x) = 2**k * exp2(y).
+ *     Thus we have ctfp_exp2f(x) = 2**k * ctfp_exp2(y).
  *
  *   Reduce y:
  *     y = i/TBLSIZE + z for integer i near y * TBLSIZE.
- *     Thus we have exp2(y) = exp2(i/TBLSIZE) * exp2(z),
+ *     Thus we have ctfp_exp2(y) = ctfp_exp2(i/TBLSIZE) * ctfp_exp2(z),
  *     with |z| <= 2**-(TBLSIZE+1).
  *
- *   We compute exp2(i/TBLSIZE) via table lookup and exp2(z) via a
+ *   We compute ctfp_exp2(i/TBLSIZE) via table lookup and ctfp_exp2(z) via a
  *   degree-4 minimax polynomial with maximum error under 1.4 * 2**-33.
  *   Using double precision for everything except the reduction makes
  *   roundoff error insignificant and simplifies the scaling step.
@@ -81,7 +83,7 @@ static const double exp2ft[TBLSIZE] = {
  *      Tang, P.  Table-driven Implementation of the Exponential Function
  *      in IEEE Floating-Point Arithmetic.  TOMS 15(2), 144-157 (1989).
  */
-float exp2f(float x)
+float ctfp_exp2f(float x)
 {
 	double_t t, r, z;
 	union {float f; uint32_t i;} u = {x};
@@ -116,7 +118,7 @@ float exp2f(float x)
 	i0 &= TBLSIZE - 1;
 	u.f -= redux;
 	z = x - u.f;
-	/* Compute r = exp2(y) = exp2ft[i0] * p(z). */
+	/* Compute r = ctfp_exp2(y) = exp2ft[i0] * p(z). */
 	r = exp2ft[i0];
 	t = r * z;
 	r = r + t * (P1 + z * P2) + t * (z * z) * (P3 + z * P4);

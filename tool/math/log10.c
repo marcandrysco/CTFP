@@ -1,3 +1,5 @@
+#include "../ctfp-math.h"
+
 /* origin: FreeBSD /usr/src/lib/msun/src/e_log10.c */
 /*
  * ====================================================
@@ -10,11 +12,11 @@
  * ====================================================
  */
 /*
- * Return the base 10 logarithm of x.  See log.c for most comments.
+ * Return the base 10 logarithm of x.  See ctfp_log.c for most comments.
  *
- * Reduce x to 2^k (1+f) and calculate r = log(1+f) - f + f*f/2
- * as in log.c, then combine and scale in extra precision:
- *    log10(x) = (f - f*f/2 + r)/log(10) + k*log10(2)
+ * Reduce x to 2^k (1+f) and calculate r = ctfp_log(1+f) - f + f*f/2
+ * as in ctfp_log.c, then combine and scale in extra precision:
+ *    ctfp_log10(x) = (f - f*f/2 + r)/ctfp_log(10) + k*ctfp_log10(2)
  */
 
 #include <math.h>
@@ -33,7 +35,7 @@ Lg5 = 1.818357216161805012e-01,  /* 3FC74664 96CB03DE */
 Lg6 = 1.531383769920937332e-01,  /* 3FC39A09 D078C69F */
 Lg7 = 1.479819860511658591e-01;  /* 3FC2F112 DF3E5244 */
 
-double log10(double x)
+double ctfp_log10(double x)
 {
 	union {double f; uint64_t i;} u = {x};
 	double_t hfsq,f,s,z,R,w,t1,t2,dk,y,hi,lo,val_hi,val_lo;
@@ -44,9 +46,9 @@ double log10(double x)
 	k = 0;
 	if (hx < 0x00100000 || hx>>31) {
 		if (u.i<<1 == 0)
-			return -1/(x*x);  /* log(+-0)=-inf */
+			return -1/(x*x);  /* ctfp_log(+-0)=-inf */
 		if (hx>>31)
-			return (x-x)/0.0; /* log(-#) = NaN */
+			return (x-x)/0.0; /* ctfp_log(-#) = NaN */
 		/* subnormal number, scale x up */
 		k -= 54;
 		x *= 0x1p54;
@@ -73,15 +75,15 @@ double log10(double x)
 	t2 = z*(Lg1+w*(Lg3+w*(Lg5+w*Lg7)));
 	R = t2 + t1;
 
-	/* See log2.c for details. */
-	/* hi+lo = f - hfsq + s*(hfsq+R) ~ log(1+f) */
+	/* See ctfp_log2.c for details. */
+	/* hi+lo = f - hfsq + s*(hfsq+R) ~ ctfp_log(1+f) */
 	hi = f - hfsq;
 	u.f = hi;
 	u.i &= (uint64_t)-1<<32;
 	hi = u.f;
 	lo = f - hi - hfsq + s*(hfsq+R);
 
-	/* val_hi+val_lo ~ log10(1+f) + k*log10(2) */
+	/* val_hi+val_lo ~ ctfp_log10(1+f) + k*ctfp_log10(2) */
 	val_hi = hi*ivln10hi;
 	dk = k;
 	y = dk*log10_2hi;

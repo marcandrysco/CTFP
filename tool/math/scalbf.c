@@ -1,3 +1,5 @@
+#include "../ctfp-math.h"
+
 /* origin: FreeBSD /usr/src/lib/msun/src/e_scalbf.c */
 /*
  * Conversion to float by Ian Lance Taylor, Cygnus Support, ian@cygnus.com.
@@ -16,7 +18,7 @@
 #define _GNU_SOURCE
 #include <math.h>
 
-float scalbf(float x, float fn)
+float ctfp_scalbf(float x, float fn)
 {
 	if (isnan(x) || isnan(fn)) return x*fn;
 	if (!isfinite(fn)) {
@@ -25,8 +27,8 @@ float scalbf(float x, float fn)
 		else
 			return x/(-fn);
 	}
-	if (rintf(fn) != fn) return (fn-fn)/(fn-fn);
-	if ( fn > 65000.0f) return scalbnf(x, 65000);
-	if (-fn > 65000.0f) return scalbnf(x,-65000);
-	return scalbnf(x,(int)fn);
+	if (ctfp_rintf(fn) != fn) return (fn-fn)/(fn-fn);
+	if ( fn > 65000.0f) return ctfp_scalbnf(x, 65000);
+	if (-fn > 65000.0f) return ctfp_scalbnf(x,-65000);
+	return ctfp_scalbnf(x,(int)fn);
 }

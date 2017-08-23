@@ -1,3 +1,5 @@
+#include "../ctfp-math.h"
+
 /* origin: FreeBSD /usr/src/lib/msun/src/e_scalb.c */
 /*
  * ====================================================
@@ -10,11 +12,10 @@
  * ====================================================
  */
 /*
- * scalb(x, fn) is provide for
+ * ctfp_scalb(x, fn) is provide for
  * passing various standard test suite. One
- * should use scalbn() instead.
+ * should use ctfp_scalbn() instead.
  */
-#include "../ctfp-math.h"
 
 #define _GNU_SOURCE
 #include <math.h>
@@ -29,8 +30,8 @@ double ctfp_scalb(double x, double fn)
 		else
 			return x/(-fn);
 	}
-	if (rint(fn) != fn) return (fn-fn)/(fn-fn);
-	if ( fn > 65000.0) return scalbn(x, 65000);
-	if (-fn > 65000.0) return scalbn(x,-65000);
+	if (ctfp_rint(fn) != fn) return (fn-fn)/(fn-fn);
+	if ( fn > 65000.0) return ctfp_scalbn(x, 65000);
+	if (-fn > 65000.0) return ctfp_scalbn(x,-65000);
 	return ctfp_scalbn(x,(int)fn);
 }

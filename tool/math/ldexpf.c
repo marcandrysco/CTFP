@@ -1,6 +1,8 @@
+#include "../ctfp-math.h"
+
 #include <math.h>
 
-float ldexpf(float x, int n)
+float ctfp_ldexpf(float x, int n)
 {
-	return scalbnf(x, n);
+	return ctfp_scalbnf(x, n);
 }

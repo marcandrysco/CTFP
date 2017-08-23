@@ -1,3 +1,5 @@
+#include "../ctfp-math.h"
+
 /* origin: FreeBSD /usr/src/lib/msun/src/s_cbrtl.c */
 /*-
  * ====================================================
@@ -18,14 +20,14 @@
 #include "libm.h"
 
 #if LDBL_MANT_DIG == 53 && LDBL_MAX_EXP == 1024
-long double cbrtl(long double x)
+long double ctfp_cbrtl(long double x)
 {
-	return cbrt(x);
+	return ctfp_cbrt(x);
 }
 #elif (LDBL_MANT_DIG == 64 || LDBL_MANT_DIG == 113) && LDBL_MAX_EXP == 16384
 static const unsigned B1 = 709958130; /* B1 = (127-127.0/3-0.03306235651)*2**23 */
 
-long double cbrtl(long double x)
+long double ctfp_cbrtl(long double x)
 {
 	union ldshape u = {x}, v;
 	union {float f; uint32_t i;} uft;
@@ -36,8 +38,8 @@ long double cbrtl(long double x)
 	int sign = u.i.se & 0x8000;
 
 	/*
-	 * If x = +-Inf, then cbrt(x) = +-Inf.
-	 * If x = NaN, then cbrt(x) = NaN.
+	 * If x = +-Inf, then ctfp_cbrt(x) = +-Inf.
+	 * If x = NaN, then ctfp_cbrt(x) = NaN.
 	 */
 	if (e == 0x7fff)
 		return x + x;
@@ -45,7 +47,7 @@ long double cbrtl(long double x)
 		/* Adjust subnormal numbers. */
 		u.f *= 0x1p120;
 		e = u.i.se & 0x7fff;
-		/* If x = +-0, then cbrt(x) = +-0. */
+		/* If x = +-0, then ctfp_cbrt(x) = +-0. */
 		if (e == 0)
 			return x;
 		e -= 120;
@@ -91,7 +93,7 @@ long double cbrtl(long double x)
 
 #if LDBL_MANT_DIG == 64
 	/*
-	 * dt is cbrtl(x) to ~47 bits (after x has been reduced to 1 <= x < 8).
+	 * dt is ctfp_cbrtl(x) to ~47 bits (after x has been reduced to 1 <= x < 8).
 	 * Round it away from zero to 32 bits (32 so that t*t is exact, and
 	 * away from zero for technical reasons).
 	 */
@@ -99,10 +101,10 @@ long double cbrtl(long double x)
 #elif LDBL_MANT_DIG == 113
 	/*
 	 * Round dt away from zero to 47 bits.  Since we don't trust the 47,
-	 * add 2 47-bit ulps instead of 1 to round up.  Rounding is slow and
+	 * add 2 47-bit ulps instead of 1 to ctfp_round up.  Rounding is slow and
 	 * might be avoidable in this case, since on most machines dt will
 	 * have been evaluated in 53-bit precision and the technical reasons
-	 * for rounding up might not apply to either case in cbrtl() since
+	 * for rounding up might not apply to either case in ctfp_cbrtl() since
 	 * dt is much more accurate than needed.
 	 */
 	t = dt + 0x2.0p-46 + 0x1.0p60L - 0x1.0p60;

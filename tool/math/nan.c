@@ -1,6 +1,8 @@
+#include "../ctfp-math.h"
+
 #include <math.h>
 
-double nan(const char *s)
+double ctfp_nan(const char *s)
 {
 	return NAN;
 }

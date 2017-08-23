@@ -1,3 +1,5 @@
+#include "../ctfp-math.h"
+
 /* origin: OpenBSD /usr/src/lib/libm/src/ld80/e_powl.c */
 /*
  * Copyright (c) 2008 Stephen L. Moshier <steve@moshier.net>
@@ -14,23 +16,23 @@
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
-/*                                                      powl.c
+/*                                                      ctfp_powl.c
  *
  *      Power function, long double precision
  *
  *
  * SYNOPSIS:
  *
- * long double x, y, z, powl();
+ * long double x, y, z, ctfp_powl();
  *
- * z = powl( x, y );
+ * z = ctfp_powl( x, y );
  *
  *
  * DESCRIPTION:
  *
  * Computes x raised to the yth power.  Analytically,
  *
- *      x**y  =  exp( y log(x) ).
+ *      x**y  =  ctfp_exp( y ctfp_log(x) ).
  *
  * Following Cody and Waite, this program uses a lookup table
  * of 2**-i/32 and pseudo extended precision arithmetic to
@@ -40,7 +42,7 @@
  *
  * ACCURACY:
  *
- * The relative error of pow(x,y) can be estimated
+ * The relative error of ctfp_pow(x,y) can be estimated
  * by   y dl ln(2),   where dl is the absolute error of
  * the internally computed base 2 logarithm.  At the ends
  * of the approximation interval the logarithm equal 1/32
@@ -51,7 +53,7 @@
  * arithmetic   domain     # trials      peak         rms
  *
  *    IEEE     +-1000       40000      2.8e-18      3.7e-19
- * .001 < x < 1000, with log(x) uniformly distributed.
+ * .001 < x < 1000, with ctfp_log(x) uniformly distributed.
  * -1000 < y < 1000, y uniformly distributed.
  *
  *    IEEE     0,8700       60000      6.5e-18      1.0e-18
@@ -61,25 +63,25 @@
  * ERROR MESSAGES:
  *
  *   message         condition      value returned
- * pow overflow     x**y > MAXNUM      INFINITY
- * pow underflow   x**y < 1/MAXNUM       0.0
- * pow domain      x<0 and y noninteger  0.0
+ * ctfp_pow overflow     x**y > MAXNUM      INFINITY
+ * ctfp_pow underflow   x**y < 1/MAXNUM       0.0
+ * ctfp_pow domain      x<0 and y noninteger  0.0
  *
  */
 
 #include "libm.h"
 
 #if LDBL_MANT_DIG == 53 && LDBL_MAX_EXP == 1024
-long double powl(long double x, long double y)
+long double ctfp_powl(long double x, long double y)
 {
-	return pow(x, y);
+	return ctfp_pow(x, y);
 }
 #elif LDBL_MANT_DIG == 64 && LDBL_MAX_EXP == 16384
 
 /* Table size */
 #define NXT 32
 
-/* log(1+x) =  x - .5x^2 + x^3 *  P(z)/Q(z)
+/* ctfp_log(1+x) =  x - .5x^2 + x^3 *  P(z)/Q(z)
  * on the domain  2^(-1/32) - 1  <=  x  <=  2^(1/32) - 1
  */
 static const long double P[] = {
@@ -168,7 +170,7 @@ static const long double R[] = {
 #define MEXP (NXT*16384.0L)
 /* The following if denormal numbers are supported, else -MEXP: */
 #define MNEXP (-NXT*(16384.0L+64.0L))
-/* log2(e) - 1 */
+/* ctfp_log2(e) - 1 */
 #define LOG2EA 0.44269504088896340735992L
 
 #define F W
@@ -191,7 +193,7 @@ static const volatile long double twom10000 = 0x1p-10000L;
 static long double reducl(long double);
 static long double powil(long double, int);
 
-long double powl(long double x, long double y)
+long double ctfp_powl(long double x, long double y)
 {
 	/* double F, Fa, Fb, G, Ga, Gb, H, Ha, Hb */
 	int i, nflg, iyflg, yoddint;
@@ -199,7 +201,7 @@ long double powl(long double x, long double y)
 	volatile long double z=0;
 	long double w=0, W=0, Wa=0, Wb=0, ya=0, yb=0, u=0;
 
-	/* make sure no invalid exception is raised by nan comparision */
+	/* make sure no invalid exception is raised by ctfp_nan comparision */
 	if (isnan(x)) {
 		if (!isnan(y) && y == 0.0)
 			return 1.0;
@@ -211,11 +213,11 @@ long double powl(long double x, long double y)
 		return y;
 	}
 	if (x == 1.0)
-		return 1.0; /* 1**y = 1, even if y is nan */
+		return 1.0; /* 1**y = 1, even if y is ctfp_nan */
 	if (x == -1.0 && !isfinite(y))
 		return 1.0; /* -1**inf = 1 */
 	if (y == 0.0)
-		return 1.0; /* x**0 = 1, even if x is nan */
+		return 1.0; /* x**0 = 1, even if x is ctfp_nan */
 	if (y == 1.0)
 		return x;
 	if (y >= LDBL_MAX) {
@@ -236,7 +238,7 @@ long double powl(long double x, long double y)
 		return 0.0;
 	}
 
-	w = floorl(y);
+	w = ctfp_floorl(y);
 
 	/* Set iyflg to 1 if y is an integer. */
 	iyflg = 0;
@@ -246,9 +248,9 @@ long double powl(long double x, long double y)
 	/* Test for odd integer y. */
 	yoddint = 0;
 	if (iyflg) {
-		ya = fabsl(y);
-		ya = floorl(0.5 * ya);
-		yb = 0.5 * fabsl(w);
+		ya = ctfp_fabsl(y);
+		ya = ctfp_floorl(0.5 * ya);
+		yb = 0.5 * ctfp_fabsl(w);
 		if( ya != yb )
 			yoddint = 1;
 	}
@@ -287,16 +289,16 @@ long double powl(long double x, long double y)
 		x = -x;
 	}
 	/* (+integer)**(integer)  */
-	if (iyflg && floorl(x) == x && fabsl(y) < 32768.0) {
+	if (iyflg && ctfp_floorl(x) == x && ctfp_fabsl(y) < 32768.0) {
 		w = powil(x, (int)y);
 		return nflg ? -w : w;
 	}
 
-	/* separate significand from exponent */
-	x = frexpl(x, &i);
+	/* separate ctfp_significand from exponent */
+	x = ctfp_frexpl(x, &i);
 	e = i;
 
-	/* find significand in antilog table A[] */
+	/* find ctfp_significand in antilog table A[] */
 	i = 1;
 	if (x <= A[17])
 		i = 17;
@@ -311,26 +313,26 @@ long double powl(long double x, long double y)
 	i += 1;
 
 	/* Find (x - A[i])/A[i]
-	 * in order to compute log(x/A[i]):
+	 * in order to compute ctfp_log(x/A[i]):
 	 *
-	 * log(x) = log( a x/a ) = log(a) + log(x/a)
+	 * ctfp_log(x) = ctfp_log( a x/a ) = ctfp_log(a) + ctfp_log(x/a)
 	 *
-	 * log(x/a) = log(1+v),  v = x/a - 1 = (x-a)/a
+	 * ctfp_log(x/a) = ctfp_log(1+v),  v = x/a - 1 = (x-a)/a
 	 */
 	x -= A[i];
 	x -= B[i/2];
 	x /= A[i];
 
-	/* rational approximation for log(1+v):
+	/* rational approximation for ctfp_log(1+v):
 	 *
-	 * log(1+v)  =  v  -  v**2/2  +  v**3 P(v) / Q(v)
+	 * ctfp_log(1+v)  =  v  -  v**2/2  +  v**3 P(v) / Q(v)
 	 */
 	z = x*x;
-	w = x * (z * __polevll(x, P, 3) / __p1evll(x, Q, 3));
+	w = x * (z * ctfp___polevll(x, P, 3) / __p1evll(x, Q, 3));
 	w = w - 0.5*z;
 
 	/* Convert to base 2 logarithm:
-	 * multiply by log2(e) = 1 + LOG2EA
+	 * multiply by ctfp_log2(e) = 1 + LOG2EA
 	 */
 	z = LOG2EA * w;
 	z += w;
@@ -341,9 +343,9 @@ long double powl(long double x, long double y)
 	w = -i;
 	w /= NXT;
 	w += e;
-	/* Now base 2 log of x is w + z. */
+	/* Now base 2 ctfp_log of x is w + z. */
 
-	/* Multiply base 2 log by y, in extended precision. */
+	/* Multiply base 2 ctfp_log by y, in extended precision. */
 
 	/* separate y into large part ya
 	 * and small part yb less than 1/NXT
@@ -380,12 +382,12 @@ long double powl(long double x, long double y)
 		Hb -= 1.0/NXT;  /*0.0625L;*/
 	}
 
-	/* Now the product y * log2(x)  =  Hb + e/NXT.
+	/* Now the product y * ctfp_log2(x)  =  Hb + e/NXT.
 	 *
 	 * Compute base 2 exponential of Hb,
 	 * where -0.0625 <= Hb <= 0.
 	 */
-	z = Hb * __polevll(Hb, R, 6);  /*  z = 2**Hb - 1  */
+	z = Hb * ctfp___polevll(Hb, R, 6);  /*  z = 2**Hb - 1  */
 
 	/* Express e/NXT as an integer plus a negative number of (1/NXT)ths.
 	 * Find lookup table entry for the fractional power of 2.
@@ -399,7 +401,7 @@ long double powl(long double x, long double y)
 	w = A[e];
 	z = w * z;  /*  2**-e * ( 1 + (2**Hb-1) )  */
 	z = z + w;
-	z = scalbnl(z, i);  /* multiply by integer power of 2 */
+	z = ctfp_scalbnl(z, i);  /* multiply by integer power of 2 */
 
 	if (nflg)
 		z = -z;
@@ -413,7 +415,7 @@ static long double reducl(long double x)
 	long double t;
 
 	t = x * NXT;
-	t = floorl(t);
+	t = ctfp_floorl(t);
 	t = t / NXT;
 	return t;
 }
@@ -471,7 +473,7 @@ static long double powil(long double x, int nn)
 
 	/* Calculate approximate logarithm of answer */
 	s = x;
-	s = frexpl( s, &lx);
+	s = ctfp_frexpl( s, &lx);
 	e = (lx - 1)*n;
 	if ((e == 0) || (e > 64) || (e < -64)) {
 		s = (s - 7.0710678118654752e-1L) / (s +  7.0710678118654752e-1L);
@@ -515,8 +517,8 @@ static long double powil(long double x, int nn)
 }
 #elif LDBL_MANT_DIG == 113 && LDBL_MAX_EXP == 16384
 // TODO: broken implementation to make things compile
-long double powl(long double x, long double y)
+long double ctfp_powl(long double x, long double y)
 {
-	return pow(x, y);
+	return ctfp_pow(x, y);
 }
 #endif

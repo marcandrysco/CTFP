@@ -1,19 +1,21 @@
+#include "../ctfp-math.h"
+
 #include "libm.h"
 
 #if LDBL_MANT_DIG == 53 && LDBL_MAX_EXP == 1024
-long double frexpl(long double x, int *e)
+long double ctfp_frexpl(long double x, int *e)
 {
-	return frexp(x, e);
+	return ctfp_frexp(x, e);
 }
 #elif (LDBL_MANT_DIG == 64 || LDBL_MANT_DIG == 113) && LDBL_MAX_EXP == 16384
-long double frexpl(long double x, int *e)
+long double ctfp_frexpl(long double x, int *e)
 {
 	union ldshape u = {x};
 	int ee = u.i.se & 0x7fff;
 
 	if (!ee) {
 		if (x) {
-			x = frexpl(x*0x1p120, e);
+			x = ctfp_frexpl(x*0x1p120, e);
 			*e -= 120;
 		} else *e = 0;
 		return x;

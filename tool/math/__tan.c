@@ -1,3 +1,5 @@
+#include "../ctfp-math.h"
+
 /* origin: FreeBSD /usr/src/lib/msun/src/k_tan.c */
 /*
  * ====================================================
@@ -8,39 +10,39 @@
  * is preserved.
  * ====================================================
  */
-/* __tan( x, y, k )
- * kernel tan function on ~[-pi/4, pi/4] (except on -0), pi/4 ~ 0.7854
+/* ctfp___tan( x, y, k )
+ * kernel ctfp_tan function on ~[-pi/4, pi/4] (except on -0), pi/4 ~ 0.7854
  * Input x is assumed to be bounded by ~pi/4 in magnitude.
  * Input y is the tail of x.
- * Input odd indicates whether tan (if odd = 0) or -1/tan (if odd = 1) is returned.
+ * Input odd indicates whether ctfp_tan (if odd = 0) or -1/ctfp_tan (if odd = 1) is returned.
  *
  * Algorithm
- *      1. Since tan(-x) = -tan(x), we need only to consider positive x.
- *      2. Callers must return tan(-0) = -0 without calling here since our
+ *      1. Since ctfp_tan(-x) = -ctfp_tan(x), we need only to consider positive x.
+ *      2. Callers must return ctfp_tan(-0) = -0 without calling here since our
  *         odd polynomial is not evaluated in a way that preserves -0.
- *         Callers may do the optimization tan(x) ~ x for tiny x.
- *      3. tan(x) is approximated by a odd polynomial of degree 27 on
+ *         Callers may do the optimization ctfp_tan(x) ~ x for tiny x.
+ *      3. ctfp_tan(x) is approximated by a odd polynomial of degree 27 on
  *         [0,0.67434]
  *                               3             27
- *              tan(x) ~ x + T1*x + ... + T13*x
+ *              ctfp_tan(x) ~ x + T1*x + ... + T13*x
  *         where
  *
- *              |tan(x)         2     4            26   |     -59.2
+ *              |ctfp_tan(x)         2     4            26   |     -59.2
  *              |----- - (1+T1*x +T2*x +.... +T13*x    )| <= 2
  *              |  x                                    |
  *
- *         Note: tan(x+y) = tan(x) + tan'(x)*y
- *                        ~ tan(x) + (1+x*x)*y
- *         Therefore, for better accuracy in computing tan(x+y), let
+ *         Note: ctfp_tan(x+y) = ctfp_tan(x) + ctfp_tan'(x)*y
+ *                        ~ ctfp_tan(x) + (1+x*x)*y
+ *         Therefore, for better accuracy in computing ctfp_tan(x+y), let
  *                   3      2      2       2       2
  *              r = x *(T2+x *(T3+x *(...+x *(T12+x *T13))))
  *         then
  *                                  3    2
- *              tan(x+y) = x + (T1*x + (x *(r+y)+y))
+ *              ctfp_tan(x+y) = x + (T1*x + (x *(r+y)+y))
  *
  *      4. For x in [0.67434,pi/4],  let y = pi/4 - x, then
- *              tan(x) = tan(pi/4-y) = (1-tan(y))/(1+tan(y))
- *                     = 1 - 2*(tan(y) - (tan(y)^2)/(1+tan(y)))
+ *              ctfp_tan(x) = ctfp_tan(pi/4-y) = (1-ctfp_tan(y))/(1+ctfp_tan(y))
+ *                     = 1 - 2*(ctfp_tan(y) - (ctfp_tan(y)^2)/(1+ctfp_tan(y)))
  */
 
 #include "libm.h"
@@ -63,7 +65,7 @@ static const double T[] = {
 pio4 =       7.85398163397448278999e-01, /* 3FE921FB, 54442D18 */
 pio4lo =     3.06161699786838301793e-17; /* 3C81A626, 33145C07 */
 
-double __tan(double x, double y, int odd)
+double ctfp___tan(double x, double y, int odd)
 {
 	double_t z, r, v, w, s, a;
 	double w0, a0;

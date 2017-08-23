@@ -1,3 +1,5 @@
+#include "../ctfp-math.h"
+
 /* origin: FreeBSD /usr/src/lib/msun/src/s_atanf.c */
 /*
  * Conversion to float by Ian Lance Taylor, Cygnus Support, ian@cygnus.com.
@@ -17,17 +19,17 @@
 #include "libm.h"
 
 static const float atanhi[] = {
-  4.6364760399e-01, /* atan(0.5)hi 0x3eed6338 */
-  7.8539812565e-01, /* atan(1.0)hi 0x3f490fda */
-  9.8279368877e-01, /* atan(1.5)hi 0x3f7b985e */
-  1.5707962513e+00, /* atan(inf)hi 0x3fc90fda */
+  4.6364760399e-01, /* ctfp_atan(0.5)hi 0x3eed6338 */
+  7.8539812565e-01, /* ctfp_atan(1.0)hi 0x3f490fda */
+  9.8279368877e-01, /* ctfp_atan(1.5)hi 0x3f7b985e */
+  1.5707962513e+00, /* ctfp_atan(inf)hi 0x3fc90fda */
 };
 
 static const float atanlo[] = {
-  5.0121582440e-09, /* atan(0.5)lo 0x31ac3769 */
-  3.7748947079e-08, /* atan(1.0)lo 0x33222168 */
-  3.4473217170e-08, /* atan(1.5)lo 0x33140fb4 */
-  7.5497894159e-08, /* atan(inf)lo 0x33a22168 */
+  5.0121582440e-09, /* ctfp_atan(0.5)lo 0x31ac3769 */
+  3.7748947079e-08, /* ctfp_atan(1.0)lo 0x33222168 */
+  3.4473217170e-08, /* ctfp_atan(1.5)lo 0x33140fb4 */
+  7.5497894159e-08, /* ctfp_atan(inf)lo 0x33a22168 */
 };
 
 static const float aT[] = {
@@ -38,7 +40,7 @@ static const float aT[] = {
   6.1687607318e-02,
 };
 
-float atanf(float x)
+float ctfp_atanf(float x)
 {
 	float_t w,s1,s2,z;
 	uint32_t ix,sign;
@@ -62,7 +64,7 @@ float atanf(float x)
 		}
 		id = -1;
 	} else {
-		x = fabsf(x);
+		x = ctfp_fabsf(x);
 		if (ix < 0x3f980000) {  /* |x| < 1.1875 */
 			if (ix < 0x3f300000) {  /*  7/16 <= |x| < 11/16 */
 				id = 0;

@@ -1,3 +1,5 @@
+#include "../ctfp-math.h"
+
 /* origin: OpenBSD /usr/src/lib/libm/src/ld80/e_lgammal.c */
 /*
  * ====================================================
@@ -24,7 +26,7 @@
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
-/* lgammal(x)
+/* ctfp_lgammal(x)
  * Reentrant version of the logarithm of the Gamma function
  * with user provide pointer for the sign of Gamma(x).
  *
@@ -32,56 +34,56 @@
  *   1. Argument Reduction for 0 < x <= 8
  *      Since gamma(1+s)=s*gamma(s), for x in [0,8], we may
  *      reduce x to a number in [1.5,2.5] by
- *              lgamma(1+s) = log(s) + lgamma(s)
+ *              ctfp_lgamma(1+s) = ctfp_log(s) + ctfp_lgamma(s)
  *      for example,
- *              lgamma(7.3) = log(6.3) + lgamma(6.3)
- *                          = log(6.3*5.3) + lgamma(5.3)
- *                          = log(6.3*5.3*4.3*3.3*2.3) + lgamma(2.3)
- *   2. Polynomial approximation of lgamma around its
+ *              ctfp_lgamma(7.3) = ctfp_log(6.3) + ctfp_lgamma(6.3)
+ *                          = ctfp_log(6.3*5.3) + ctfp_lgamma(5.3)
+ *                          = ctfp_log(6.3*5.3*4.3*3.3*2.3) + ctfp_lgamma(2.3)
+ *   2. Polynomial approximation of ctfp_lgamma around its
  *      minimun ymin=1.461632144968362245 to maintain monotonicity.
  *      On [ymin-0.23, ymin+0.27] (i.e., [1.23164,1.73163]), use
  *              Let z = x-ymin;
- *              lgamma(x) = -1.214862905358496078218 + z^2*poly(z)
+ *              ctfp_lgamma(x) = -1.214862905358496078218 + z^2*poly(z)
  *   2. Rational approximation in the primary interval [2,3]
  *      We use the following approximation:
  *              s = x-2.0;
- *              lgamma(x) = 0.5*s + s*P(s)/Q(s)
+ *              ctfp_lgamma(x) = 0.5*s + s*P(s)/Q(s)
  *      Our algorithms are based on the following observation
  *
  *                             zeta(2)-1    2    zeta(3)-1    3
- * lgamma(2+s) = s*(1-Euler) + --------- * s  -  --------- * s  + ...
+ * ctfp_lgamma(2+s) = s*(1-Euler) + --------- * s  -  --------- * s  + ...
  *                                 2                 3
  *
  *      where Euler = 0.5771... is the Euler constant, which is very
  *      close to 0.5.
  *
  *   3. For x>=8, we have
- *      lgamma(x)~(x-0.5)log(x)-x+0.5*log(2pi)+1/(12x)-1/(360x**3)+....
+ *      ctfp_lgamma(x)~(x-0.5)ctfp_log(x)-x+0.5*ctfp_log(2pi)+1/(12x)-1/(360x**3)+....
  *      (better formula:
- *         lgamma(x)~(x-0.5)*(log(x)-1)-.5*(log(2pi)-1) + ...)
+ *         ctfp_lgamma(x)~(x-0.5)*(ctfp_log(x)-1)-.5*(ctfp_log(2pi)-1) + ...)
  *      Let z = 1/x, then we approximation
- *              f(z) = lgamma(x) - (x-0.5)(log(x)-1)
+ *              f(z) = ctfp_lgamma(x) - (x-0.5)(ctfp_log(x)-1)
  *      by
  *                                  3       5             11
  *              w = w0 + w1*z + w2*z  + w3*z  + ... + w6*z
  *
  *   4. For negative x, since (G is gamma function)
- *              -x*G(-x)*G(x) = pi/sin(pi*x),
+ *              -x*G(-x)*G(x) = pi/ctfp_sin(pi*x),
  *      we have
- *              G(x) = pi/(sin(pi*x)*(-x)*G(-x))
- *      since G(-x) is positive, sign(G(x)) = sign(sin(pi*x)) for x<0
- *      Hence, for x<0, signgam = sign(sin(pi*x)) and
- *              lgamma(x) = log(|Gamma(x)|)
- *                        = log(pi/(|x*sin(pi*x)|)) - lgamma(-x);
+ *              G(x) = pi/(ctfp_sin(pi*x)*(-x)*G(-x))
+ *      since G(-x) is positive, sign(G(x)) = sign(ctfp_sin(pi*x)) for x<0
+ *      Hence, for x<0, ctfp_signgam = sign(ctfp_sin(pi*x)) and
+ *              ctfp_lgamma(x) = ctfp_log(|Gamma(x)|)
+ *                        = ctfp_log(pi/(|x*ctfp_sin(pi*x)|)) - ctfp_lgamma(-x);
  *      Note: one should avoid compute pi*(-x) directly in the
- *            computation of sin(pi*(-x)).
+ *            computation of ctfp_sin(pi*(-x)).
  *
  *   5. Special Cases
- *              lgamma(2+s) ~ s*(1-Euler) for tiny s
- *              lgamma(1)=lgamma(2)=0
- *              lgamma(x) ~ -log(x) for tiny x
- *              lgamma(0) = lgamma(inf) = inf
- *              lgamma(-integer) = +-inf
+ *              ctfp_lgamma(2+s) ~ s*(1-Euler) for tiny s
+ *              ctfp_lgamma(1)=ctfp_lgamma(2)=0
+ *              ctfp_lgamma(x) ~ -ctfp_log(x) for tiny x
+ *              ctfp_lgamma(0) = ctfp_lgamma(inf) = inf
+ *              ctfp_lgamma(-integer) = +-inf
  *
  */
 
@@ -187,7 +189,7 @@ r6 = -4.501995652861105629217250715790764371267E2L,
 /* r6 =  1.000000000000000000000000000000000000000E0 */
 
 
-/* lgam(x) = ( x - 0.5 ) * log(x) - x + LS2PI + 1/x w(1/x^2)
+/* lgam(x) = ( x - 0.5 ) * ctfp_log(x) - x + LS2PI + 1/x w(1/x^2)
     x >= 8
     Peak relative error 1.51e-21
 w0 = LS2PI - 0.5 */
@@ -200,14 +202,14 @@ w5 =  8.412723297322498080632E-4L,
 w6 = -1.880801938119376907179E-3L,
 w7 =  4.885026142432270781165E-3L;
 
-/* sin(pi*x) assuming x > 2^-1000, if sin(pi*x)==0 the sign is arbitrary */
+/* ctfp_sin(pi*x) assuming x > 2^-1000, if ctfp_sin(pi*x)==0 the sign is arbitrary */
 static long double sin_pi(long double x)
 {
 	int n;
 
 	/* spurious inexact if odd int */
 	x *= 0.5;
-	x = 2.0*(x - floorl(x));  /* x mod 2.0 */
+	x = 2.0*(x - ctfp_floorl(x));  /* x mod 2.0 */
 
 	n = (int)(x*4.0);
 	n = (n+1)/2;
@@ -216,10 +218,10 @@ static long double sin_pi(long double x)
 
 	switch (n) {
 	default: /* case 4: */
-	case 0: return __sinl(x, 0.0, 0);
-	case 1: return __cosl(x, 0.0);
-	case 2: return __sinl(-x, 0.0, 0);
-	case 3: return -__cosl(x, 0.0);
+	case 0: return ctfp___sinl(x, 0.0, 0);
+	case 1: return ctfp___cosl(x, 0.0);
+	case 2: return ctfp___sinl(-x, 0.0, 0);
+	case 3: return -ctfp___cosl(x, 0.0);
 	}
 }
 
@@ -235,12 +237,12 @@ long double __lgammal_r(long double x, int *sg) {
 	/* purge off +-inf, NaN, +-0, tiny and negative arguments */
 	if (ix >= 0x7fff0000)
 		return x * x;
-	if (ix < 0x3fc08000) {  /* |x|<2**-63, return -log(|x|) */
+	if (ix < 0x3fc08000) {  /* |x|<2**-63, return -ctfp_log(|x|) */
 		if (sign) {
 			*sg = -1;
 			x = -x;
 		}
-		return -logl(x);
+		return -ctfp_logl(x);
 	}
 	if (sign) {
 		x = -x;
@@ -251,7 +253,7 @@ long double __lgammal_r(long double x, int *sg) {
 			*sg = -1;
 		else
 			t = -t;
-		nadj = logl(pi / (t * x));
+		nadj = ctfp_logl(pi / (t * x));
 	}
 
 	/* purge off 1 and 2 (so the sign is ok with downward rounding) */
@@ -259,8 +261,8 @@ long double __lgammal_r(long double x, int *sg) {
 		r = 0;
 	} else if (ix < 0x40008000) {  /* x < 2.0 */
 		if (ix <= 0x3ffee666) {  /* 8.99993896484375e-1 */
-			/* lgamma(x) = lgamma(x+1) - log(x) */
-			r = -logl(x);
+			/* ctfp_lgamma(x) = ctfp_lgamma(x+1) - ctfp_log(x) */
+			r = -ctfp_logl(x);
 			if (ix >= 0x3ffebb4a) {  /* 7.31597900390625e-1 */
 				y = x - 1.0;
 				i = 0;
@@ -312,7 +314,7 @@ long double __lgammal_r(long double x, int *sg) {
 		q = r0 + y * (r1 + y * (r2 + y * (r3 + y * (r4 + y * (r5 + y * (r6 + y))))));
 		r = 0.5 * y + p / q;
 		z = 1.0;
-		/* lgamma(1+s) = log(s) + lgamma(s) */
+		/* ctfp_lgamma(1+s) = ctfp_log(s) + ctfp_lgamma(s) */
 		switch (i) {
 		case 7:
 			z *= (y + 6.0); /* FALLTHRU */
@@ -324,18 +326,18 @@ long double __lgammal_r(long double x, int *sg) {
 			z *= (y + 3.0); /* FALLTHRU */
 		case 3:
 			z *= (y + 2.0); /* FALLTHRU */
-			r += logl(z);
+			r += ctfp_logl(z);
 			break;
 		}
 	} else if (ix < 0x40418000) {  /* 2^66 */
 		/* 8.0 <= x < 2**66 */
-		t = logl(x);
+		t = ctfp_logl(x);
 		z = 1.0 / x;
 		y = z * z;
 		w = w0 + z * (w1 + y * (w2 + y * (w3 + y * (w4 + y * (w5 + y * (w6 + y * w7))))));
 		r = (x - 0.5) * (t - 1.0) + w;
 	} else /* 2**66 <= x <= inf */
-		r = x * (logl(x) - 1.0);
+		r = x * (ctfp_logl(x) - 1.0);
 	if (sign)
 		r = nadj - r;
 	return r;
@@ -352,7 +354,7 @@ long double __lgammal_r(long double x, int *sg)
 
 extern int __signgam;
 
-long double lgammal(long double x)
+long double ctfp_lgammal(long double x)
 {
 	return __lgammal_r(x, &__signgam);
 }

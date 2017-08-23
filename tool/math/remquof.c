@@ -1,7 +1,9 @@
+#include "../ctfp-math.h"
+
 #include <math.h>
 #include <stdint.h>
 
-float remquof(float x, float y, int *quo)
+float ctfp_remquof(float x, float y, int *quo)
 {
 	union {float f; uint32_t i;} ux = {x}, uy = {y};
 	int ex = ux.i>>23 & 0xff;

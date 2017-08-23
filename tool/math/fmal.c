@@ -1,3 +1,5 @@
+#include "../ctfp-math.h"
+
 /* origin: FreeBSD /usr/src/lib/msun/src/s_fmal.c */
 /*-
  * Copyright (c) 2005-2011 David Schultz <das@FreeBSD.ORG>
@@ -28,9 +30,9 @@
 
 #include "libm.h"
 #if LDBL_MANT_DIG == 53 && LDBL_MAX_EXP == 1024
-long double fmal(long double x, long double y, long double z)
+long double ctfp_fmal(long double x, long double y, long double z)
 {
-	return fma(x, y, z);
+	return ctfp_fma(x, y, z);
 }
 #elif (LDBL_MANT_DIG == 64 || LDBL_MANT_DIG == 113) && LDBL_MAX_EXP == 16384
 #include <fenv.h>
@@ -54,7 +56,7 @@ struct dd {
 
 /*
  * Compute a+b exactly, returning the exact result in a struct dd.  We assume
- * that both a and b are finite, but make no assumptions about their relative
+ * that both a and b are ctfp_finite, but make no assumptions about their relative
  * magnitudes.
  */
 static inline struct dd dd_add(long double a, long double b)
@@ -73,7 +75,7 @@ static inline struct dd dd_add(long double a, long double b)
  * result is adjusted into a sticky bit summarizing all the bits that
  * were lost to rounding.  This adjustment negates the effects of double
  * rounding when the result is added to another number with a higher
- * exponent.  For an explanation of round and sticky bits, see any reference
+ * exponent.  For an explanation of ctfp_round and sticky bits, see any reference
  * on FPU design, e.g.,
  *
  *     J. Coonen.  An Implementation Guide to a Proposed Standard for
@@ -88,13 +90,13 @@ static inline long double add_adjusted(long double a, long double b)
 	if (sum.lo != 0) {
 		u.f = sum.hi;
 		if (!LASTBIT(u))
-			sum.hi = nextafterl(sum.hi, INFINITY * sum.lo);
+			sum.hi = ctfp_nextafterl(sum.hi, INFINITY * sum.lo);
 	}
 	return (sum.hi);
 }
 
 /*
- * Compute ldexp(a+b, scale) with a single rounding error. It is assumed
+ * Compute ctfp_ldexp(a+b, scale) with a single rounding error. It is assumed
  * that the result will be subnormal, and care is taken to ensure that
  * double rounding does not occur.
  */
@@ -108,7 +110,7 @@ static inline long double add_and_denormalize(long double a, long double b, int 
 
 	/*
 	 * If we are losing at least two bits of accuracy to denormalization,
-	 * then the first lost bit becomes a round bit, and we adjust the
+	 * then the first lost bit becomes a ctfp_round bit, and we adjust the
 	 * lowest bit of sum.hi to make it a sticky bit summarizing all the
 	 * bits in sum.lo. With the sticky bit adjusted, the hardware will
 	 * break any ties in the correct direction.
@@ -120,15 +122,15 @@ static inline long double add_and_denormalize(long double a, long double b, int 
 		u.f = sum.hi;
 		bits_lost = -u.i.se - scale + 1;
 		if ((bits_lost != 1) ^ LASTBIT(u))
-			sum.hi = nextafterl(sum.hi, INFINITY * sum.lo);
+			sum.hi = ctfp_nextafterl(sum.hi, INFINITY * sum.lo);
 	}
-	return scalbnl(sum.hi, scale);
+	return ctfp_scalbnl(sum.hi, scale);
 }
 
 /*
  * Compute a*b exactly, returning the exact result in a struct dd.  We assume
  * that both a and b are normalized, so no underflow or overflow will occur.
- * The current rounding mode must be round-to-nearest.
+ * The current rounding mode must be ctfp_round-to-nearest.
  */
 static inline struct dd dd_mul(long double a, long double b)
 {
@@ -162,7 +164,7 @@ static inline struct dd dd_mul(long double a, long double b)
  *      Dekker, T.  A Floating-Point Technique for Extending the
  *      Available Precision.  Numer. Math. 18, 224-242 (1971).
  */
-long double fmal(long double x, long double y, long double z)
+long double ctfp_fmal(long double x, long double y, long double z)
 {
 	#pragma STDC FENV_ACCESS ON
 	long double xs, ys, zs, adj;
@@ -185,9 +187,9 @@ long double fmal(long double x, long double y, long double z)
 	if (z == 0.0)
 		return (x * y);
 
-	xs = frexpl(x, &ex);
-	ys = frexpl(y, &ey);
-	zs = frexpl(z, &ez);
+	xs = ctfp_frexpl(x, &ex);
+	ys = ctfp_frexpl(y, &ey);
+	zs = ctfp_frexpl(z, &ez);
 	oround = fegetround();
 	spread = ex + ey - ez;
 
@@ -212,33 +214,33 @@ long double fmal(long double x, long double y, long double z)
 			if (x > 0.0 ^ y < 0.0 ^ z < 0.0)
 				return (z);
 			else
-				return (nextafterl(z, 0));
+				return (ctfp_nextafterl(z, 0));
 #endif
 #ifdef FE_DOWNWARD
 		case FE_DOWNWARD:
 			if (x > 0.0 ^ y < 0.0)
 				return (z);
 			else
-				return (nextafterl(z, -INFINITY));
+				return (ctfp_nextafterl(z, -INFINITY));
 #endif
 #ifdef FE_UPWARD
 		case FE_UPWARD:
 			if (x > 0.0 ^ y < 0.0)
-				return (nextafterl(z, INFINITY));
+				return (ctfp_nextafterl(z, INFINITY));
 			else
 				return (z);
 #endif
 		}
 	}
 	if (spread <= LDBL_MANT_DIG * 2)
-		zs = scalbnl(zs, -spread);
+		zs = ctfp_scalbnl(zs, -spread);
 	else
-		zs = copysignl(LDBL_MIN, zs);
+		zs = ctfp_copysignl(LDBL_MIN, zs);
 
 	fesetround(FE_TONEAREST);
 
 	/*
-	 * Basic approach for round-to-nearest:
+	 * Basic approach for ctfp_round-to-nearest:
 	 *
 	 *     (xy.hi, xy.lo) = x * y           (exact)
 	 *     (r.hi, r.lo)   = xy.hi + z       (exact)
@@ -257,7 +259,7 @@ long double fmal(long double x, long double y, long double z)
 		 */
 		fesetround(oround);
 		volatile long double vzs = zs; /* XXX gcc CSE bug workaround */
-		return xy.hi + vzs + scalbnl(xy.lo, spread);
+		return xy.hi + vzs + ctfp_scalbnl(xy.lo, spread);
 	}
 
 	if (oround != FE_TONEAREST) {
@@ -265,7 +267,7 @@ long double fmal(long double x, long double y, long double z)
 		 * There is no need to worry about double rounding in directed
 		 * rounding modes.
 		 * But underflow may not be raised correctly, example in downward rounding:
-		 * fmal(0x1.0000000001p-16000L, 0x1.0000000001p-400L, -0x1p-16440L)
+		 * ctfp_fmal(0x1.0000000001p-16000L, 0x1.0000000001p-400L, -0x1p-16440L)
 		 */
 		long double ret;
 #if defined(FE_INEXACT) && defined(FE_UNDERFLOW)
@@ -274,9 +276,9 @@ long double fmal(long double x, long double y, long double z)
 #endif
 		fesetround(oround);
 		adj = r.lo + xy.lo;
-		ret = scalbnl(r.hi + adj, spread);
+		ret = ctfp_scalbnl(r.hi + adj, spread);
 #if defined(FE_INEXACT) && defined(FE_UNDERFLOW)
-		if (ilogbl(ret) < -16382 && fetestexcept(FE_INEXACT))
+		if (ctfp_ilogbl(ret) < -16382 && fetestexcept(FE_INEXACT))
 			feraiseexcept(FE_UNDERFLOW);
 		else if (e)
 			feraiseexcept(FE_INEXACT);
@@ -285,8 +287,8 @@ long double fmal(long double x, long double y, long double z)
 	}
 
 	adj = add_adjusted(r.lo, xy.lo);
-	if (spread + ilogbl(r.hi) > -16383)
-		return scalbnl(r.hi + adj, spread);
+	if (spread + ctfp_ilogbl(r.hi) > -16383)
+		return ctfp_scalbnl(r.hi + adj, spread);
 	else
 		return add_and_denormalize(r.hi, adj, spread);
 }

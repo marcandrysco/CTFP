@@ -1,3 +1,5 @@
+#include "../ctfp-math.h"
+
 /* origin: FreeBSD /usr/src/lib/msun/src/s_fmaf.c */
 /*-
  * Copyright (c) 2005-2011 David Schultz <das@FreeBSD.ORG>
@@ -36,7 +38,7 @@
  * direct double-precision arithmetic suffices, except where double
  * rounding occurs.
  */
-float fmaf(float x, float y, float z)
+float ctfp_fmaf(float x, float y, float z)
 {
 	#pragma STDC FENV_ACCESS ON
 	double xy, result;
@@ -51,11 +53,11 @@ float fmaf(float x, float y, float z)
 	if ((u.i & 0x1fffffff) != 0x10000000 || /* not a halfway case */
 		e == 0x7ff ||                   /* NaN */
 		result - xy == z ||                 /* exact */
-		fegetround() != FE_TONEAREST)       /* not round-to-nearest */
+		fegetround() != FE_TONEAREST)       /* not ctfp_round-to-nearest */
 	{
 		/*
 		underflow may not be raised correctly, example:
-		fmaf(0x1p-120f, 0x1p-120f, 0x1p-149f)
+		ctfp_fmaf(0x1p-120f, 0x1p-120f, 0x1p-149f)
 		*/
 #if defined(FE_INEXACT) && defined(FE_UNDERFLOW)
 		if (e < 0x3ff-126 && e >= 0x3ff-149 && fetestexcept(FE_INEXACT)) {

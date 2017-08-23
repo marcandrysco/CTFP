@@ -1,3 +1,5 @@
+#include "../ctfp-math.h"
+
 /* origin: FreeBSD /usr/src/lib/msun/src/e_atan2.c */
 /*
  * ====================================================
@@ -10,9 +12,9 @@
  * ====================================================
  *
  */
-/* atan2(y,x)
+/* ctfp_atan2(y,x)
  * Method :
- *      1. Reduce y to positive by atan2(y,x)=-atan2(-y,x).
+ *      1. Reduce y to positive by ctfp_atan2(y,x)=-ctfp_atan2(-y,x).
  *      2. Reduce x to positive by (if x and y are unexceptional):
  *              ARG (x+iy) = arctan(y/x)           ... if x > 0,
  *              ARG (x+iy) = pi - arctan[y/(-x)]   ... if x < 0,
@@ -43,7 +45,7 @@ static const double
 pi     = 3.1415926535897931160E+00, /* 0x400921FB, 0x54442D18 */
 pi_lo  = 1.2246467991473531772E-16; /* 0x3CA1A626, 0x33145C07 */
 
-double atan2(double y, double x)
+double ctfp_atan2(double y, double x)
 {
 	double z;
 	uint32_t m,lx,ly,ix,iy;
@@ -53,7 +55,7 @@ double atan2(double y, double x)
 	EXTRACT_WORDS(ix, lx, x);
 	EXTRACT_WORDS(iy, ly, y);
 	if ((ix-0x3ff00000 | lx) == 0)  /* x = 1.0 */
-		return atan(y);
+		return ctfp_atan(y);
 	m = ((iy>>31)&1) | ((ix>>30)&2);  /* 2*sign(x)+sign(y) */
 	ix = ix & 0x7fffffff;
 	iy = iy & 0x7fffffff;
@@ -62,9 +64,9 @@ double atan2(double y, double x)
 	if ((iy|ly) == 0) {
 		switch(m) {
 		case 0:
-		case 1: return y;   /* atan(+-0,+anything)=+-0 */
-		case 2: return  pi; /* atan(+0,-anything) = pi */
-		case 3: return -pi; /* atan(-0,-anything) =-pi */
+		case 1: return y;   /* ctfp_atan(+-0,+anything)=+-0 */
+		case 2: return  pi; /* ctfp_atan(+0,-anything) = pi */
+		case 3: return -pi; /* ctfp_atan(-0,-anything) =-pi */
 		}
 	}
 	/* when x = 0 */
@@ -74,17 +76,17 @@ double atan2(double y, double x)
 	if (ix == 0x7ff00000) {
 		if (iy == 0x7ff00000) {
 			switch(m) {
-			case 0: return  pi/4;   /* atan(+INF,+INF) */
-			case 1: return -pi/4;   /* atan(-INF,+INF) */
-			case 2: return  3*pi/4; /* atan(+INF,-INF) */
-			case 3: return -3*pi/4; /* atan(-INF,-INF) */
+			case 0: return  pi/4;   /* ctfp_atan(+INF,+INF) */
+			case 1: return -pi/4;   /* ctfp_atan(-INF,+INF) */
+			case 2: return  3*pi/4; /* ctfp_atan(+INF,-INF) */
+			case 3: return -3*pi/4; /* ctfp_atan(-INF,-INF) */
 			}
 		} else {
 			switch(m) {
-			case 0: return  0.0; /* atan(+...,+INF) */
-			case 1: return -0.0; /* atan(-...,+INF) */
-			case 2: return  pi;  /* atan(+...,-INF) */
-			case 3: return -pi;  /* atan(-...,-INF) */
+			case 0: return  0.0; /* ctfp_atan(+...,+INF) */
+			case 1: return -0.0; /* ctfp_atan(-...,+INF) */
+			case 2: return  pi;  /* ctfp_atan(+...,-INF) */
+			case 3: return -pi;  /* ctfp_atan(-...,-INF) */
 			}
 		}
 	}
@@ -92,16 +94,16 @@ double atan2(double y, double x)
 	if (ix+(64<<20) < iy || iy == 0x7ff00000)
 		return m&1 ? -pi/2 : pi/2;
 
-	/* z = atan(|y/x|) without spurious underflow */
+	/* z = ctfp_atan(|y/x|) without spurious underflow */
 	if ((m&2) && iy+(64<<20) < ix)  /* |y/x| < 0x1p-64, x<0 */
 		z = 0;
 	else
-		z = atan(fabs(y/x));
+		z = ctfp_atan(ctfp_fabs(y/x));
 	switch (m) {
-	case 0: return z;              /* atan(+,+) */
-	case 1: return -z;             /* atan(-,+) */
-	case 2: return pi - (z-pi_lo); /* atan(+,-) */
+	case 0: return z;              /* ctfp_atan(+,+) */
+	case 1: return -z;             /* ctfp_atan(-,+) */
+	case 2: return pi - (z-pi_lo); /* ctfp_atan(+,-) */
 	default: /* case 3 */
-		return (z-pi_lo) - pi; /* atan(-,-) */
+		return (z-pi_lo) - pi; /* ctfp_atan(-,-) */
 	}
 }

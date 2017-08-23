@@ -1,7 +1,9 @@
+#include "../ctfp-math.h"
+
 #include <math.h>
 #include <stdint.h>
 
-int __fpclassifyf(float x)
+int ctfp___fpclassifyf(float x)
 {
 	union {float f; uint32_t i;} u = {x};
 	int e = u.i>>23 & 0xff;

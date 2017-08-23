@@ -1,3 +1,5 @@
+#include "../ctfp-math.h"
+
 /* origin: FreeBSD /usr/src/lib/msun/src/e_log2f.c */
 /*
  * ====================================================
@@ -10,7 +12,7 @@
  * ====================================================
  */
 /*
- * See comments in log2.c.
+ * See comments in ctfp_log2.c.
  */
 
 #include <math.h>
@@ -19,13 +21,13 @@
 static const float
 ivln2hi =  1.4428710938e+00, /* 0x3fb8b000 */
 ivln2lo = -1.7605285393e-04, /* 0xb9389ad4 */
-/* |(log(1+s)-log(1-s))/s - Lg(s)| < 2**-34.24 (~[-4.95e-11, 4.97e-11]). */
+/* |(ctfp_log(1+s)-ctfp_log(1-s))/s - Lg(s)| < 2**-34.24 (~[-4.95e-11, 4.97e-11]). */
 Lg1 = 0xaaaaaa.0p-24, /* 0.66666662693 */
 Lg2 = 0xccce13.0p-25, /* 0.40000972152 */
 Lg3 = 0x91e9ee.0p-25, /* 0.28498786688 */
 Lg4 = 0xf89e26.0p-26; /* 0.24279078841 */
 
-float log2f(float x)
+float ctfp_log2f(float x)
 {
 	union {float f; uint32_t i;} u = {x};
 	float_t hfsq,f,s,z,R,w,t1,t2,hi,lo;
@@ -36,9 +38,9 @@ float log2f(float x)
 	k = 0;
 	if (ix < 0x00800000 || ix>>31) {  /* x < 2**-126  */
 		if (ix<<1 == 0)
-			return -1/(x*x);  /* log(+-0)=-inf */
+			return -1/(x*x);  /* ctfp_log(+-0)=-inf */
 		if (ix>>31)
-			return (x-x)/0.0f; /* log(-#) = NaN */
+			return (x-x)/0.0f; /* ctfp_log(-#) = NaN */
 		/* subnormal number, scale up x */
 		k -= 25;
 		x *= 0x1p25f;

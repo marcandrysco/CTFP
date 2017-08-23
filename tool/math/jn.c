@@ -1,3 +1,5 @@
+#include "../ctfp-math.h"
+
 /* origin: FreeBSD /usr/src/lib/msun/src/e_jn.c */
 /*
  * ====================================================
@@ -10,18 +12,18 @@
  * ====================================================
  */
 /*
- * jn(n, x), yn(n, x)
+ * ctfp_jn(n, x), yn(n, x)
  * floating point Bessel's function of the 1st and 2nd kind
  * of order n
  *
  * Special cases:
  *      y0(0)=y1(0)=yn(n,0) = -inf with division by zero signal;
  *      y0(-ve)=y1(-ve)=yn(n,-ve) are NaN with invalid signal.
- * Note 2. About jn(n,x), yn(n,x)
- *      For n=0, j0(x) is called,
- *      for n=1, j1(x) is called,
+ * Note 2. About ctfp_jn(n,x), yn(n,x)
+ *      For n=0, ctfp_j0(x) is called,
+ *      for n=1, ctfp_j1(x) is called,
  *      for n<=x, forward recursion is used starting
- *      from values of j0(x) and j1(x).
+ *      from values of ctfp_j0(x) and ctfp_j1(x).
  *      for n>x, a continued fraction approximation to
  *      j(n,x)/j(n-1,x) is evaluated and then backward
  *      recursion is used starting from a supposed value
@@ -38,7 +40,7 @@
 
 static const double invsqrtpi = 5.64189583547756279280e-01; /* 0x3FE20DD7, 0x50429B6D */
 
-double jn(int n, double x)
+double ctfp_jn(int n, double x)
 {
 	uint32_t ix, lx;
 	int nm1, i, sign;
@@ -48,7 +50,7 @@ double jn(int n, double x)
 	sign = ix>>31;
 	ix &= 0x7fffffff;
 
-	if ((ix | (lx|-lx)>>31) > 0x7ff00000) /* nan */
+	if ((ix | (lx|-lx)>>31) > 0x7ff00000) /* ctfp_nan */
 		return x;
 
 	/* J(-n,x) = (-1)^n * J(n, x), J(n, -x) = (-1)^n * J(n, x)
@@ -56,7 +58,7 @@ double jn(int n, double x)
 	 */
 	/* nm1 = |n|-1 is used instead of |n| to handle n==INT_MIN */
 	if (n == 0)
-		return j0(x);
+		return ctfp_j0(x);
 	if (n < 0) {
 		nm1 = -(n+1);
 		x = -x;
@@ -64,22 +66,22 @@ double jn(int n, double x)
 	} else
 		nm1 = n-1;
 	if (nm1 == 0)
-		return j1(x);
+		return ctfp_j1(x);
 
 	sign &= n;  /* even n: 0, odd n: signbit(x) */
-	x = fabs(x);
+	x = ctfp_fabs(x);
 	if ((ix|lx) == 0 || ix == 0x7ff00000)  /* if x is 0 or inf */
 		b = 0.0;
 	else if (nm1 < x) {
 		/* Safe to use J(n+1,x)=2n/x *J(n,x)-J(n-1,x) */
 		if (ix >= 0x52d00000) { /* x > 2**302 */
 			/* (x >> n**2)
-			 *      Jn(x) = cos(x-(2n+1)*pi/4)*sqrt(2/x*pi)
-			 *      Yn(x) = sin(x-(2n+1)*pi/4)*sqrt(2/x*pi)
-			 *      Let s=sin(x), c=cos(x),
+			 *      Jn(x) = ctfp_cos(x-(2n+1)*pi/4)*sqrt(2/x*pi)
+			 *      Yn(x) = ctfp_sin(x-(2n+1)*pi/4)*sqrt(2/x*pi)
+			 *      Let s=ctfp_sin(x), c=ctfp_cos(x),
 			 *          xn=x-(2n+1)*pi/4, sqt2 = sqrt(2),then
 			 *
-			 *             n    sin(xn)*sqt2    cos(xn)*sqt2
+			 *             n    ctfp_sin(xn)*sqt2    ctfp_cos(xn)*sqt2
 			 *          ----------------------------------
 			 *             0     s-c             c+s
 			 *             1    -s-c            -c+s
@@ -87,16 +89,16 @@ double jn(int n, double x)
 			 *             3     s+c             c-s
 			 */
 			switch(nm1&3) {
-			case 0: temp = -cos(x)+sin(x); break;
-			case 1: temp = -cos(x)-sin(x); break;
-			case 2: temp =  cos(x)-sin(x); break;
+			case 0: temp = -ctfp_cos(x)+ctfp_sin(x); break;
+			case 1: temp = -ctfp_cos(x)-ctfp_sin(x); break;
+			case 2: temp =  ctfp_cos(x)-ctfp_sin(x); break;
 			default:
-			case 3: temp =  cos(x)+sin(x); break;
+			case 3: temp =  ctfp_cos(x)+ctfp_sin(x); break;
 			}
 			b = invsqrtpi*temp/sqrt(x);
 		} else {
-			a = j0(x);
-			b = j1(x);
+			a = ctfp_j0(x);
+			b = ctfp_j1(x);
 			for (i=0; i<nm1; ) {
 				i++;
 				temp = b;
@@ -172,15 +174,15 @@ double jn(int n, double x)
 				t = 1/(2*(i+nf)/x - t);
 			a = t;
 			b = 1.0;
-			/*  estimate log((2/x)^n*n!) = n*log(2/x)+n*ln(n)
-			 *  Hence, if n*(log(2n/x)) > ...
+			/*  estimate ctfp_log((2/x)^n*n!) = n*ctfp_log(2/x)+n*ln(n)
+			 *  Hence, if n*(ctfp_log(2n/x)) > ...
 			 *  single 8.8722839355e+01
 			 *  double 7.09782712893383973096e+02
 			 *  long double 1.1356523406294143949491931077970765006170e+04
 			 *  then recurrent value may overflow and the result is
 			 *  likely underflow to zero
 			 */
-			tmp = nf*log(fabs(w));
+			tmp = nf*ctfp_log(ctfp_fabs(w));
 			if (tmp < 7.09782712893383973096e+02) {
 				for (i=nm1; i>0; i--) {
 					temp = b;
@@ -200,9 +202,9 @@ double jn(int n, double x)
 					}
 				}
 			}
-			z = j0(x);
-			w = j1(x);
-			if (fabs(z) >= fabs(w))
+			z = ctfp_j0(x);
+			w = ctfp_j1(x);
+			if (ctfp_fabs(z) >= ctfp_fabs(w))
 				b = t*z/b;
 			else
 				b = t*w/a;
@@ -222,7 +224,7 @@ double yn(int n, double x)
 	sign = ix>>31;
 	ix &= 0x7fffffff;
 
-	if ((ix | (lx|-lx)>>31) > 0x7ff00000) /* nan */
+	if ((ix | (lx|-lx)>>31) > 0x7ff00000) /* ctfp_nan */
 		return x;
 	if (sign && (ix|lx)!=0) /* x < 0 */
 		return 0/0.0;
@@ -243,12 +245,12 @@ double yn(int n, double x)
 
 	if (ix >= 0x52d00000) { /* x > 2**302 */
 		/* (x >> n**2)
-		 *      Jn(x) = cos(x-(2n+1)*pi/4)*sqrt(2/x*pi)
-		 *      Yn(x) = sin(x-(2n+1)*pi/4)*sqrt(2/x*pi)
-		 *      Let s=sin(x), c=cos(x),
+		 *      Jn(x) = ctfp_cos(x-(2n+1)*pi/4)*sqrt(2/x*pi)
+		 *      Yn(x) = ctfp_sin(x-(2n+1)*pi/4)*sqrt(2/x*pi)
+		 *      Let s=ctfp_sin(x), c=ctfp_cos(x),
 		 *          xn=x-(2n+1)*pi/4, sqt2 = sqrt(2),then
 		 *
-		 *             n    sin(xn)*sqt2    cos(xn)*sqt2
+		 *             n    ctfp_sin(xn)*sqt2    ctfp_cos(xn)*sqt2
 		 *          ----------------------------------
 		 *             0     s-c             c+s
 		 *             1    -s-c            -c+s
@@ -256,11 +258,11 @@ double yn(int n, double x)
 		 *             3     s+c             c-s
 		 */
 		switch(nm1&3) {
-		case 0: temp = -sin(x)-cos(x); break;
-		case 1: temp = -sin(x)+cos(x); break;
-		case 2: temp =  sin(x)+cos(x); break;
+		case 0: temp = -ctfp_sin(x)-ctfp_cos(x); break;
+		case 1: temp = -ctfp_sin(x)+ctfp_cos(x); break;
+		case 2: temp =  ctfp_sin(x)+ctfp_cos(x); break;
 		default:
-		case 3: temp =  sin(x)-cos(x); break;
+		case 3: temp =  ctfp_sin(x)-ctfp_cos(x); break;
 		}
 		b = invsqrtpi*temp/sqrt(x);
 	} else {

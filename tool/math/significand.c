@@ -1,7 +1,9 @@
+#include "../ctfp-math.h"
+
 #define _GNU_SOURCE
 #include <math.h>
 
-double significand(double x)
+double ctfp_significand(double x)
 {
-	return scalbn(x, -ilogb(x));
+	return ctfp_scalbn(x, -ctfp_ilogb(x));
 }

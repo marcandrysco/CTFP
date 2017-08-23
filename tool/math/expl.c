@@ -1,3 +1,5 @@
+#include "../ctfp-math.h"
+
 /* origin: OpenBSD /usr/src/lib/libm/src/ld80/e_expl.c */
 /*
  * Copyright (c) 2008 Stephen L. Moshier <steve@moshier.net>
@@ -20,9 +22,9 @@
  *
  * SYNOPSIS:
  *
- * long double x, y, expl();
+ * long double x, y, ctfp_expl();
  *
- * y = expl( x );
+ * y = ctfp_expl( x );
  *
  *
  * DESCRIPTION:
@@ -35,7 +37,7 @@
  *     x    k  f
  *    e  = 2  e.
  *
- * A Pade' form of degree 5/6 is used to approximate exp(f) - 1
+ * A Pade' form of degree 5/6 is used to approximate ctfp_exp(f) - 1
  * in the basic range [-0.5 ln 2, 0.5 ln 2].
  *
  *
@@ -48,7 +50,7 @@
  *
  * Error amplification in the exponential function can be
  * a serious matter.  The error propagation involves
- * exp( X(1+delta) ) = exp(X) ( 1 + X*delta + ... ),
+ * ctfp_exp( X(1+delta) ) = ctfp_exp(X) ( 1 + X*delta + ... ),
  * which shows that a 1 lsb error in representing X produces
  * a relative error of X times 1 lsb in the function.
  * While the routine gives an accurate result for arguments
@@ -60,17 +62,17 @@
  * ERROR MESSAGES:
  *
  *   message         condition      value returned
- * exp underflow    x < MINLOG         0.0
- * exp overflow     x > MAXLOG         MAXNUM
+ * ctfp_exp underflow    x < MINLOG         0.0
+ * ctfp_exp overflow     x > MAXLOG         MAXNUM
  *
  */
 
 #include "libm.h"
 
 #if LDBL_MANT_DIG == 53 && LDBL_MAX_EXP == 1024
-long double expl(long double x)
+long double ctfp_expl(long double x)
 {
-	return exp(x);
+	return ctfp_exp(x);
 }
 #elif LDBL_MANT_DIG == 64 && LDBL_MAX_EXP == 16384
 
@@ -90,7 +92,7 @@ LN2HI = 6.9314575195312500000000E-1L,
 LN2LO = 1.4286068203094172321215E-6L,
 LOG2E = 1.4426950408889634073599E0L;
 
-long double expl(long double x)
+long double ctfp_expl(long double x)
 {
 	long double px, xx;
 	int k;
@@ -105,7 +107,7 @@ long double expl(long double x)
 	/* Express e**x = e**f 2**k
 	 *   = e**(f + k ln(2))
 	 */
-	px = floorl(LOG2E * x + 0.5);
+	px = ctfp_floorl(LOG2E * x + 0.5);
 	k = px;
 	x -= px * LN2HI;
 	x -= px * LN2LO;
@@ -114,15 +116,15 @@ long double expl(long double x)
 	 * e**x =  1 + 2x P(x**2)/(Q(x**2) - x P(x**2))
 	 */
 	xx = x * x;
-	px = x * __polevll(xx, P, 2);
-	x = px/(__polevll(xx, Q, 3) - px);
+	px = x * ctfp___polevll(xx, P, 2);
+	x = px/(ctfp___polevll(xx, Q, 3) - px);
 	x = 1.0 + 2.0 * x;
-	return scalbnl(x, k);
+	return ctfp_scalbnl(x, k);
 }
 #elif LDBL_MANT_DIG == 113 && LDBL_MAX_EXP == 16384
 // TODO: broken implementation to make things compile
-long double expl(long double x)
+long double ctfp_expl(long double x)
 {
-	return exp(x);
+	return ctfp_exp(x);
 }
 #endif

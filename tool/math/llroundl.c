@@ -1,6 +1,8 @@
+#include "../ctfp-math.h"
+
 #include <math.h>
 
-long long llroundl(long double x)
+long long ctfp_llroundl(long double x)
 {
-	return roundl(x);
+	return ctfp_roundl(x);
 }

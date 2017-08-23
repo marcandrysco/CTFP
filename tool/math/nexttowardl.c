@@ -1,6 +1,8 @@
+#include "../ctfp-math.h"
+
 #include <math.h>
 
-long double nexttowardl(long double x, long double y)
+long double ctfp_nexttowardl(long double x, long double y)
 {
-	return nextafterl(x, y);
+	return ctfp_nextafterl(x, y);
 }

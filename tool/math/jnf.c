@@ -1,3 +1,5 @@
+#include "../ctfp-math.h"
+
 /* origin: FreeBSD /usr/src/lib/msun/src/e_jnf.c */
 /*
  * Conversion to float by Ian Lance Taylor, Cygnus Support, ian@cygnus.com.
@@ -16,7 +18,7 @@
 #define _GNU_SOURCE
 #include "libm.h"
 
-float jnf(int n, float x)
+float ctfp_jnf(int n, float x)
 {
 	uint32_t ix;
 	int nm1, sign, i;
@@ -25,12 +27,12 @@ float jnf(int n, float x)
 	GET_FLOAT_WORD(ix, x);
 	sign = ix>>31;
 	ix &= 0x7fffffff;
-	if (ix > 0x7f800000) /* nan */
+	if (ix > 0x7f800000) /* ctfp_nan */
 		return x;
 
 	/* J(-n,x) = J(n,-x), use |n|-1 to avoid overflow in -n */
 	if (n == 0)
-		return j0f(x);
+		return ctfp_j0f(x);
 	if (n < 0) {
 		nm1 = -(n+1);
 		x = -x;
@@ -38,16 +40,16 @@ float jnf(int n, float x)
 	} else
 		nm1 = n-1;
 	if (nm1 == 0)
-		return j1f(x);
+		return ctfp_j1f(x);
 
 	sign &= n;  /* even n: 0, odd n: signbit(x) */
-	x = fabsf(x);
+	x = ctfp_fabsf(x);
 	if (ix == 0 || ix == 0x7f800000)  /* if x is 0 or inf */
 		b = 0.0f;
 	else if (nm1 < x) {
 		/* Safe to use J(n+1,x)=2n/x *J(n,x)-J(n-1,x) */
-		a = j0f(x);
-		b = j1f(x);
+		a = ctfp_j0f(x);
+		b = ctfp_j1f(x);
 		for (i=0; i<nm1; ){
 			i++;
 			temp = b;
@@ -120,15 +122,15 @@ float jnf(int n, float x)
 				t = 1.0f/(2*(i+nf)/x-t);
 			a = t;
 			b = 1.0f;
-			/*  estimate log((2/x)^n*n!) = n*log(2/x)+n*ln(n)
-			 *  Hence, if n*(log(2n/x)) > ...
+			/*  estimate ctfp_log((2/x)^n*n!) = n*ctfp_log(2/x)+n*ln(n)
+			 *  Hence, if n*(ctfp_log(2n/x)) > ...
 			 *  single 8.8722839355e+01
 			 *  double 7.09782712893383973096e+02
 			 *  long double 1.1356523406294143949491931077970765006170e+04
 			 *  then recurrent value may overflow and the result is
 			 *  likely underflow to zero
 			 */
-			tmp = nf*logf(fabsf(w));
+			tmp = nf*ctfp_logf(ctfp_fabsf(w));
 			if (tmp < 88.721679688f) {
 				for (i=nm1; i>0; i--) {
 					temp = b;
@@ -148,9 +150,9 @@ float jnf(int n, float x)
 					}
 				}
 			}
-			z = j0f(x);
-			w = j1f(x);
-			if (fabsf(z) >= fabsf(w))
+			z = ctfp_j0f(x);
+			w = ctfp_j1f(x);
+			if (ctfp_fabsf(z) >= ctfp_fabsf(w))
 				b = t*z/b;
 			else
 				b = t*w/a;
@@ -168,7 +170,7 @@ float ynf(int n, float x)
 	GET_FLOAT_WORD(ix, x);
 	sign = ix>>31;
 	ix &= 0x7fffffff;
-	if (ix > 0x7f800000) /* nan */
+	if (ix > 0x7f800000) /* ctfp_nan */
 		return x;
 	if (sign && ix != 0) /* x < 0 */
 		return 0/0.0f;

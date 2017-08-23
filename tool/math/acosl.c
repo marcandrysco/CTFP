@@ -1,3 +1,5 @@
+#include "../ctfp-math.h"
+
 /* origin: FreeBSD /usr/src/lib/msun/src/e_acosl.c */
 /*
  * ====================================================
@@ -10,16 +12,16 @@
  * ====================================================
  */
 /*
- * See comments in acos.c.
+ * See comments in ctfp_acos.c.
  * Converted to long double by David Schultz <das@FreeBSD.ORG>.
  */
 
 #include "libm.h"
 
 #if LDBL_MANT_DIG == 53 && LDBL_MAX_EXP == 1024
-long double acosl(long double x)
+long double ctfp_acosl(long double x)
 {
-	return acos(x);
+	return ctfp_acos(x);
 }
 #elif (LDBL_MANT_DIG == 64 || LDBL_MANT_DIG == 113) && LDBL_MAX_EXP == 16384
 #include "__invtrigl.h"
@@ -29,13 +31,13 @@ long double acosl(long double x)
 #define CLEARBOTTOM(u) (u.i.lo = 0)
 #endif
 
-long double acosl(long double x)
+long double ctfp_acosl(long double x)
 {
 	union ldshape u = {x};
 	long double z, s, c, f;
 	uint16_t e = u.i.se & 0x7fff;
 
-	/* |x| >= 1 or nan */
+	/* |x| >= 1 or ctfp_nan */
 	if (e >= 0x3fff) {
 		if (x == 1)
 			return 0;

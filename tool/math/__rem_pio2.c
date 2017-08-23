@@ -1,3 +1,5 @@
+#include "../ctfp-math.h"
+
 /* origin: FreeBSD /usr/src/lib/msun/src/e_rem_pio2.c */
 /*
  * ====================================================
@@ -11,10 +13,10 @@
  *
  * Optimized by Bruce D. Evans.
  */
-/* __rem_pio2(x,y)
+/* ctfp___rem_pio2(x,y)
  *
- * return the remainder of x rem pi/2 in y[0]+y[1]
- * use __rem_pio2_large() for large x
+ * return the ctfp_remainder of x rem pi/2 in y[0]+y[1]
+ * use ctfp___rem_pio2_large() for large x
  */
 
 #include "libm.h"
@@ -45,7 +47,7 @@ pio2_3  = 2.02226624871116645580e-21, /* 0x3BA3198A, 0x2E000000 */
 pio2_3t = 8.47842766036889956997e-32; /* 0x397B839A, 0x252049C1 */
 
 /* caller must handle the case when reduction is not needed: |x| ~<= pi/4 */
-int __rem_pio2(double x, double *y)
+int ctfp___rem_pio2(double x, double *y)
 {
 	union {double f; uint64_t i;} u = {x};
 	double_t z,w,t,r,fn;
@@ -60,7 +62,7 @@ int __rem_pio2(double x, double *y)
 			goto medium;  /* cancellation -- use medium case */
 		if (ix <= 0x4002d97c) {  /* |x| ~<= 3pi/4 */
 			if (!sign) {
-				z = x - pio2_1;  /* one round good to 85 bits */
+				z = x - pio2_1;  /* one ctfp_round good to 85 bits */
 				y[0] = z - pio2_1t;
 				y[1] = (z-y[0]) - pio2_1t;
 				return 1;
@@ -117,16 +119,16 @@ int __rem_pio2(double x, double *y)
 	}
 	if (ix < 0x413921fb) {  /* |x| ~< 2^20*(pi/2), medium size */
 medium:
-		/* rint(x/(pi/2)), Assume round-to-nearest. */
+		/* ctfp_rint(x/(pi/2)), Assume ctfp_round-to-nearest. */
 		fn = (double_t)x*invpio2 + toint - toint;
 		n = (int32_t)fn;
 		r = x - fn*pio2_1;
-		w = fn*pio2_1t;  /* 1st round, good to 85 bits */
+		w = fn*pio2_1t;  /* 1st ctfp_round, good to 85 bits */
 		y[0] = r - w;
 		u.f = y[0];
 		ey = u.i>>52 & 0x7ff;
 		ex = ix>>20;
-		if (ex - ey > 16) { /* 2nd round, good to 118 bits */
+		if (ex - ey > 16) { /* 2nd ctfp_round, good to 118 bits */
 			t = r;
 			w = fn*pio2_2;
 			r = t - w;
@@ -134,7 +136,7 @@ medium:
 			y[0] = r - w;
 			u.f = y[0];
 			ey = u.i>>52 & 0x7ff;
-			if (ex - ey > 49) {  /* 3rd round, good to 151 bits, covers all cases */
+			if (ex - ey > 49) {  /* 3rd ctfp_round, good to 151 bits, covers all cases */
 				t = r;
 				w = fn*pio2_3;
 				r = t - w;
@@ -152,7 +154,7 @@ medium:
 		y[0] = y[1] = x - x;
 		return 0;
 	}
-	/* set z = scalbn(|x|,-ilogb(x)+23) */
+	/* set z = ctfp_scalbn(|x|,-ctfp_ilogb(x)+23) */
 	u.f = x;
 	u.i &= (uint64_t)-1>>12;
 	u.i |= (uint64_t)(0x3ff + 23)<<52;
@@ -165,7 +167,7 @@ medium:
 	/* skip zero terms, first term is non-zero */
 	while (tx[i] == 0.0)
 		i--;
-	n = __rem_pio2_large(tx,ty,(int)(ix>>20)-(0x3ff+23),i+1,1);
+	n = ctfp___rem_pio2_large(tx,ty,(int)(ix>>20)-(0x3ff+23),i+1,1);
 	if (sign) {
 		y[0] = -ty[0];
 		y[1] = -ty[1];

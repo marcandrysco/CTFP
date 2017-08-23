@@ -1,7 +1,9 @@
+#include "../ctfp-math.h"
+
 #include "libm.h"
 
-/* atanh(x) = log((1+x)/(1-x))/2 = log1p(2x/(1-x))/2 ~= x + x^3/3 + o(x^5) */
-float atanhf(float x)
+/* ctfp_atanh(x) = ctfp_log((1+x)/(1-x))/2 = ctfp_log1p(2x/(1-x))/2 ~= x + x^3/3 + o(x^5) */
+float ctfp_atanhf(float x)
 {
 	union {float f; uint32_t i;} u = {.f = x};
 	unsigned s = u.i >> 31;
@@ -18,11 +20,11 @@ float atanhf(float x)
 				FORCE_EVAL((float)(y*y));
 		} else {
 			/* |x| < 0.5, up to 1.7ulp error */
-			y = 0.5f*log1pf(2*y + 2*y*y/(1-y));
+			y = 0.5f*ctfp_log1pf(2*y + 2*y*y/(1-y));
 		}
 	} else {
 		/* avoid overflow */
-		y = 0.5f*log1pf(2*(y/(1-y)));
+		y = 0.5f*ctfp_log1pf(2*(y/(1-y)));
 	}
 	return s ? -y : y;
 }

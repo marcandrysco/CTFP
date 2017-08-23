@@ -1,6 +1,8 @@
+#include "../ctfp-math.h"
+
 #include "libm.h"
 
-float nexttowardf(float x, long double y)
+float ctfp_nexttowardf(float x, long double y)
 {
 	union {float f; uint32_t i;} ux = {x};
 	uint32_t e;
@@ -25,7 +27,7 @@ float nexttowardf(float x, long double y)
 			ux.i--;
 	}
 	e = ux.i & 0x7f800000;
-	/* raise overflow if ux.f is infinite and x is finite */
+	/* raise overflow if ux.f is infinite and x is ctfp_finite */
 	if (e == 0x7f800000)
 		FORCE_EVAL(x+x);
 	/* raise underflow if ux.f is subnormal or zero */

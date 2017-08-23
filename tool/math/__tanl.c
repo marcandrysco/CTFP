@@ -1,3 +1,5 @@
+#include "../ctfp-math.h"
+
 /* origin: FreeBSD /usr/src/lib/msun/ld80/k_tanl.c */
 /* origin: FreeBSD /usr/src/lib/msun/ld128/k_tanl.c */
 /*
@@ -16,13 +18,13 @@
 #if (LDBL_MANT_DIG == 64 || LDBL_MANT_DIG == 113) && LDBL_MAX_EXP == 16384
 #if LDBL_MANT_DIG == 64
 /*
- * ld80 version of __tan.c.  See __tan.c for most comments.
+ * ld80 version of ctfp___tan.c.  See ctfp___tan.c for most comments.
  */
 /*
  * Domain [-0.67434, 0.67434], range ~[-2.25e-22, 1.921e-22]
- * |tan(x)/x - t(x)| < 2**-71.9
+ * |ctfp_tan(x)/x - t(x)| < 2**-71.9
  *
- * See __cosl.c for more details about the polynomial.
+ * See ctfp___cosl.c for more details about the polynomial.
  */
 static const long double
 T3 =  0.333333333333333333180L,         /*  0xaaaaaaaaaaaaaaa5.0p-65 */
@@ -50,13 +52,13 @@ T33 =  0.0000023261313142559411;        /*  0x13835436c0c87f.0p-71 */
 	w * (T27 + w * T31))))))
 #elif LDBL_MANT_DIG == 113
 /*
- * ld128 version of __tan.c.  See __tan.c for most comments.
+ * ld128 version of ctfp___tan.c.  See ctfp___tan.c for most comments.
  */
 /*
  * Domain [-0.67434, 0.67434], range ~[-3.37e-36, 1.982e-37]
- * |tan(x)/x - t(x)| < 2**-117.8 (XXX should be ~1e-37)
+ * |ctfp_tan(x)/x - t(x)| < 2**-117.8 (XXX should be ~1e-37)
  *
- * See __cosl.c for more details about the polynomial.
+ * See ctfp___cosl.c for more details about the polynomial.
  */
 static const long double
 T3 = 0x1.5555555555555555555555555553p-2L,
@@ -98,11 +100,11 @@ T57 =  1.4912469681508012e-10;		/*  0x147edbdba6f43a.0p-85 */
 	w * (T47 + w * (T51 + w * T55))))))))))))
 #endif
 
-long double __tanl(long double x, long double y, int odd) {
+long double ctfp___tanl(long double x, long double y, int odd) {
 	long double z, r, v, w, s, a, t;
 	int big, sign;
 
-	big = fabsl(x) >= 0.67434;
+	big = ctfp_fabsl(x) >= 0.67434;
 	if (big) {
 		sign = 0;
 		if (x < 0) {

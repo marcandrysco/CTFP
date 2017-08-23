@@ -1,3 +1,5 @@
+#include "../ctfp-math.h"
+
 /* origin: FreeBSD /usr/src/lib/msun/src/k_rem_pio2.c */
 /*
  * ====================================================
@@ -10,10 +12,10 @@
  * ====================================================
  */
 /*
- * __rem_pio2_large(x,y,e0,nx,prec)
+ * ctfp___rem_pio2_large(x,y,e0,nx,prec)
  * double x[],y[]; int e0,nx,prec;
  *
- * __rem_pio2_large return the last three digits of N with
+ * ctfp___rem_pio2_large return the last three digits of N with
  *              y = x - N*pi/2
  * so that |y| < pi/2.
  *
@@ -33,10 +35,10 @@
  *              match x's up to 24 bits.
  *
  *              Example of breaking a double positive z into x[0]+x[1]+x[2]:
- *                      e0 = ilogb(z)-23
- *                      z  = scalbn(z,-e0)
+ *                      e0 = ctfp_ilogb(z)-23
+ *                      z  = ctfp_scalbn(z,-e0)
  *              for i = 0,1,2
- *                      x[i] = floor(z)
+ *                      x[i] = ctfp_floor(z)
  *                      z    = (z-x[i])*2**24
  *
  *
@@ -67,7 +69,7 @@
  *                      3       113 bits (quad)
  *
  * External function:
- *      double scalbn(), floor();
+ *      double ctfp_scalbn(), ctfp_floor();
  *
  *
  * Here is the description of some local variables:
@@ -270,7 +272,7 @@ static const double PIo2[] = {
   2.16741683877804819444e-51, /* 0x3569F31D, 0x00000000 */
 };
 
-int __rem_pio2_large(double *x, double *y, int e0, int nx, int prec)
+int ctfp___rem_pio2_large(double *x, double *y, int e0, int nx, int prec)
 {
 	int32_t jz,jx,jv,jp,jk,carry,n,iq[20],i,j,k,m,q0,ih;
 	double z,fw,f[20],fq[20],q[20];
@@ -306,8 +308,8 @@ recompute:
 	}
 
 	/* compute n */
-	z  = scalbn(z,q0);       /* actual value of z */
-	z -= 8.0*floor(z*0.125); /* trim off integer >= 8 */
+	z  = ctfp_scalbn(z,q0);       /* actual value of z */
+	z -= 8.0*ctfp_floor(z*0.125); /* trim off integer >= 8 */
 	n  = (int32_t)z;
 	z -= (double)n;
 	ih = 0;
@@ -342,7 +344,7 @@ recompute:
 		if (ih == 2) {
 			z = 1.0 - z;
 			if (carry != 0)
-				z -= scalbn(1.0,q0);
+				z -= ctfp_scalbn(1.0,q0);
 		}
 	}
 
@@ -373,7 +375,7 @@ recompute:
 			q0 -= 24;
 		}
 	} else { /* break z into 24-bit if necessary */
-		z = scalbn(z,-q0);
+		z = ctfp_scalbn(z,-q0);
 		if (z >= 0x1p24) {
 			fw = (double)(int32_t)(0x1p-24*z);
 			iq[jz] = (int32_t)(z - 0x1p24*fw);
@@ -385,7 +387,7 @@ recompute:
 	}
 
 	/* convert integer "bit" chunk to floating-point value */
-	fw = scalbn(1.0,q0);
+	fw = ctfp_scalbn(1.0,q0);
 	for (i=jz; i>=0; i--) {
 		q[i] = fw*(double)iq[i];
 		fw *= 0x1p-24;

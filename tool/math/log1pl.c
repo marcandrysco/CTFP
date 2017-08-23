@@ -1,3 +1,5 @@
+#include "../ctfp-math.h"
+
 /* origin: OpenBSD /usr/src/lib/libm/src/ld80/s_log1pl.c */
 /*
  * Copyright (c) 2008 Stephen L. Moshier <steve@moshier.net>
@@ -21,9 +23,9 @@
  *
  * SYNOPSIS:
  *
- * long double x, y, log1pl();
+ * long double x, y, ctfp_log1pl();
  *
- * y = log1pl( x );
+ * y = ctfp_log1pl( x );
  *
  *
  * DESCRIPTION:
@@ -34,11 +36,11 @@
  * parts.  If the exponent is between -1 and +1, the logarithm
  * of the fraction is approximated by
  *
- *     log(1+x) = x - 0.5 x^2 + x^3 P(x)/Q(x).
+ *     ctfp_log(1+x) = x - 0.5 x^2 + x^3 P(x)/Q(x).
  *
  * Otherwise, setting  z = 2(x-1)/x+1),
  *
- *     log(x) = z + z^3 P(z)/Q(z).
+ *     ctfp_log(x) = z + z^3 P(z)/Q(z).
  *
  *
  * ACCURACY:
@@ -51,12 +53,12 @@
 #include "libm.h"
 
 #if LDBL_MANT_DIG == 53 && LDBL_MAX_EXP == 1024
-long double log1pl(long double x)
+long double ctfp_log1pl(long double x)
 {
-	return log1p(x);
+	return ctfp_log1p(x);
 }
 #elif LDBL_MANT_DIG == 64 && LDBL_MAX_EXP == 16384
-/* Coefficients for log(1+x) = x - x^2 / 2 + x^3 P(x)/Q(x)
+/* Coefficients for ctfp_log(1+x) = x - x^2 / 2 + x^3 P(x)/Q(x)
  * 1/sqrt(2) <= x < sqrt(2)
  * Theoretical peak relative error = 2.32e-20
  */
@@ -79,7 +81,7 @@ static const long double Q[] = {
  6.0118660497603843919306E1L,
 };
 
-/* Coefficients for log(x) = z + z^3 P(z^2)/Q(z^2),
+/* Coefficients for ctfp_log(x) = z + z^3 P(z^2)/Q(z^2),
  * where z = 2(x-1)/(x+1)
  * 1/sqrt(2) <= x < sqrt(2)
  * Theoretical peak relative error = 6.16e-22
@@ -101,7 +103,7 @@ static const long double C2 = 1.4286068203094172321215E-6L;
 
 #define SQRTH 0.70710678118654752440L
 
-long double log1pl(long double xm1)
+long double ctfp_log1pl(long double xm1)
 {
 	long double x, y, z;
 	int e;
@@ -119,14 +121,14 @@ long double log1pl(long double xm1)
 	if (x <= 0.0) {
 		if (x == 0.0)
 			return -1/(x*x); /* -inf with divbyzero */
-		return 0/0.0f; /* nan with invalid */
+		return 0/0.0f; /* ctfp_nan with invalid */
 	}
 
 	/* Separate mantissa from exponent.
-	   Use frexp so that denormal numbers will be handled properly.  */
-	x = frexpl(x, &e);
+	   Use ctfp_frexp so that denormal numbers will be handled properly.  */
+	x = ctfp_frexpl(x, &e);
 
-	/* logarithm using log(x) = z + z^3 P(z)/Q(z),
+	/* logarithm using ctfp_log(x) = z + z^3 P(z)/Q(z),
 	   where z = 2(x-1)/x+1)  */
 	if (e > 2 || e < -2) {
 		if (x < SQRTH) { /* 2(2x-1)/(2x+1) */
@@ -140,14 +142,14 @@ long double log1pl(long double xm1)
 		}
 		x = z / y;
 		z = x*x;
-		z = x * (z * __polevll(z, R, 3) / __p1evll(z, S, 3));
+		z = x * (z * ctfp___polevll(z, R, 3) / __p1evll(z, S, 3));
 		z = z + e * C2;
 		z = z + x;
 		z = z + e * C1;
 		return z;
 	}
 
-	/* logarithm using log(1+x) = x - .5x**2 + x**3 P(x)/Q(x) */
+	/* logarithm using ctfp_log(1+x) = x - .5x**2 + x**3 P(x)/Q(x) */
 	if (x < SQRTH) {
 		e -= 1;
 		if (e != 0)
@@ -161,7 +163,7 @@ long double log1pl(long double xm1)
 			x = xm1;
 	}
 	z = x*x;
-	y = x * (z * __polevll(x, P, 6) / __p1evll(x, Q, 6));
+	y = x * (z * ctfp___polevll(x, P, 6) / __p1evll(x, Q, 6));
 	y = y + e * C2;
 	z = y - 0.5 * z;
 	z = z + x;
@@ -170,8 +172,8 @@ long double log1pl(long double xm1)
 }
 #elif LDBL_MANT_DIG == 113 && LDBL_MAX_EXP == 16384
 // TODO: broken implementation to make things compile
-long double log1pl(long double x)
+long double ctfp_log1pl(long double x)
 {
-	return log1p(x);
+	return ctfp_log1p(x);
 }
 #endif

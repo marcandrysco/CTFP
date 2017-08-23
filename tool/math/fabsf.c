@@ -1,7 +1,9 @@
+#include "../ctfp-math.h"
+
 #include <math.h>
 #include <stdint.h>
 
-float fabsf(float x)
+float ctfp_fabsf(float x)
 {
 	union {float f; uint32_t i;} u = {x};
 	u.i &= 0x7fffffff;

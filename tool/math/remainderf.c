@@ -1,10 +1,12 @@
+#include "../ctfp-math.h"
+
 #include <math.h>
 #include "libc.h"
 
-float remainderf(float x, float y)
+float ctfp_remainderf(float x, float y)
 {
 	int q;
-	return remquof(x, y, &q);
+	return ctfp_remquof(x, y, &q);
 }
 
-weak_alias(remainderf, dremf);
+weak_alias(ctfp_remainderf, dremf);

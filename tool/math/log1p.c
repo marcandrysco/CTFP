@@ -1,3 +1,5 @@
+#include "../ctfp-math.h"
+
 /* origin: FreeBSD /usr/src/lib/msun/src/s_log1p.c */
 /*
  * ====================================================
@@ -9,7 +11,7 @@
  * is preserved.
  * ====================================================
  */
-/* double log1p(double x)
+/* double ctfp_log1p(double x)
  * Return the natural logarithm of 1+x.
  *
  * Method :
@@ -20,18 +22,18 @@
  *      Note. If k=0, then f=x is exact. However, if k!=0, then f
  *      may not be representable exactly. In that case, a correction
  *      term is need. Let u=1+x rounded. Let c = (1+x)-u, then
- *      log(1+x) - log(u) ~ c/u. Thus, we proceed to compute log(u),
+ *      ctfp_log(1+x) - ctfp_log(u) ~ c/u. Thus, we proceed to compute ctfp_log(u),
  *      and add back the correction term c/u.
- *      (Note: when x > 2**53, one can simply return log(x))
+ *      (Note: when x > 2**53, one can simply return ctfp_log(x))
  *
- *   2. Approximation of log(1+f): See log.c
+ *   2. Approximation of ctfp_log(1+f): See ctfp_log.c
  *
- *   3. Finally, log1p(x) = k*ln2 + log(1+f) + c/u. See log.c
+ *   3. Finally, ctfp_log1p(x) = k*ln2 + ctfp_log(1+f) + c/u. See ctfp_log.c
  *
  * Special cases:
- *      log1p(x) is NaN with signal if x < -1 (including -INF) ;
- *      log1p(+INF) is +INF; log1p(-1) is -INF with signal;
- *      log1p(NaN) is that NaN with no signal.
+ *      ctfp_log1p(x) is NaN with signal if x < -1 (including -INF) ;
+ *      ctfp_log1p(+INF) is +INF; ctfp_log1p(-1) is -INF with signal;
+ *      ctfp_log1p(NaN) is that NaN with no signal.
  *
  * Accuracy:
  *      according to an error analysis, the error is always less than
@@ -43,12 +45,12 @@
  * compiler will convert from decimal to binary accurately enough
  * to produce the hexadecimal values shown.
  *
- * Note: Assuming log() return accurate answer, the following
- *       algorithm can be used to compute log1p(x) to within a few ULP:
+ * Note: Assuming ctfp_log() return accurate answer, the following
+ *       algorithm can be used to compute ctfp_log1p(x) to within a few ULP:
  *
  *              u = 1+x;
  *              if(u==1.0) return x ; else
- *                         return log(u)*(x/(u-1.0));
+ *                         return ctfp_log(u)*(x/(u-1.0));
  *
  *       See HP-15C Advanced Functions Handbook, p.193.
  */
@@ -66,7 +68,7 @@ Lg5 = 1.818357216161805012e-01,  /* 3FC74664 96CB03DE */
 Lg6 = 1.531383769920937332e-01,  /* 3FC39A09 D078C69F */
 Lg7 = 1.479819860511658591e-01;  /* 3FC2F112 DF3E5244 */
 
-double log1p(double x)
+double ctfp_log1p(double x)
 {
 	union {double f; uint64_t i;} u = {x};
 	double_t hfsq,f,c,s,z,R,w,t1,t2,dk;
@@ -78,8 +80,8 @@ double log1p(double x)
 	if (hx < 0x3fda827a || hx>>31) {  /* 1+x < sqrt(2)+ */
 		if (hx >= 0xbff00000) {  /* x <= -1.0 */
 			if (x == -1)
-				return x/0.0; /* log1p(-1) = -inf */
-			return (x-x)/0.0;     /* log1p(x<-1) = NaN */
+				return x/0.0; /* ctfp_log1p(-1) = -inf */
+			return (x-x)/0.0;     /* ctfp_log1p(x<-1) = NaN */
 		}
 		if (hx<<1 < 0x3ca00000<<1) {  /* |x| < 2**-53 */
 			/* underflow if subnormal */
@@ -99,7 +101,7 @@ double log1p(double x)
 		hu = u.i>>32;
 		hu += 0x3ff00000 - 0x3fe6a09e;
 		k = (int)(hu>>20) - 0x3ff;
-		/* correction term ~ log(1+x)-log(u), avoid underflow in c/u */
+		/* correction term ~ ctfp_log(1+x)-ctfp_log(u), avoid underflow in c/u */
 		if (k < 54) {
 			c = k >= 2 ? 1-(u.f-x) : x-(u.f-1);
 			c /= u.f;

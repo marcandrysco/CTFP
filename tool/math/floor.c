@@ -1,3 +1,5 @@
+#include "../ctfp-math.h"
+
 #include "libm.h"
 
 #if FLT_EVAL_METHOD==0 || FLT_EVAL_METHOD==1
@@ -7,7 +9,7 @@
 #endif
 static const double_t toint = 1/EPS;
 
-double floor(double x)
+double ctfp_floor(double x)
 {
 	union {double f; uint64_t i;} u = {x};
 	int e = u.i >> 52 & 0x7ff;

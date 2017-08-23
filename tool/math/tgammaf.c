@@ -1,6 +1,8 @@
+#include "../ctfp-math.h"
+
 #include <math.h>
 
-float tgammaf(float x)
+float ctfp_tgammaf(float x)
 {
-	return tgamma(x);
+	return ctfp_tgamma(x);
 }

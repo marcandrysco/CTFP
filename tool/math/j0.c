@@ -1,3 +1,5 @@
+#include "../ctfp-math.h"
+
 /* origin: FreeBSD /usr/src/lib/msun/src/e_j0.c */
 /*
  * ====================================================
@@ -9,47 +11,47 @@
  * is preserved.
  * ====================================================
  */
-/* j0(x), y0(x)
+/* ctfp_j0(x), y0(x)
  * Bessel function of the first and second kinds of order zero.
- * Method -- j0(x):
- *      1. For tiny x, we use j0(x) = 1 - x^2/4 + x^4/64 - ...
- *      2. Reduce x to |x| since j0(x)=j0(-x),  and
+ * Method -- ctfp_j0(x):
+ *      1. For tiny x, we use ctfp_j0(x) = 1 - x^2/4 + x^4/64 - ...
+ *      2. Reduce x to |x| since ctfp_j0(x)=ctfp_j0(-x),  and
  *         for x in (0,2)
- *              j0(x) = 1-z/4+ z^2*R0/S0,  where z = x*x;
- *         (precision:  |j0-1+z/4-z^2R0/S0 |<2**-63.67 )
+ *              ctfp_j0(x) = 1-z/4+ z^2*R0/S0,  where z = x*x;
+ *         (precision:  |ctfp_j0-1+z/4-z^2R0/S0 |<2**-63.67 )
  *         for x in (2,inf)
- *              j0(x) = sqrt(2/(pi*x))*(p0(x)*cos(x0)-q0(x)*sin(x0))
- *         where x0 = x-pi/4. It is better to compute sin(x0),cos(x0)
+ *              ctfp_j0(x) = sqrt(2/(pi*x))*(p0(x)*ctfp_cos(x0)-q0(x)*ctfp_sin(x0))
+ *         where x0 = x-pi/4. It is better to compute ctfp_sin(x0),ctfp_cos(x0)
  *         as follow:
- *              cos(x0) = cos(x)cos(pi/4)+sin(x)sin(pi/4)
- *                      = 1/sqrt(2) * (cos(x) + sin(x))
- *              sin(x0) = sin(x)cos(pi/4)-cos(x)sin(pi/4)
- *                      = 1/sqrt(2) * (sin(x) - cos(x))
+ *              ctfp_cos(x0) = ctfp_cos(x)ctfp_cos(pi/4)+ctfp_sin(x)ctfp_sin(pi/4)
+ *                      = 1/sqrt(2) * (ctfp_cos(x) + ctfp_sin(x))
+ *              ctfp_sin(x0) = ctfp_sin(x)ctfp_cos(pi/4)-ctfp_cos(x)ctfp_sin(pi/4)
+ *                      = 1/sqrt(2) * (ctfp_sin(x) - ctfp_cos(x))
  *         (To avoid cancellation, use
- *              sin(x) +- cos(x) = -cos(2x)/(sin(x) -+ cos(x))
+ *              ctfp_sin(x) +- ctfp_cos(x) = -ctfp_cos(2x)/(ctfp_sin(x) -+ ctfp_cos(x))
  *          to compute the worse one.)
  *
  *      3 Special cases
- *              j0(nan)= nan
- *              j0(0) = 1
- *              j0(inf) = 0
+ *              ctfp_j0(ctfp_nan)= nan
+ *              ctfp_j0(0) = 1
+ *              ctfp_j0(inf) = 0
  *
  * Method -- y0(x):
  *      1. For x<2.
  *         Since
- *              y0(x) = 2/pi*(j0(x)*(ln(x/2)+Euler) + x^2/4 - ...)
- *         therefore y0(x)-2/pi*j0(x)*ln(x) is an even function.
+ *              y0(x) = 2/pi*(ctfp_j0(x)*(ln(x/2)+Euler) + x^2/4 - ...)
+ *         therefore y0(x)-2/pi*ctfp_j0(x)*ln(x) is an even function.
  *         We use the following function to approximate y0,
- *              y0(x) = U(z)/V(z) + (2/pi)*(j0(x)*ln(x)), z= x^2
+ *              y0(x) = U(z)/V(z) + (2/pi)*(ctfp_j0(x)*ln(x)), z= x^2
  *         where
  *              U(z) = u00 + u01*z + ... + u06*z^6
  *              V(z) = 1  + v01*z + ... + v04*z^4
  *         with absolute approximation error bounded by 2**-72.
- *         Note: For tiny x, U/V = u0 and j0(x)~1, hence
+ *         Note: For tiny x, U/V = u0 and ctfp_j0(x)~1, hence
  *              y0(tiny) = u0 + (2/pi)*ln(tiny), (choose tiny<2**-27)
  *      2. For x>=2.
- *              y0(x) = sqrt(2/(pi*x))*(p0(x)*cos(x0)+q0(x)*sin(x0))
- *         where x0 = x-pi/4. It is better to compute sin(x0),cos(x0)
+ *              y0(x) = sqrt(2/(pi*x))*(p0(x)*ctfp_cos(x0)+q0(x)*ctfp_sin(x0))
+ *         where x0 = x-pi/4. It is better to compute ctfp_sin(x0),ctfp_cos(x0)
  *         by the method mentioned above.
  *      3. Special cases: y0(0)=-inf, y0(x<0)=NaN, y0(inf)=0.
  */
@@ -68,22 +70,22 @@ static double common(uint32_t ix, double x, int y0)
 	double s,c,ss,cc,z;
 
 	/*
-	 * j0(x) = sqrt(2/(pi*x))*(p0(x)*cos(x-pi/4)-q0(x)*sin(x-pi/4))
-	 * y0(x) = sqrt(2/(pi*x))*(p0(x)*sin(x-pi/4)+q0(x)*cos(x-pi/4))
+	 * ctfp_j0(x) = sqrt(2/(pi*x))*(p0(x)*ctfp_cos(x-pi/4)-q0(x)*ctfp_sin(x-pi/4))
+	 * y0(x) = sqrt(2/(pi*x))*(p0(x)*ctfp_sin(x-pi/4)+q0(x)*ctfp_cos(x-pi/4))
 	 *
-	 * sin(x-pi/4) = (sin(x) - cos(x))/sqrt(2)
-	 * cos(x-pi/4) = (sin(x) + cos(x))/sqrt(2)
-	 * sin(x) +- cos(x) = -cos(2x)/(sin(x) -+ cos(x))
+	 * ctfp_sin(x-pi/4) = (ctfp_sin(x) - ctfp_cos(x))/sqrt(2)
+	 * ctfp_cos(x-pi/4) = (ctfp_sin(x) + ctfp_cos(x))/sqrt(2)
+	 * ctfp_sin(x) +- ctfp_cos(x) = -ctfp_cos(2x)/(ctfp_sin(x) -+ ctfp_cos(x))
 	 */
-	s = sin(x);
-	c = cos(x);
+	s = ctfp_sin(x);
+	c = ctfp_cos(x);
 	if (y0)
 		c = -c;
 	cc = s+c;
 	/* avoid overflow in 2*x, big ulp error when x>=0x1p1023 */
 	if (ix < 0x7fe00000) {
 		ss = s-c;
-		z = -cos(2*x);
+		z = -ctfp_cos(2*x);
 		if (s*c < 0)
 			cc = z/ss;
 		else
@@ -108,7 +110,7 @@ S02 =  1.16926784663337450260e-04, /* 0x3F1EA6D2, 0xDD57DBF4 */
 S03 =  5.13546550207318111446e-07, /* 0x3EA13B54, 0xCE84D5A9 */
 S04 =  1.16614003333790000205e-09; /* 0x3E1408BC, 0xF4745D8F */
 
-double j0(double x)
+double ctfp_j0(double x)
 {
 	double z,r,s;
 	uint32_t ix;
@@ -116,10 +118,10 @@ double j0(double x)
 	GET_HIGH_WORD(ix, x);
 	ix &= 0x7fffffff;
 
-	/* j0(+-inf)=0, j0(nan)=nan */
+	/* ctfp_j0(+-inf)=0, ctfp_j0(ctfp_nan)=ctfp_nan */
 	if (ix >= 0x7ff00000)
 		return 1/(x*x);
-	x = fabs(x);
+	x = ctfp_fabs(x);
 
 	if (ix >= 0x40000000) {  /* |x| >= 2 */
 		/* large ulp error near zeros: 2.4, 5.52, 8.6537,.. */
@@ -163,7 +165,7 @@ double y0(double x)
 
 	EXTRACT_WORDS(ix, lx, x);
 
-	/* y0(nan)=nan, y0(<0)=nan, y0(0)=-inf, y0(inf)=0 */
+	/* y0(ctfp_nan)=ctfp_nan, y0(<0)=ctfp_nan, y0(0)=-inf, y0(inf)=0 */
 	if ((ix<<1 | lx) == 0)
 		return -1/0.0;
 	if (ix>>31)
@@ -176,15 +178,15 @@ double y0(double x)
 		return common(ix,x,1);
 	}
 
-	/* U(x^2)/V(x^2) + (2/pi)*j0(x)*log(x) */
+	/* U(x^2)/V(x^2) + (2/pi)*ctfp_j0(x)*ctfp_log(x) */
 	if (ix >= 0x3e400000) {  /* x >= 2**-27 */
 		/* large ulp error near the first zero, x ~= 0.89 */
 		z = x*x;
 		u = u00+z*(u01+z*(u02+z*(u03+z*(u04+z*(u05+z*u06)))));
 		v = 1.0+z*(v01+z*(v02+z*(v03+z*v04)));
-		return u/v + tpi*(j0(x)*log(x));
+		return u/v + tpi*(ctfp_j0(x)*ctfp_log(x));
 	}
-	return u00 + tpi*log(x);
+	return u00 + tpi*ctfp_log(x);
 }
 
 /* The asymptotic expansions of pzero is

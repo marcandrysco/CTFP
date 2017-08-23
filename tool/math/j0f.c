@@ -1,3 +1,5 @@
+#include "../ctfp-math.h"
+
 /* origin: FreeBSD /usr/src/lib/msun/src/e_j0f.c */
 /*
  * Conversion to float by Ian Lance Taylor, Cygnus Support, ian@cygnus.com.
@@ -26,17 +28,17 @@ static float common(uint32_t ix, float x, int y0)
 {
 	float z,s,c,ss,cc;
 	/*
-	 * j0(x) = 1/sqrt(pi) * (P(0,x)*cc - Q(0,x)*ss) / sqrt(x)
+	 * ctfp_j0(x) = 1/sqrt(pi) * (P(0,x)*cc - Q(0,x)*ss) / sqrt(x)
 	 * y0(x) = 1/sqrt(pi) * (P(0,x)*ss + Q(0,x)*cc) / sqrt(x)
 	 */
-	s = sinf(x);
-	c = cosf(x);
+	s = ctfp_sinf(x);
+	c = ctfp_cosf(x);
 	if (y0)
 		c = -c;
 	cc = s+c;
 	if (ix < 0x7f000000) {
 		ss = s-c;
-		z = -cosf(2*x);
+		z = -ctfp_cosf(2*x);
 		if (s*c < 0)
 			cc = z/ss;
 		else
@@ -61,7 +63,7 @@ S02 =  1.1692678527e-04, /* 0x38f53697 */
 S03 =  5.1354652442e-07, /* 0x3509daa6 */
 S04 =  1.1661400734e-09; /* 0x30a045e8 */
 
-float j0f(float x)
+float ctfp_j0f(float x)
 {
 	float z,r,s;
 	uint32_t ix;
@@ -70,7 +72,7 @@ float j0f(float x)
 	ix &= 0x7fffffff;
 	if (ix >= 0x7f800000)
 		return 1/(x*x);
-	x = fabsf(x);
+	x = ctfp_fabsf(x);
 
 	if (ix >= 0x40000000) {  /* |x| >= 2 */
 		/* large ulp error near zeros */
@@ -122,9 +124,9 @@ float y0f(float x)
 		z = x*x;
 		u = u00+z*(u01+z*(u02+z*(u03+z*(u04+z*(u05+z*u06)))));
 		v = 1+z*(v01+z*(v02+z*(v03+z*v04)));
-		return u/v + tpi*(j0f(x)*logf(x));
+		return u/v + tpi*(ctfp_j0f(x)*ctfp_logf(x));
 	}
-	return u00 + tpi*logf(x);
+	return u00 + tpi*ctfp_logf(x);
 }
 
 /* The asymptotic expansions of pzero is

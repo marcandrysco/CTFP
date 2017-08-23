@@ -1,8 +1,10 @@
+#include "../ctfp-math.h"
+
 #include <math.h>
 
-/* uses LLONG_MAX > 2^53, see comments in lrint.c */
+/* uses LLONG_MAX > 2^53, see comments in ctfp_lrint.c */
 
-long long llrint(double x)
+long long ctfp_llrint(double x)
 {
-	return rint(x);
+	return ctfp_rint(x);
 }

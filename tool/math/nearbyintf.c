@@ -1,7 +1,9 @@
+#include "../ctfp-math.h"
+
 #include <fenv.h>
 #include <math.h>
 
-float nearbyintf(float x)
+float ctfp_nearbyintf(float x)
 {
 #ifdef FE_INEXACT
 	#pragma STDC FENV_ACCESS ON
@@ -9,7 +11,7 @@ float nearbyintf(float x)
 
 	e = fetestexcept(FE_INEXACT);
 #endif
-	x = rintf(x);
+	x = ctfp_rintf(x);
 #ifdef FE_INEXACT
 	if (!e)
 		feclearexcept(FE_INEXACT);

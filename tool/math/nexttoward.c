@@ -1,12 +1,14 @@
+#include "../ctfp-math.h"
+
 #include "libm.h"
 
 #if LDBL_MANT_DIG == 53 && LDBL_MAX_EXP == 1024
-double nexttoward(double x, long double y)
+double ctfp_nexttoward(double x, long double y)
 {
-	return nextafter(x, y);
+	return ctfp_nextafter(x, y);
 }
 #else
-double nexttoward(double x, long double y)
+double ctfp_nexttoward(double x, long double y)
 {
 	union {double f; uint64_t i;} ux = {x};
 	int e;
@@ -31,7 +33,7 @@ double nexttoward(double x, long double y)
 			ux.i--;
 	}
 	e = ux.i>>52 & 0x7ff;
-	/* raise overflow if ux.f is infinite and x is finite */
+	/* raise overflow if ux.f is infinite and x is ctfp_finite */
 	if (e == 0x7ff)
 		FORCE_EVAL(x+x);
 	/* raise underflow if ux.f is subnormal or zero */

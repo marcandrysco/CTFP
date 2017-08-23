@@ -1,3 +1,5 @@
+#include "../ctfp-math.h"
+
 /* origin: FreeBSD /usr/src/lib/msun/src/e_asinl.c */
 /*
  * ====================================================
@@ -10,16 +12,16 @@
  * ====================================================
  */
 /*
- * See comments in asin.c.
+ * See comments in ctfp_asin.c.
  * Converted to long double by David Schultz <das@FreeBSD.ORG>.
  */
 
 #include "libm.h"
 
 #if LDBL_MANT_DIG == 53 && LDBL_MAX_EXP == 1024
-long double asinl(long double x)
+long double ctfp_asinl(long double x)
 {
-	return asin(x);
+	return ctfp_asin(x);
 }
 #elif (LDBL_MANT_DIG == 64 || LDBL_MANT_DIG == 113) && LDBL_MAX_EXP == 16384
 #include "__invtrigl.h"
@@ -31,15 +33,15 @@ long double asinl(long double x)
 #define CLEARBOTTOM(u) (u.i.lo = 0)
 #endif
 
-long double asinl(long double x)
+long double ctfp_asinl(long double x)
 {
 	union ldshape u = {x};
 	long double z, r, s;
 	uint16_t e = u.i.se & 0x7fff;
 	int sign = u.i.se >> 15;
 
-	if (e >= 0x3fff) {   /* |x| >= 1 or nan */
-		/* asin(+-1)=+-pi/2 with inexact */
+	if (e >= 0x3fff) {   /* |x| >= 1 or ctfp_nan */
+		/* ctfp_asin(+-1)=+-pi/2 with inexact */
 		if (x == 1 || x == -1)
 			return x*pio2_hi + 0x1p-120f;
 		return 0/(x-x);
@@ -53,7 +55,7 @@ long double asinl(long double x)
 		return x + x*__invtrigl_R(x*x);
 	}
 	/* 1 > |x| >= 0.5 */
-	z = (1.0 - fabsl(x))*0.5;
+	z = (1.0 - ctfp_fabsl(x))*0.5;
 	s = sqrtl(z);
 	r = __invtrigl_R(z);
 	if (CLOSETO1(u)) {

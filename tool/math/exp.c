@@ -1,3 +1,5 @@
+#include "../ctfp-math.h"
+
 /* origin: FreeBSD /usr/src/lib/msun/src/e_exp.c */
 /*
  * ====================================================
@@ -8,7 +10,7 @@
  * is preserved.
  * ====================================================
  */
-/* exp(x)
+/* ctfp_exp(x)
  * Returns the exponential of x.
  *
  * Method
@@ -21,10 +23,10 @@
  *      Here r will be represented as r = hi-lo for better
  *      accuracy.
  *
- *   2. Approximation of exp(r) by a special rational function on
+ *   2. Approximation of ctfp_exp(r) by a special rational function on
  *      the interval [0,0.34658]:
  *      Write
- *          R(r**2) = r*(exp(r)+1)/(exp(r)-1) = 2 + r*r/6 - r**4/360 + ...
+ *          R(r**2) = r*(ctfp_exp(r)+1)/(ctfp_exp(r)-1) = 2 + r*r/6 - r**4/360 + ...
  *      We use a special Remez algorithm on [0,0.34658] to generate
  *      a polynomial of degree 5 to approximate R. The maximum error
  *      of this polynomial approximation is bounded by 2**-59. In
@@ -35,9 +37,9 @@
  *          |                  5          |     -59
  *          | 2.0+P1*z+...+P5*z   -  R(z) | <= 2
  *          |                             |
- *      The computation of exp(r) thus becomes
+ *      The computation of ctfp_exp(r) thus becomes
  *                              2*r
- *              exp(r) = 1 + ----------
+ *              ctfp_exp(r) = 1 + ----------
  *                            R(r) - r
  *                                 r*c(r)
  *                     = 1 + r + ----------- (for better accuracy)
@@ -46,14 +48,14 @@
  *                              2       4             10
  *              c(r) = r - (P1*r  + P2*r  + ... + P5*r   ).
  *
- *   3. Scale back to obtain exp(x):
+ *   3. Scale back to obtain ctfp_exp(x):
  *      From step 1, we have
- *         exp(x) = 2^k * exp(r)
+ *         ctfp_exp(x) = 2^k * ctfp_exp(r)
  *
  * Special cases:
- *      exp(INF) is INF, exp(NaN) is NaN;
- *      exp(-INF) is 0, and
- *      for finite argument, only exp(0)=1 is exact.
+ *      ctfp_exp(INF) is INF, ctfp_exp(NaN) is NaN;
+ *      ctfp_exp(-INF) is 0, and
+ *      for ctfp_finite argument, only ctfp_exp(0)=1 is exact.
  *
  * Accuracy:
  *      according to an error analysis, the error is always less than
@@ -61,10 +63,9 @@
  *
  * Misc. info.
  *      For IEEE double
- *          if x >  709.782712893383973096 then exp(x) overflows
- *          if x < -745.133219101941108420 then exp(x) underflows
+ *          if x >  709.782712893383973096 then ctfp_exp(x) overflows
+ *          if x < -745.133219101941108420 then ctfp_exp(x) underflows
  */
-#include "../ctfp-math.h"
 
 #include "libm.h"
 

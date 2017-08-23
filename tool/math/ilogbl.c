@@ -1,13 +1,15 @@
+#include "../ctfp-math.h"
+
 #include <limits.h>
 #include "libm.h"
 
 #if LDBL_MANT_DIG == 53 && LDBL_MAX_EXP == 1024
-int ilogbl(long double x)
+int ctfp_ilogbl(long double x)
 {
-	return ilogb(x);
+	return ctfp_ilogb(x);
 }
 #elif LDBL_MANT_DIG == 64 && LDBL_MAX_EXP == 16384
-int ilogbl(long double x)
+int ctfp_ilogbl(long double x)
 {
 	#pragma STDC FENV_ACCESS ON
 	union ldshape u = {x};
@@ -30,7 +32,7 @@ int ilogbl(long double x)
 	return e - 0x3fff;
 }
 #elif LDBL_MANT_DIG == 113 && LDBL_MAX_EXP == 16384
-int ilogbl(long double x)
+int ctfp_ilogbl(long double x)
 {
 	#pragma STDC FENV_ACCESS ON
 	union ldshape u = {x};
@@ -43,7 +45,7 @@ int ilogbl(long double x)
 		}
 		/* subnormal x */
 		x *= 0x1p120;
-		return ilogbl(x) - 120;
+		return ctfp_ilogbl(x) - 120;
 	}
 	if (e == 0x7fff) {
 		FORCE_EVAL(0/0.0f);

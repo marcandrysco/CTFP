@@ -1,3 +1,5 @@
+#include "../ctfp-math.h"
+
 /* origin: FreeBSD /usr/src/lib/msun/src/k_tanf.c */
 /*
  * Conversion to float by Ian Lance Taylor, Cygnus Support, ian@cygnus.com.
@@ -15,7 +17,7 @@
 
 #include "libm.h"
 
-/* |tan(x)/x - t(x)| < 2**-25.5 (~[-2e-08, 2e-08]). */
+/* |ctfp_tan(x)/x - t(x)| < 2**-25.5 (~[-2e-08, 2e-08]). */
 static const double T[] = {
   0x15554d3418c99f.0p-54, /* 0.333331395030791399758 */
   0x1112fd38999f72.0p-55, /* 0.133392002712976742718 */
@@ -25,7 +27,7 @@ static const double T[] = {
   0x1362b9bf971bcd.0p-59, /* 0.00946564784943673166728 */
 };
 
-float __tandf(double x, int odd)
+float ctfp___tandf(double x, int odd)
 {
 	double_t z,r,w,s,t,u;
 

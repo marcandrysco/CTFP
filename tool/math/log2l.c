@@ -1,3 +1,5 @@
+#include "../ctfp-math.h"
+
 /* origin: OpenBSD /usr/src/lib/libm/src/ld80/e_log2l.c */
 /*
  * Copyright (c) 2008 Stephen L. Moshier <steve@moshier.net>
@@ -20,9 +22,9 @@
  *
  * SYNOPSIS:
  *
- * long double x, y, log2l();
+ * long double x, y, ctfp_log2l();
  *
- * y = log2l( x );
+ * y = ctfp_log2l( x );
  *
  *
  * DESCRIPTION:
@@ -33,11 +35,11 @@
  * parts.  If the exponent is between -1 and +1, the (natural)
  * logarithm of the fraction is approximated by
  *
- *     log(1+x) = x - 0.5 x**2 + x**3 P(x)/Q(x).
+ *     ctfp_log(1+x) = x - 0.5 x**2 + x**3 P(x)/Q(x).
  *
  * Otherwise, setting  z = 2(x-1)/x+1),
  *
- *     log(x) = z + z**3 P(z)/Q(z).
+ *     ctfp_log(x) = z + z**3 P(z)/Q(z).
  *
  *
  * ACCURACY:
@@ -45,9 +47,9 @@
  *                      Relative error:
  * arithmetic   domain     # trials      peak         rms
  *    IEEE      0.5, 2.0     30000      9.8e-20     2.7e-20
- *    IEEE     exp(+-10000)  70000      5.4e-20     2.3e-20
+ *    IEEE     ctfp_exp(+-10000)  70000      5.4e-20     2.3e-20
  *
- * In the tests over the interval exp(+-10000), the logarithms
+ * In the tests over the interval ctfp_exp(+-10000), the logarithms
  * of the random arguments were uniformly distributed over
  * [-10000, +10000].
  */
@@ -55,9 +57,9 @@
 #include "libm.h"
 
 #if LDBL_MANT_DIG == 53 && LDBL_MAX_EXP == 1024
-long double log2l(long double x)
+long double ctfp_log2l(long double x)
 {
-	return log2(x);
+	return ctfp_log2(x);
 }
 #elif LDBL_MANT_DIG == 64 && LDBL_MAX_EXP == 16384
 /* Coefficients for ln(1+x) = x - x**2/2 + x**3 P(x)/Q(x)
@@ -84,7 +86,7 @@ static const long double Q[] = {
  3.2242573199748645407652E2L,
 };
 
-/* Coefficients for log(x) = z + z^3 P(z^2)/Q(z^2),
+/* Coefficients for ctfp_log(x) = z + z^3 P(z^2)/Q(z^2),
  * where z = 2(x-1)/(x+1)
  * 1/sqrt(2) <= x < sqrt(2)
  * Theoretical peak relative error = 6.16e-22
@@ -101,12 +103,12 @@ static const long double S[4] = {
  1.9361891836232102174846E2L,
 -4.2861221385716144629696E2L,
 };
-/* log2(e) - 1 */
+/* ctfp_log2(e) - 1 */
 #define LOG2EA 4.4269504088896340735992e-1L
 
 #define SQRTH 0.70710678118654752440L
 
-long double log2l(long double x)
+long double ctfp_log2l(long double x)
 {
 	long double y, z;
 	int e;
@@ -118,16 +120,16 @@ long double log2l(long double x)
 	if (x <= 0.0) {
 		if (x == 0.0)
 			return -1/(x*x); /* -inf with divbyzero */
-		return 0/0.0f; /* nan with invalid */
+		return 0/0.0f; /* ctfp_nan with invalid */
 	}
 
 	/* separate mantissa from exponent */
-	/* Note, frexp is used so that denormal numbers
+	/* Note, ctfp_frexp is used so that denormal numbers
 	 * will be handled properly.
 	 */
-	x = frexpl(x, &e);
+	x = ctfp_frexpl(x, &e);
 
-	/* logarithm using log(x) = z + z**3 P(z)/Q(z),
+	/* logarithm using ctfp_log(x) = z + z**3 P(z)/Q(z),
 	 * where z = 2(x-1)/x+1)
 	 */
 	if (e > 2 || e < -2) {
@@ -142,11 +144,11 @@ long double log2l(long double x)
 		}
 		x = z / y;
 		z = x*x;
-		y = x * (z * __polevll(z, R, 3) / __p1evll(z, S, 3));
+		y = x * (z * ctfp___polevll(z, R, 3) / __p1evll(z, S, 3));
 		goto done;
 	}
 
-	/* logarithm using log(1+x) = x - .5x**2 + x**3 P(x)/Q(x) */
+	/* logarithm using ctfp_log(1+x) = x - .5x**2 + x**3 P(x)/Q(x) */
 	if (x < SQRTH) {
 		e -= 1;
 		x = 2.0*x - 1.0;
@@ -154,11 +156,11 @@ long double log2l(long double x)
 		x = x - 1.0;
 	}
 	z = x*x;
-	y = x * (z * __polevll(x, P, 6) / __p1evll(x, Q, 7));
+	y = x * (z * ctfp___polevll(x, P, 6) / __p1evll(x, Q, 7));
 	y = y - 0.5*z;
 
 done:
-	/* Multiply log of fraction by log2(e)
+	/* Multiply ctfp_log of fraction by ctfp_log2(e)
 	 * and base 2 exponent by 1
 	 *
 	 * ***CAUTION***
@@ -175,8 +177,8 @@ done:
 }
 #elif LDBL_MANT_DIG == 113 && LDBL_MAX_EXP == 16384
 // TODO: broken implementation to make things compile
-long double log2l(long double x)
+long double ctfp_log2l(long double x)
 {
-	return log2(x);
+	return ctfp_log2(x);
 }
 #endif

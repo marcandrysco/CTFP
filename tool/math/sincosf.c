@@ -1,3 +1,5 @@
+#include "../ctfp-math.h"
+
 /* origin: FreeBSD /usr/src/lib/msun/src/s_sinf.c */
 /*
  * Conversion to float by Ian Lance Taylor, Cygnus Support, ian@cygnus.com.
@@ -24,7 +26,7 @@ s2pio2 = 2*M_PI_2, /* 0x400921FB, 0x54442D18 */
 s3pio2 = 3*M_PI_2, /* 0x4012D97C, 0x7F3321D2 */
 s4pio2 = 4*M_PI_2; /* 0x401921FB, 0x54442D18 */
 
-void sincosf(float x, float *sin, float *cos)
+void ctfp_sincosf(float x, float *ctfp_sin, float *ctfp_cos)
 {
 	double y;
 	float_t s, c;
@@ -41,12 +43,12 @@ void sincosf(float x, float *sin, float *cos)
 		if (ix < 0x39800000) {
 			/* raise inexact if x!=0 and underflow if subnormal */
 			FORCE_EVAL(ix < 0x00100000 ? x/0x1p120f : x+0x1p120f);
-			*sin = x;
-			*cos = 1.0f;
+			*ctfp_sin = x;
+			*ctfp_cos = 1.0f;
 			return;
 		}
-		*sin = __sindf(x);
-		*cos = __cosdf(x);
+		*ctfp_sin = ctfp___sindf(x);
+		*ctfp_cos = ctfp___cosdf(x);
 		return;
 	}
 
@@ -54,17 +56,17 @@ void sincosf(float x, float *sin, float *cos)
 	if (ix <= 0x407b53d1) {
 		if (ix <= 0x4016cbe3) {  /* |x| ~<= 3pi/4 */
 			if (sign) {
-				*sin = -__cosdf(x + s1pio2);
-				*cos = __sindf(x + s1pio2);
+				*ctfp_sin = -ctfp___cosdf(x + s1pio2);
+				*ctfp_cos = ctfp___sindf(x + s1pio2);
 			} else {
-				*sin = __cosdf(s1pio2 - x);
-				*cos = __sindf(s1pio2 - x);
+				*ctfp_sin = ctfp___cosdf(s1pio2 - x);
+				*ctfp_cos = ctfp___sindf(s1pio2 - x);
 			}
 			return;
 		}
-		/* -sin(x+c) is not correct if x+c could be 0: -0 vs +0 */
-		*sin = -__sindf(sign ? x + s2pio2 : x - s2pio2);
-		*cos = -__cosdf(sign ? x + s2pio2 : x - s2pio2);
+		/* -ctfp_sin(x+c) is not correct if x+c could be 0: -0 vs +0 */
+		*ctfp_sin = -ctfp___sindf(sign ? x + s2pio2 : x - s2pio2);
+		*ctfp_cos = -ctfp___cosdf(sign ? x + s2pio2 : x - s2pio2);
 		return;
 	}
 
@@ -72,46 +74,46 @@ void sincosf(float x, float *sin, float *cos)
 	if (ix <= 0x40e231d5) {
 		if (ix <= 0x40afeddf) {  /* |x| ~<= 7*pi/4 */
 			if (sign) {
-				*sin = __cosdf(x + s3pio2);
-				*cos = -__sindf(x + s3pio2);
+				*ctfp_sin = ctfp___cosdf(x + s3pio2);
+				*ctfp_cos = -ctfp___sindf(x + s3pio2);
 			} else {
-				*sin = -__cosdf(x - s3pio2);
-				*cos = __sindf(x - s3pio2);
+				*ctfp_sin = -ctfp___cosdf(x - s3pio2);
+				*ctfp_cos = ctfp___sindf(x - s3pio2);
 			}
 			return;
 		}
-		*sin = __sindf(sign ? x + s4pio2 : x - s4pio2);
-		*cos = __cosdf(sign ? x + s4pio2 : x - s4pio2);
+		*ctfp_sin = ctfp___sindf(sign ? x + s4pio2 : x - s4pio2);
+		*ctfp_cos = ctfp___cosdf(sign ? x + s4pio2 : x - s4pio2);
 		return;
 	}
 
-	/* sin(Inf or NaN) is NaN */
+	/* ctfp_sin(Inf or NaN) is NaN */
 	if (ix >= 0x7f800000) {
-		*sin = *cos = x - x;
+		*ctfp_sin = *ctfp_cos = x - x;
 		return;
 	}
 
 	/* general argument reduction needed */
-	n = __rem_pio2f(x, &y);
-	s = __sindf(y);
-	c = __cosdf(y);
+	n = ctfp___rem_pio2f(x, &y);
+	s = ctfp___sindf(y);
+	c = ctfp___cosdf(y);
 	switch (n&3) {
 	case 0:
-		*sin = s;
-		*cos = c;
+		*ctfp_sin = s;
+		*ctfp_cos = c;
 		break;
 	case 1:
-		*sin = c;
-		*cos = -s;
+		*ctfp_sin = c;
+		*ctfp_cos = -s;
 		break;
 	case 2:
-		*sin = -s;
-		*cos = -c;
+		*ctfp_sin = -s;
+		*ctfp_cos = -c;
 		break;
 	case 3:
 	default:
-		*sin = -c;
-		*cos = s;
+		*ctfp_sin = -c;
+		*ctfp_cos = s;
 		break;
 	}
 }

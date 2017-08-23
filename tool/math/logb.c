@@ -1,17 +1,19 @@
+#include "../ctfp-math.h"
+
 #include <math.h>
 
 /*
 special cases:
-	logb(+-0) = -inf, and raise divbyzero
-	logb(+-inf) = +inf
-	logb(nan) = nan
+	ctfp_logb(+-0) = -inf, and raise divbyzero
+	ctfp_logb(+-inf) = +inf
+	ctfp_logb(ctfp_nan) = nan
 */
 
-double logb(double x)
+double ctfp_logb(double x)
 {
 	if (!isfinite(x))
 		return x * x;
 	if (x == 0)
 		return -1/(x*x);
-	return ilogb(x);
+	return ctfp_ilogb(x);
 }

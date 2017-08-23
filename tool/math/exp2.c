@@ -1,3 +1,5 @@
+#include "../ctfp-math.h"
+
 /* origin: FreeBSD /usr/src/lib/msun/src/s_exp2.c */
 /*-
  * Copyright (c) 2005 David Schultz <das@FreeBSD.ORG>
@@ -38,7 +40,7 @@ P4    = 0x1.3b2ab88f70400p-7,
 P5    = 0x1.5d88003875c74p-10;
 
 static const double tbl[TBLSIZE * 2] = {
-/*  exp2(z + eps)          eps     */
+/*  ctfp_exp2(z + eps)          eps     */
   0x1.6a09e667f3d5dp-1,  0x1.9880p-44,
   0x1.6b052fa751744p-1,  0x1.8000p-50,
   0x1.6c012750bd9fep-1, -0x1.8780p-45,
@@ -298,7 +300,7 @@ static const double tbl[TBLSIZE * 2] = {
 };
 
 /*
- * exp2(x): compute the base 2 exponential of x
+ * ctfp_exp2(x): compute the base 2 exponential of x
  *
  * Accuracy: Peak error < 0.503 ulp for normalized results.
  *
@@ -306,17 +308,17 @@ static const double tbl[TBLSIZE * 2] = {
  *
  *   Reduce x:
  *     x = k + y, for integer k and |y| <= 1/2.
- *     Thus we have exp2(x) = 2**k * exp2(y).
+ *     Thus we have ctfp_exp2(x) = 2**k * ctfp_exp2(y).
  *
  *   Reduce y:
  *     y = i/TBLSIZE + z - eps[i] for integer i near y * TBLSIZE.
- *     Thus we have exp2(y) = exp2(i/TBLSIZE) * exp2(z - eps[i]),
+ *     Thus we have ctfp_exp2(y) = ctfp_exp2(i/TBLSIZE) * ctfp_exp2(z - eps[i]),
  *     with |z - eps[i]| <= 2**-9 + 2**-39 for the table used.
  *
- *   We compute exp2(i/TBLSIZE) via table lookup and exp2(z - eps[i]) via
+ *   We compute ctfp_exp2(i/TBLSIZE) via table lookup and ctfp_exp2(z - eps[i]) via
  *   a degree-5 minimax polynomial with maximum error under 1.3 * 2**-61.
  *   The values in exp2t[] and eps[] are chosen such that
- *   exp2t[i] = exp2(i/TBLSIZE + eps[i]), and eps[i] is a small offset such
+ *   exp2t[i] = ctfp_exp2(i/TBLSIZE + eps[i]), and eps[i] is a small offset such
  *   that exp2t[i] is accurate to 2**-64.
  *
  *   Note that the range of i is +-TBLSIZE/2, so we actually index the tables
@@ -328,7 +330,7 @@ static const double tbl[TBLSIZE * 2] = {
  *      Gal, S. and Bachelis, B.  An Accurate Elementary Mathematical Library
  *      for the IEEE Floating Point Standard.  TOMS 17(1), 26-46 (1991).
  */
-double exp2(double x)
+double ctfp_exp2(double x)
 {
 	double_t r, t, z;
 	uint32_t ix, i0;
@@ -337,13 +339,13 @@ double exp2(double x)
 
 	/* Filter out exceptional cases. */
 	ix = u.i>>32 & 0x7fffffff;
-	if (ix >= 0x408ff000) {  /* |x| >= 1022 or nan */
-		if (ix >= 0x40900000 && u.i>>63 == 0) {  /* x >= 1024 or nan */
+	if (ix >= 0x408ff000) {  /* |x| >= 1022 or ctfp_nan */
+		if (ix >= 0x40900000 && u.i>>63 == 0) {  /* x >= 1024 or ctfp_nan */
 			/* overflow */
 			x *= 0x1p1023;
 			return x;
 		}
-		if (ix >= 0x7ff00000)  /* -inf or -nan */
+		if (ix >= 0x7ff00000)  /* -inf or -ctfp_nan */
 			return -1/x;
 		if (u.i>>63) {  /* x <= -1022 */
 			/* underflow */
@@ -366,10 +368,10 @@ double exp2(double x)
 	u.f -= redux;
 	z = x - u.f;
 
-	/* Compute r = exp2(y) = exp2t[i0] * p(z - eps[i]). */
+	/* Compute r = ctfp_exp2(y) = exp2t[i0] * p(z - eps[i]). */
 	t = tbl[2*i0];       /* exp2t[i0] */
 	z -= tbl[2*i0 + 1];  /* eps[i0]   */
 	r = t + t * z * (P1 + z * (P2 + z * (P3 + z * (P4 + z * P5))));
 
-	return scalbn(r, k.i);
+	return ctfp_scalbn(r, k.i);
 }

@@ -1,12 +1,14 @@
+#include "../ctfp-math.h"
+
 #include "libm.h"
 
 #if LDBL_MANT_DIG == 53 && LDBL_MAX_EXP == 1024
-long double scalbnl(long double x, int n)
+long double ctfp_scalbnl(long double x, int n)
 {
-	return scalbn(x, n);
+	return ctfp_scalbn(x, n);
 }
 #elif (LDBL_MANT_DIG == 64 || LDBL_MANT_DIG == 113) && LDBL_MAX_EXP == 16384
-long double scalbnl(long double x, int n)
+long double ctfp_scalbnl(long double x, int n)
 {
 	union ldshape u;
 

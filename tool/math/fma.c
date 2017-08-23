@@ -1,3 +1,5 @@
+#include "../ctfp-math.h"
+
 #include <fenv.h>
 #include "libm.h"
 
@@ -77,13 +79,13 @@ static int getexp(long double x)
 	return u.i.se & 0x7fff;
 }
 
-double fma(double x, double y, double z)
+double ctfp_fma(double x, double y, double z)
 {
 	#pragma STDC FENV_ACCESS ON
 	long double hi, lo1, lo2, xy;
-	int round, ez, exy;
+	int ctfp_round, ez, exy;
 
-	/* handle +-inf,nan */
+	/* handle +-inf,ctfp_nan */
 	if (!isfinite(x) || !isfinite(y))
 		return x*y + z;
 	if (!isfinite(z))
@@ -91,9 +93,9 @@ double fma(double x, double y, double z)
 	/* handle +-0 */
 	if (x == 0.0 || y == 0.0)
 		return x*y + z;
-	round = fegetround();
+	ctfp_round = fegetround();
 	if (z == 0.0) {
-		if (round == FE_TONEAREST)
+		if (ctfp_round == FE_TONEAREST)
 			return dmul(x, y);
 		return x*y;
 	}
@@ -117,7 +119,7 @@ double fma(double x, double y, double z)
 			the xy + z below without the volatile memory access
 			*/
 			volatile double z_;
-			fesetround(round);
+			fesetround(ctfp_round);
 			z_ = z;
 			return (xy + z_) + lo1;
 		}
@@ -146,8 +148,8 @@ double fma(double x, double y, double z)
 
 	in non-nearest rounding mode fenv is used for the workaround
 	*/
-	fesetround(round);
-	if (round == FE_TONEAREST)
+	fesetround(ctfp_round);
+	if (ctfp_round == FE_TONEAREST)
 		z = dadd(hi, dadd(lo1, lo2));
 	else {
 #if defined(FE_INEXACT) && defined(FE_UNDERFLOW)
@@ -204,7 +206,7 @@ struct dd {
 
 /*
  * Compute a+b exactly, returning the exact result in a struct dd.  We assume
- * that both a and b are finite, but make no assumptions about their relative
+ * that both a and b are ctfp_finite, but make no assumptions about their relative
  * magnitudes.
  */
 static inline struct dd dd_add(double a, double b)
@@ -223,7 +225,7 @@ static inline struct dd dd_add(double a, double b)
  * result is adjusted into a sticky bit summarizing all the bits that
  * were lost to rounding.  This adjustment negates the effects of double
  * rounding when the result is added to another number with a higher
- * exponent.  For an explanation of round and sticky bits, see any reference
+ * exponent.  For an explanation of ctfp_round and sticky bits, see any reference
  * on FPU design, e.g.,
  *
  *     J. Coonen.  An Implementation Guide to a Proposed Standard for
@@ -238,7 +240,7 @@ static inline double add_adjusted(double a, double b)
 	if (sum.lo != 0) {
 		uhi.f = sum.hi;
 		if ((uhi.i & 1) == 0) {
-			/* hibits += (int)copysign(1.0, sum.hi * sum.lo) */
+			/* hibits += (int)ctfp_copysign(1.0, sum.hi * sum.lo) */
 			ulo.f = sum.lo;
 			uhi.i += 1 - ((uhi.i ^ ulo.i) >> 62);
 			sum.hi = uhi.f;
@@ -248,7 +250,7 @@ static inline double add_adjusted(double a, double b)
 }
 
 /*
- * Compute ldexp(a+b, scale) with a single rounding error. It is assumed
+ * Compute ctfp_ldexp(a+b, scale) with a single rounding error. It is assumed
  * that the result will be subnormal, and care is taken to ensure that
  * double rounding does not occur.
  */
@@ -262,7 +264,7 @@ static inline double add_and_denormalize(double a, double b, int scale)
 
 	/*
 	 * If we are losing at least two bits of accuracy to denormalization,
-	 * then the first lost bit becomes a round bit, and we adjust the
+	 * then the first lost bit becomes a ctfp_round bit, and we adjust the
 	 * lowest bit of sum.hi to make it a sticky bit summarizing all the
 	 * bits in sum.lo. With the sticky bit adjusted, the hardware will
 	 * break any ties in the correct direction.
@@ -274,19 +276,19 @@ static inline double add_and_denormalize(double a, double b, int scale)
 		uhi.f = sum.hi;
 		bits_lost = -((int)(uhi.i >> 52) & 0x7ff) - scale + 1;
 		if ((bits_lost != 1) ^ (int)(uhi.i & 1)) {
-			/* hibits += (int)copysign(1.0, sum.hi * sum.lo) */
+			/* hibits += (int)ctfp_copysign(1.0, sum.hi * sum.lo) */
 			ulo.f = sum.lo;
 			uhi.i += 1 - (((uhi.i ^ ulo.i) >> 62) & 2);
 			sum.hi = uhi.f;
 		}
 	}
-	return scalbn(sum.hi, scale);
+	return ctfp_scalbn(sum.hi, scale);
 }
 
 /*
  * Compute a*b exactly, returning the exact result in a struct dd.  We assume
  * that both a and b are normalized, so no underflow or overflow will occur.
- * The current rounding mode must be round-to-nearest.
+ * The current rounding mode must be ctfp_round-to-nearest.
  */
 static inline struct dd dd_mul(double a, double b)
 {
@@ -329,7 +331,7 @@ static inline struct dd dd_mul(double a, double b)
  * Hardware instructions should be used on architectures that support it,
  * since this implementation will likely be several times slower.
  */
-double fma(double x, double y, double z)
+double ctfp_fma(double x, double y, double z)
 {
 	#pragma STDC FENV_ACCESS ON
 	double xs, ys, zs, adj;
@@ -352,9 +354,9 @@ double fma(double x, double y, double z)
 	if (z == 0.0)
 		return (x * y);
 
-	xs = frexp(x, &ex);
-	ys = frexp(y, &ey);
-	zs = frexp(z, &ez);
+	xs = ctfp_frexp(x, &ex);
+	ys = ctfp_frexp(y, &ey);
+	zs = ctfp_frexp(z, &ez);
 	oround = fegetround();
 	spread = ex + ey - ez;
 
@@ -379,33 +381,33 @@ double fma(double x, double y, double z)
 			if (x > 0.0 ^ y < 0.0 ^ z < 0.0)
 				return (z);
 			else
-				return (nextafter(z, 0));
+				return (ctfp_nextafter(z, 0));
 #endif
 #ifdef FE_DOWNWARD
 		case FE_DOWNWARD:
 			if (x > 0.0 ^ y < 0.0)
 				return (z);
 			else
-				return (nextafter(z, -INFINITY));
+				return (ctfp_nextafter(z, -INFINITY));
 #endif
 #ifdef FE_UPWARD
 		case FE_UPWARD:
 			if (x > 0.0 ^ y < 0.0)
-				return (nextafter(z, INFINITY));
+				return (ctfp_nextafter(z, INFINITY));
 			else
 				return (z);
 #endif
 		}
 	}
 	if (spread <= DBL_MANT_DIG * 2)
-		zs = scalbn(zs, -spread);
+		zs = ctfp_scalbn(zs, -spread);
 	else
-		zs = copysign(DBL_MIN, zs);
+		zs = ctfp_copysign(DBL_MIN, zs);
 
 	fesetround(FE_TONEAREST);
 
 	/*
-	 * Basic approach for round-to-nearest:
+	 * Basic approach for ctfp_round-to-nearest:
 	 *
 	 *     (xy.hi, xy.lo) = x * y           (exact)
 	 *     (r.hi, r.lo)   = xy.hi + z       (exact)
@@ -424,7 +426,7 @@ double fma(double x, double y, double z)
 		 */
 		fesetround(oround);
 		volatile double vzs = zs; /* XXX gcc CSE bug workaround */
-		return xy.hi + vzs + scalbn(xy.lo, spread);
+		return xy.hi + vzs + ctfp_scalbn(xy.lo, spread);
 	}
 
 	if (oround != FE_TONEAREST) {
@@ -432,7 +434,7 @@ double fma(double x, double y, double z)
 		 * There is no need to worry about double rounding in directed
 		 * rounding modes.
 		 * But underflow may not be raised properly, example in downward rounding:
-		 * fma(0x1.000000001p-1000, 0x1.000000001p-30, -0x1p-1066)
+		 * ctfp_fma(0x1.000000001p-1000, 0x1.000000001p-30, -0x1p-1066)
 		 */
 		double ret;
 #if defined(FE_INEXACT) && defined(FE_UNDERFLOW)
@@ -441,9 +443,9 @@ double fma(double x, double y, double z)
 #endif
 		fesetround(oround);
 		adj = r.lo + xy.lo;
-		ret = scalbn(r.hi + adj, spread);
+		ret = ctfp_scalbn(r.hi + adj, spread);
 #if defined(FE_INEXACT) && defined(FE_UNDERFLOW)
-		if (ilogb(ret) < -1022 && fetestexcept(FE_INEXACT))
+		if (ctfp_ilogb(ret) < -1022 && fetestexcept(FE_INEXACT))
 			feraiseexcept(FE_UNDERFLOW);
 		else if (e)
 			feraiseexcept(FE_INEXACT);
@@ -452,8 +454,8 @@ double fma(double x, double y, double z)
 	}
 
 	adj = add_adjusted(r.lo, xy.lo);
-	if (spread + ilogb(r.hi) > -1023)
-		return scalbn(r.hi + adj, spread);
+	if (spread + ctfp_ilogb(r.hi) > -1023)
+		return ctfp_scalbn(r.hi + adj, spread);
 	else
 		return add_and_denormalize(r.hi, adj, spread);
 }

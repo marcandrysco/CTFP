@@ -1,3 +1,5 @@
+#include "../ctfp-math.h"
+
 /* origin: FreeBSD /usr/src/lib/msun/src/e_j1f.c */
 /*
  * Conversion to float by Ian Lance Taylor, Cygnus Support, ian@cygnus.com.
@@ -26,14 +28,14 @@ static float common(uint32_t ix, float x, int y1, int sign)
 {
 	double z,s,c,ss,cc;
 
-	s = sinf(x);
+	s = ctfp_sinf(x);
 	if (y1)
 		s = -s;
-	c = cosf(x);
+	c = ctfp_cosf(x);
 	cc = s-c;
 	if (ix < 0x7f000000) {
 		ss = -s-c;
-		z = cosf(2*x);
+		z = ctfp_cosf(2*x);
 		if (s*c > 0)
 			cc = z/ss;
 		else
@@ -61,7 +63,7 @@ s03 =  1.1771846857e-06, /* 0x359dffc2 */
 s04 =  5.0463624390e-09, /* 0x31ad6446 */
 s05 =  1.2354227016e-11; /* 0x2d59567e */
 
-float j1f(float x)
+float ctfp_j1f(float x)
 {
 	float z,r,s;
 	uint32_t ix;
@@ -73,7 +75,7 @@ float j1f(float x)
 	if (ix >= 0x7f800000)
 		return 1/(x*x);
 	if (ix >= 0x40000000)  /* |x| >= 2 */
-		return common(ix, fabsf(x), 0, sign);
+		return common(ix, ctfp_fabsf(x), 0, sign);
 	if (ix >= 0x39000000) {  /* |x| >= 2**-13 */
 		z = x*x;
 		r = z*(r00+z*(r01+z*(r02+z*r03)));
@@ -118,7 +120,7 @@ float y1f(float x)
 	z = x*x;
 	u = U0[0]+z*(U0[1]+z*(U0[2]+z*(U0[3]+z*U0[4])));
 	v = 1.0f+z*(V0[0]+z*(V0[1]+z*(V0[2]+z*(V0[3]+z*V0[4]))));
-	return x*(u/v) + tpi*(j1f(x)*logf(x)-1.0f/x);
+	return x*(u/v) + tpi*(ctfp_j1f(x)*ctfp_logf(x)-1.0f/x);
 }
 
 /* For x >= 8, the asymptotic expansions of pone is

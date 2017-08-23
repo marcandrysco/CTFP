@@ -1,3 +1,5 @@
+#include "../ctfp-math.h"
+
 /* origin: FreeBSD /usr/src/lib/msun/src/e_powf.c */
 /*
  * Conversion to float by Ian Lance Taylor, Cygnus Support, ian@cygnus.com.
@@ -22,7 +24,7 @@ dp_l[] = { 0.0, 1.56322085e-06,}, /* 0x35d1cfdc */
 two24  =  16777216.0,  /* 0x4b800000 */
 huge   =  1.0e30,
 tiny   =  1.0e-30,
-/* poly coefs for (3/2)*(log(x)-2s-2/3*s**3 */
+/* poly coefs for (3/2)*(ctfp_log(x)-2s-2/3*s**3 */
 L1 =  6.0000002384e-01, /* 0x3f19999a */
 L2 =  4.2857143283e-01, /* 0x3edb6db7 */
 L3 =  3.3333334327e-01, /* 0x3eaaaaab */
@@ -37,7 +39,7 @@ P5 =  4.1381369442e-08, /* 0x3331bb4c */
 lg2     =  6.9314718246e-01, /* 0x3f317218 */
 lg2_h   =  6.93145752e-01,   /* 0x3f317200 */
 lg2_l   =  1.42860654e-06,   /* 0x35bfbe8c */
-ovt     =  4.2995665694e-08, /* -(128-log2(ovfl+.5ulp)) */
+ovt     =  4.2995665694e-08, /* -(128-ctfp_log2(ovfl+.5ulp)) */
 cp      =  9.6179670095e-01, /* 0x3f76384f =2/(3ln2) */
 cp_h    =  9.6191406250e-01, /* 0x3f764000 =12b cp */
 cp_l    = -1.1736857402e-04, /* 0xb8f623c6 =tail of cp_h */
@@ -45,7 +47,7 @@ ivln2   =  1.4426950216e+00, /* 0x3fb8aa3b =1/ln2 */
 ivln2_h =  1.4426879883e+00, /* 0x3fb8aa00 =16b 1/ln2*/
 ivln2_l =  7.0526075433e-06; /* 0x36eca570 =1/ln2 tail*/
 
-float powf(float x, float y)
+float ctfp_powf(float x, float y)
 {
 	float z,ax,z_h,z_l,p_h,p_l;
 	float y1,t1,t2,r,s,sn,t,u,v,w;
@@ -102,7 +104,7 @@ float powf(float x, float y)
 			return sqrtf(x);
 	}
 
-	ax = fabsf(x);
+	ax = ctfp_fabsf(x);
 	/* special value of x */
 	if (ix == 0x7f800000 || ix == 0 || ix == 0x3f800000) { /* x is +-0,+-inf,+-1 */
 		z = ax;
@@ -133,7 +135,7 @@ float powf(float x, float y)
 		if (ix > 0x3f800007)
 			return hy > 0 ? sn*huge*huge : sn*tiny*tiny;
 		/* now |1-x| is tiny <= 2**-20, suffice to compute
-		   log(x) by x-x^2/2+x^3/3-x^4/4 */
+		   ctfp_log(x) by x-x^2/2+x^3/3-x^4/4 */
 		t = ax - 1;     /* t has 20 trailing zeros */
 		w = (t*t)*(0.5f - t*(0.333333333333f - t*0.25f));
 		u = ivln2_h*t;  /* ivln2_h has 16 sig. bits */
@@ -178,7 +180,7 @@ float powf(float x, float y)
 		SET_FLOAT_WORD(t_h, is + 0x00400000 + (k<<21));
 		t_l = ax - (t_h - bp[k]);
 		s_l = v*((u - s_h*t_h) - s_h*t_l);
-		/* compute log(ax) */
+		/* compute ctfp_log(ax) */
 		s2 = s*s;
 		r = s2*s2*(L1+s2*(L2+s2*(L3+s2*(L4+s2*(L5+s2*L6)))));
 		r += s_l*(s_h+s);
@@ -195,9 +197,9 @@ float powf(float x, float y)
 		GET_FLOAT_WORD(is, p_h);
 		SET_FLOAT_WORD(p_h, is & 0xfffff000);
 		p_l = v - (p_h - u);
-		z_h = cp_h*p_h;  /* cp_h+cp_l = 2/(3*log2) */
+		z_h = cp_h*p_h;  /* cp_h+cp_l = 2/(3*ctfp_log2) */
 		z_l = cp_l*p_h + p_l*cp+dp_l[k];
-		/* log2(ax) = (s+..)*2/(3*log2) = n + dp_h + z_h + z_l */
+		/* ctfp_log2(ax) = (s+..)*2/(3*ctfp_log2) = n + dp_h + z_h + z_l */
 		t = (float)n;
 		t1 = (((z_h + z_l) + dp_h[k]) + t);
 		GET_FLOAT_WORD(is, t1);
@@ -252,7 +254,7 @@ float powf(float x, float y)
 	GET_FLOAT_WORD(j, z);
 	j += n<<23;
 	if ((j>>23) <= 0)  /* subnormal output */
-		z = scalbnf(z, n);
+		z = ctfp_scalbnf(z, n);
 	else
 		SET_FLOAT_WORD(z, j);
 	return sn*z;

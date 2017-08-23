@@ -1,3 +1,5 @@
+#include "../ctfp-math.h"
+
 #include <float.h>
 #include "__invtrigl.h"
 
@@ -19,8 +21,8 @@ qS5 = -3.14365703596053263322e-02L;
 const long double pio2_hi = 1.57079632679489661926L;
 const long double pio2_lo = -2.50827880633416601173e-20L;
 
-/* used in asinl() and acosl() */
-/* R(x^2) is a rational approximation of (asin(x)-x)/x^3 with Remez algorithm */
+/* used in ctfp_asinl() and ctfp_acosl() */
+/* R(x^2) is a rational approximation of (ctfp_asin(x)-x)/x^3 with Remez algorithm */
 long double __invtrigl_R(long double z)
 {
 	long double p, q;

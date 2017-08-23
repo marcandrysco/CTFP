@@ -1,3 +1,5 @@
+#include "../ctfp-math.h"
+
 /* origin: FreeBSD /usr/src/lib/msun/src/e_acosf.c */
 /*
  * Conversion to float by Ian Lance Taylor, Cygnus Support, ian@cygnus.com.
@@ -31,14 +33,14 @@ static float R(float z)
 	return p/q;
 }
 
-float acosf(float x)
+float ctfp_acosf(float x)
 {
 	float z,w,s,c,df;
 	uint32_t hx,ix;
 
 	GET_FLOAT_WORD(hx, x);
 	ix = hx & 0x7fffffff;
-	/* |x| >= 1 or nan */
+	/* |x| >= 1 or ctfp_nan */
 	if (ix >= 0x3f800000) {
 		if (ix == 0x3f800000) {
 			if (hx >> 31)

@@ -1,6 +1,8 @@
+#include "../ctfp-math.h"
+
 #include <math.h>
 
-double fdim(double x, double y)
+double ctfp_fdim(double x, double y)
 {
 	if (isnan(x))
 		return x;

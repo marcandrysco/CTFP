@@ -1,13 +1,15 @@
+#include "../ctfp-math.h"
+
 #include "libm.h"
 
 #if LDBL_MANT_DIG == 53 && LDBL_MAX_EXP == 1024
-long double atanhl(long double x)
+long double ctfp_atanhl(long double x)
 {
-	return atanh(x);
+	return ctfp_atanh(x);
 }
 #elif (LDBL_MANT_DIG == 64 || LDBL_MANT_DIG == 113) && LDBL_MAX_EXP == 16384
-/* atanh(x) = log((1+x)/(1-x))/2 = log1p(2x/(1-x))/2 ~= x + x^3/3 + o(x^5) */
-long double atanhl(long double x)
+/* ctfp_atanh(x) = ctfp_log((1+x)/(1-x))/2 = ctfp_log1p(2x/(1-x))/2 ~= x + x^3/3 + o(x^5) */
+long double ctfp_atanhl(long double x)
 {
 	union ldshape u = {x};
 	unsigned e = u.i.se & 0x7fff;
@@ -24,11 +26,11 @@ long double atanhl(long double x)
 				FORCE_EVAL((float)x);
 		} else {
 			/* |x| < 0.5, up to 1.7ulp error */
-			x = 0.5*log1pl(2*x + 2*x*x/(1-x));
+			x = 0.5*ctfp_log1pl(2*x + 2*x*x/(1-x));
 		}
 	} else {
 		/* avoid overflow */
-		x = 0.5*log1pl(2*(x/(1-x)));
+		x = 0.5*ctfp_log1pl(2*(x/(1-x)));
 	}
 	return s ? -x : x;
 }

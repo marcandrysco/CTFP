@@ -156,31 +156,29 @@ do {                                              \
 
 /* fdlibm kernel functions */
 
-int    ctfp__rem_pio2_large(double*,double*,int,int,int);
+int    ctfp___rem_pio2_large(double*,double*,int,int,int);
 
-int    ctfp__rem_pio2(double,double*);
-double ctfp__sin(double,double,int);
-double ctfp__cos(double,double);
-double ctfp__tan(double,double,int);
-double ctfp__expo2(double);
-double complex ctfp__ldexp_cexp(double complex,int);
+int    ctfp___rem_pio2(double,double*);
+double ctfp___sin(double,double,int);
+double ctfp___cos(double,double);
+double ctfp___tan(double,double,int);
+double ctfp___expo2(double);
+double complex __ldexp_cexp(double complex,int);
 
-int    ctfp__rem_pio2f(float,double*);
-float  ctfp__sindf(double);
-float  ctfp__cosdf(double);
-float  ctfp__tandf(double,int);
-float  ctfp__expo2f(float);
-float complex ctfp__ldexp_cexpf(float complex,int);
+int    ctfp___rem_pio2f(float,double*);
+float  ctfp___sindf(double);
+float  ctfp___cosdf(double);
+float  ctfp___tandf(double,int);
+float  ctfp___expo2f(float);
+float complex __ldexp_cexpf(float complex,int);
 
-int ctfp__rem_pio2l(long double, long double *);
-long double ctfp__sinl(long double, long double, int);
-long double ctfp__cosl(long double, long double);
-long double ctfp__tanl(long double, long double, int);
+int ctfp___rem_pio2l(long double, long double *);
+long double ctfp___sinl(long double, long double, int);
+long double ctfp___cosl(long double, long double);
+long double ctfp___tanl(long double, long double, int);
 
 /* polynomial evaluation */
-long double ctfp__polevll(long double, const long double *, int);
-long double ctfp__p1evll(long double, const long double *, int);
-
-#include "../ctfp-math.h"
+long double ctfp___polevll(long double, const long double *, int);
+long double __p1evll(long double, const long double *, int);
 
 #endif

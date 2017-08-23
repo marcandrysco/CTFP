@@ -1,3 +1,5 @@
+#include "../ctfp-math.h"
+
 /* origin: FreeBSD /usr/src/lib/msun/src/e_lgammaf_r.c */
 /*
  * Conversion to float by Ian Lance Taylor, Cygnus Support, ian@cygnus.com.
@@ -81,14 +83,14 @@ w4  = -5.9518753551e-04, /* 0xba1c065c */
 w5  =  8.3633989561e-04, /* 0x3a5b3dd2 */
 w6  = -1.6309292987e-03; /* 0xbad5c4e8 */
 
-/* sin(pi*x) assuming x > 2^-100, if sin(pi*x)==0 the sign is arbitrary */
+/* ctfp_sin(pi*x) assuming x > 2^-100, if ctfp_sin(pi*x)==0 the sign is arbitrary */
 static float sin_pi(float x)
 {
 	double_t y;
 	int n;
 
 	/* spurious inexact if odd int */
-	x = 2*(x*0.5f - floorf(x*0.5f));  /* x mod 2.0 */
+	x = 2*(x*0.5f - ctfp_floorf(x*0.5f));  /* x mod 2.0 */
 
 	n = (int)(x*4);
 	n = (n+1)/2;
@@ -96,10 +98,10 @@ static float sin_pi(float x)
 	y *= 3.14159265358979323846;
 	switch (n) {
 	default: /* case 4: */
-	case 0: return __sindf(y);
-	case 1: return __cosdf(y);
-	case 2: return __sindf(-y);
-	case 3: return -__cosdf(y);
+	case 0: return ctfp___sindf(y);
+	case 1: return ctfp___cosdf(y);
+	case 2: return ctfp___sindf(-y);
+	case 3: return -ctfp___cosdf(y);
 	}
 }
 
@@ -116,12 +118,12 @@ float __lgammaf_r(float x, int *signgamp)
 	ix = u.i & 0x7fffffff;
 	if (ix >= 0x7f800000)
 		return x*x;
-	if (ix < 0x35000000) {  /* |x| < 2**-21, return -log(|x|) */
+	if (ix < 0x35000000) {  /* |x| < 2**-21, return -ctfp_log(|x|) */
 		if (sign) {
 			*signgamp = -1;
 			x = -x;
 		}
-		return -logf(x);
+		return -ctfp_logf(x);
 	}
 	if (sign) {
 		x = -x;
@@ -132,7 +134,7 @@ float __lgammaf_r(float x, int *signgamp)
 			*signgamp = -1;
 		else
 			t = -t;
-		nadj = logf(pi/(t*x));
+		nadj = ctfp_logf(pi/(t*x));
 	}
 
 	/* purge off 1 and 2 */
@@ -140,8 +142,8 @@ float __lgammaf_r(float x, int *signgamp)
 		r = 0;
 	/* for x < 2.0 */
 	else if (ix < 0x40000000) {
-		if (ix <= 0x3f666666) {  /* lgamma(x) = lgamma(x+1)-log(x) */
-			r = -logf(x);
+		if (ix <= 0x3f666666) {  /* ctfp_lgamma(x) = ctfp_lgamma(x+1)-ctfp_log(x) */
+			r = -ctfp_logf(x);
 			if (ix >= 0x3f3b4a20) {
 				y = 1.0f - x;
 				i = 0;
@@ -193,27 +195,27 @@ float __lgammaf_r(float x, int *signgamp)
 		p = y*(s0+y*(s1+y*(s2+y*(s3+y*(s4+y*(s5+y*s6))))));
 		q = 1.0f+y*(r1+y*(r2+y*(r3+y*(r4+y*(r5+y*r6)))));
 		r = 0.5f*y+p/q;
-		z = 1.0f;    /* lgamma(1+s) = log(s) + lgamma(s) */
+		z = 1.0f;    /* ctfp_lgamma(1+s) = ctfp_log(s) + ctfp_lgamma(s) */
 		switch (i) {
 		case 7: z *= y + 6.0f;  /* FALLTHRU */
 		case 6: z *= y + 5.0f;  /* FALLTHRU */
 		case 5: z *= y + 4.0f;  /* FALLTHRU */
 		case 4: z *= y + 3.0f;  /* FALLTHRU */
 		case 3: z *= y + 2.0f;  /* FALLTHRU */
-			r += logf(z);
+			r += ctfp_logf(z);
 			break;
 		}
 	} else if (ix < 0x5c800000) {  /* 8.0 <= x < 2**58 */
-		t = logf(x);
+		t = ctfp_logf(x);
 		z = 1.0f/x;
 		y = z*z;
 		w = w0+z*(w1+y*(w2+y*(w3+y*(w4+y*(w5+y*w6)))));
 		r = (x-0.5f)*(t-1.0f)+w;
 	} else                         /* 2**58 <= x <= inf */
-		r =  x*(logf(x)-1.0f);
+		r =  x*(ctfp_logf(x)-1.0f);
 	if (sign)
 		r = nadj - r;
 	return r;
 }
 
-weak_alias(__lgammaf_r, lgammaf_r);
+weak_alias(__lgammaf_r, ctfp_lgammaf_r);

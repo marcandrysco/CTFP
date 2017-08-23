@@ -1,3 +1,5 @@
+#include "../ctfp-math.h"
+
 /* origin: FreeBSD /usr/src/lib/msun/src/s_erff.c */
 /*
  * Conversion to float by Ian Lance Taylor, Cygnus Support, ian@cygnus.com.
@@ -18,7 +20,7 @@
 static const float
 erx  =  8.4506291151e-01, /* 0x3f58560b */
 /*
- * Coefficients for approximation to  erf on [0,0.84375]
+ * Coefficients for approximation to  ctfp_erf on [0,0.84375]
  */
 efx8 =  1.0270333290e+00, /* 0x3f8375d4 */
 pp0  =  1.2837916613e-01, /* 0x3e0375d4 */
@@ -32,7 +34,7 @@ qq3  =  5.0813062117e-03, /* 0x3ba68116 */
 qq4  =  1.3249473704e-04, /* 0x390aee49 */
 qq5  = -3.9602282413e-06, /* 0xb684e21a */
 /*
- * Coefficients for approximation to  erf  in [0.84375,1.25]
+ * Coefficients for approximation to  ctfp_erf  in [0.84375,1.25]
  */
 pa0  = -2.3621185683e-03, /* 0xbb1acdc6 */
 pa1  =  4.1485610604e-01, /* 0x3ed46805 */
@@ -88,7 +90,7 @@ static float erfc1(float x)
 {
 	float_t s,P,Q;
 
-	s = fabsf(x) - 1;
+	s = ctfp_fabsf(x) - 1;
 	P = pa0+s*(pa1+s*(pa2+s*(pa3+s*(pa4+s*(pa5+s*pa6)))));
 	Q = 1+s*(qa1+s*(qa2+s*(qa3+s*(qa4+s*(qa5+s*qa6)))));
 	return 1 - erx - P/Q;
@@ -102,7 +104,7 @@ static float erfc2(uint32_t ix, float x)
 	if (ix < 0x3fa00000)  /* |x| < 1.25 */
 		return erfc1(x);
 
-	x = fabsf(x);
+	x = ctfp_fabsf(x);
 	s = 1/(x*x);
 	if (ix < 0x4036db6d) {   /* |x| < 1/0.35 */
 		R = ra0+s*(ra1+s*(ra2+s*(ra3+s*(ra4+s*(
@@ -117,10 +119,10 @@ static float erfc2(uint32_t ix, float x)
 	}
 	GET_FLOAT_WORD(ix, x);
 	SET_FLOAT_WORD(z, ix&0xffffe000);
-	return expf(-z*z - 0.5625f) * expf((z-x)*(z+x) + R/S)/x;
+	return ctfp_expf(-z*z - 0.5625f) * ctfp_expf((z-x)*(z+x) + R/S)/x;
 }
 
-float erff(float x)
+float ctfp_erff(float x)
 {
 	float r,s,z,y;
 	uint32_t ix;
@@ -130,7 +132,7 @@ float erff(float x)
 	sign = ix>>31;
 	ix &= 0x7fffffff;
 	if (ix >= 0x7f800000) {
-		/* erf(nan)=nan, erf(+-inf)=+-1 */
+		/* ctfp_erf(ctfp_nan)=ctfp_nan, ctfp_erf(+-inf)=+-1 */
 		return 1-2*sign + 1/x;
 	}
 	if (ix < 0x3f580000) {  /* |x| < 0.84375 */
@@ -161,7 +163,7 @@ float erfcf(float x)
 	sign = ix>>31;
 	ix &= 0x7fffffff;
 	if (ix >= 0x7f800000) {
-		/* erfc(nan)=nan, erfc(+-inf)=0,2 */
+		/* erfc(ctfp_nan)=ctfp_nan, erfc(+-inf)=0,2 */
 		return 2*sign + 1/x;
 	}
 

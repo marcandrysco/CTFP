@@ -1,3 +1,5 @@
+#include "../ctfp-math.h"
+
 /* origin: FreeBSD /usr/src/lib/msun/src/s_atanl.c */
 /*
  * ====================================================
@@ -10,16 +12,16 @@
  * ====================================================
  */
 /*
- * See comments in atan.c.
+ * See comments in ctfp_atan.c.
  * Converted to long double by David Schultz <das@FreeBSD.ORG>.
  */
 
 #include "libm.h"
 
 #if LDBL_MANT_DIG == 53 && LDBL_MAX_EXP == 1024
-long double atanl(long double x)
+long double ctfp_atanl(long double x)
 {
-	return atan(x);
+	return ctfp_atan(x);
 }
 #elif (LDBL_MANT_DIG == 64 || LDBL_MANT_DIG == 113) && LDBL_MAX_EXP == 16384
 
@@ -126,7 +128,7 @@ static long double T_odd(long double x)
 }
 #endif
 
-long double atanl(long double x)
+long double ctfp_atanl(long double x)
 {
 	union ldshape u = {x};
 	long double w, s1, s2, z;
@@ -135,7 +137,7 @@ long double atanl(long double x)
 	unsigned sign = u.i.se >> 15;
 	unsigned expman;
 
-	if (e >= 0x3fff + LDBL_MANT_DIG + 1) { /* if |x| is large, atan(x)~=pi/2 */
+	if (e >= 0x3fff + LDBL_MANT_DIG + 1) { /* if |x| is large, ctfp_atan(x)~=pi/2 */
 		if (isnan(x))
 			return x;
 		return sign ? -atanhi[3] : atanhi[3];
@@ -143,7 +145,7 @@ long double atanl(long double x)
 	/* Extract the exponent and the first few bits of the mantissa. */
 	expman = EXPMAN(u);
 	if (expman < ((0x3fff - 2) << 8) + 0xc0) {  /* |x| < 0.4375 */
-		if (e < 0x3fff - (LDBL_MANT_DIG+1)/2) {   /* if |x| is small, atanl(x)~=x */
+		if (e < 0x3fff - (LDBL_MANT_DIG+1)/2) {   /* if |x| is small, ctfp_atanl(x)~=x */
 			/* raise underflow if subnormal */
 			if (e == 0)
 				FORCE_EVAL((float)x);
@@ -151,7 +153,7 @@ long double atanl(long double x)
 		}
 		id = -1;
 	} else {
-		x = fabsl(x);
+		x = ctfp_fabsl(x);
 		if (expman < (0x3fff << 8) + 0x30) {  /* |x| < 1.1875 */
 			if (expman < ((0x3fff - 1) << 8) + 0x60) { /*  7/16 <= |x| < 11/16 */
 				id = 0;

@@ -1,3 +1,5 @@
+#include "../ctfp-math.h"
+
 /* origin: FreeBSD /usr/src/lib/msun/src/s_expm1f.c */
 /*
  * Conversion to float by Ian Lance Taylor, Cygnus Support, ian@cygnus.com.
@@ -22,20 +24,20 @@ ln2_lo      = 9.0580006145e-06, /* 0x3717f7d1 */
 invln2      = 1.4426950216e+00, /* 0x3fb8aa3b */
 /*
  * Domain [-0.34568, 0.34568], range ~[-6.694e-10, 6.696e-10]:
- * |6 / x * (1 + 2 * (1 / (exp(x) - 1) - 1 / x)) - q(x)| < 2**-30.04
+ * |6 / x * (1 + 2 * (1 / (ctfp_exp(x) - 1) - 1 / x)) - q(x)| < 2**-30.04
  * Scaled coefficients: Qn_here = 2**n * Qn_for_q (see s_expm1.c):
  */
 Q1 = -3.3333212137e-2, /* -0x888868.0p-28 */
 Q2 =  1.5807170421e-3; /*  0xcf3010.0p-33 */
 
-float expm1f(float x)
+float ctfp_expm1f(float x)
 {
 	float_t y,hi,lo,c,t,e,hxs,hfx,r1,twopk;
 	union {float f; uint32_t i;} u = {x};
 	uint32_t hx = u.i & 0x7fffffff;
 	int k, sign = u.i >> 31;
 
-	/* filter out huge and non-finite argument */
+	/* filter out huge and non-ctfp_finite argument */
 	if (hx >= 0x4195b844) {  /* if |x|>=27*ln2 */
 		if (hx > 0x7f800000)  /* NaN */
 			return x;
@@ -84,7 +86,7 @@ float expm1f(float x)
 		return x - (x*e-hxs);
 	e  = x*(e-c) - c;
 	e -= hxs;
-	/* exp(x) ~ 2^k (x_reduced - e + 1) */
+	/* ctfp_exp(x) ~ 2^k (x_reduced - e + 1) */
 	if (k == -1)
 		return 0.5f*(x-e) - 0.5f;
 	if (k == 1) {
@@ -94,7 +96,7 @@ float expm1f(float x)
 	}
 	u.i = (0x7f+k)<<23;  /* 2^k */
 	twopk = u.f;
-	if (k < 0 || k > 56) {   /* suffice to return exp(x)-1 */
+	if (k < 0 || k > 56) {   /* suffice to return ctfp_exp(x)-1 */
 		y = x - e + 1.0f;
 		if (k == 128)
 			y = y*2.0f*0x1p127f;

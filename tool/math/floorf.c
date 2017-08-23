@@ -1,6 +1,8 @@
+#include "../ctfp-math.h"
+
 #include "libm.h"
 
-float floorf(float x)
+float ctfp_floorf(float x)
 {
 	union {float f; uint32_t i;} u = {x};
 	int e = (int)(u.i >> 23 & 0xff) - 0x7f;

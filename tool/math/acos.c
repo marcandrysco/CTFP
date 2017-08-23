@@ -1,3 +1,5 @@
+#include "../ctfp-math.h"
+
 /* origin: FreeBSD /usr/src/lib/msun/src/e_acos.c */
 /*
  * ====================================================
@@ -9,21 +11,21 @@
  * is preserved.
  * ====================================================
  */
-/* acos(x)
+/* ctfp_acos(x)
  * Method :
- *      acos(x)  = pi/2 - asin(x)
- *      acos(-x) = pi/2 + asin(x)
+ *      ctfp_acos(x)  = pi/2 - ctfp_asin(x)
+ *      ctfp_acos(-x) = pi/2 + ctfp_asin(x)
  * For |x|<=0.5
- *      acos(x) = pi/2 - (x + x*x^2*R(x^2))     (see asin.c)
+ *      ctfp_acos(x) = pi/2 - (x + x*x^2*R(x^2))     (see ctfp_asin.c)
  * For x>0.5
- *      acos(x) = pi/2 - (pi/2 - 2asin(sqrt((1-x)/2)))
+ *      ctfp_acos(x) = pi/2 - (pi/2 - 2asin(sqrt((1-x)/2)))
  *              = 2asin(sqrt((1-x)/2))
  *              = 2s + 2s*z*R(z)        ...z=(1-x)/2, s=sqrt(z)
  *              = 2f + (2c + 2s*z*R(z))
  *     where f=hi part of s, and c = (z-f*f)/(s+f) is the correction term
  *     for f so that f+c ~ sqrt(z).
  * For x<-0.5
- *      acos(x) = pi - 2asin(sqrt((1-|x|)/2))
+ *      ctfp_acos(x) = pi - 2asin(sqrt((1-|x|)/2))
  *              = pi - 0.5*(s+s*z*R(z)), where z=(1-|x|)/2,s=sqrt(z)
  *
  * Special cases:
@@ -57,20 +59,20 @@ static double R(double z)
 	return p/q;
 }
 
-double acos(double x)
+double ctfp_acos(double x)
 {
 	double z,w,s,c,df;
 	uint32_t hx,ix;
 
 	GET_HIGH_WORD(hx, x);
 	ix = hx & 0x7fffffff;
-	/* |x| >= 1 or nan */
+	/* |x| >= 1 or ctfp_nan */
 	if (ix >= 0x3ff00000) {
 		uint32_t lx;
 
 		GET_LOW_WORD(lx,x);
 		if ((ix-0x3ff00000 | lx) == 0) {
-			/* acos(1)=0, acos(-1)=pi */
+			/* ctfp_acos(1)=0, ctfp_acos(-1)=pi */
 			if (hx >> 31)
 				return 2*pio2_hi + 0x1p-120f;
 			return 0;

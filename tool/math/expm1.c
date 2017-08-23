@@ -1,3 +1,5 @@
+#include "../ctfp-math.h"
+
 /* origin: FreeBSD /usr/src/lib/msun/src/s_expm1.c */
 /*
  * ====================================================
@@ -9,8 +11,8 @@
  * is preserved.
  * ====================================================
  */
-/* expm1(x)
- * Returns exp(x)-1, the exponential of x minus 1.
+/* ctfp_expm1(x)
+ * Returns ctfp_exp(x)-1, the exponential of x minus 1.
  *
  * Method
  *   1. Argument reduction:
@@ -21,15 +23,15 @@
  *      Here a correction term c will be computed to compensate
  *      the error in r when rounded to a floating-point number.
  *
- *   2. Approximating expm1(r) by a special rational function on
+ *   2. Approximating ctfp_expm1(r) by a special rational function on
  *      the interval [0,0.34658]:
  *      Since
- *          r*(exp(r)+1)/(exp(r)-1) = 2+ r^2/6 - r^4/360 + ...
+ *          r*(ctfp_exp(r)+1)/(ctfp_exp(r)-1) = 2+ r^2/6 - r^4/360 + ...
  *      we define R1(r*r) by
- *          r*(exp(r)+1)/(exp(r)-1) = 2+ r^2/6 * R1(r*r)
+ *          r*(ctfp_exp(r)+1)/(ctfp_exp(r)-1) = 2+ r^2/6 * R1(r*r)
  *      That is,
- *          R1(r**2) = 6/r *((exp(r)+1)/(exp(r)-1) - 2/r)
- *                   = 6/r * ( 1 + 2.0*(1/(exp(r)-1) - 1/r))
+ *          R1(r**2) = 6/r *((ctfp_exp(r)+1)/(ctfp_exp(r)-1) - 2/r)
+ *                   = 6/r * ( 1 + 2.0*(1/(ctfp_exp(r)-1) - 1/r))
  *                   = 1 - r^2/60 + r^4/2520 - r^6/100800 + ...
  *      We use a special Remez algorithm on [0,0.347] to generate
  *      a polynomial of degree 5 in r*r to approximate R1. The
@@ -47,47 +49,47 @@
  *          | 1.0+Q1*z+...+Q5*z   -  R1(z) | <= 2
  *          |                              |
  *
- *      expm1(r) = exp(r)-1 is then computed by the following
+ *      ctfp_expm1(r) = ctfp_exp(r)-1 is then computed by the following
  *      specific way which minimize the accumulation rounding error:
  *                             2     3
  *                            r     r    [ 3 - (R1 + R1*r/2)  ]
- *            expm1(r) = r + --- + --- * [--------------------]
+ *            ctfp_expm1(r) = r + --- + --- * [--------------------]
  *                            2     2    [ 6 - r*(3 - R1*r/2) ]
  *
  *      To compensate the error in the argument reduction, we use
- *              expm1(r+c) = expm1(r) + c + expm1(r)*c
- *                         ~ expm1(r) + c + r*c
+ *              ctfp_expm1(r+c) = ctfp_expm1(r) + c + ctfp_expm1(r)*c
+ *                         ~ ctfp_expm1(r) + c + r*c
  *      Thus c+r*c will be added in as the correction terms for
- *      expm1(r+c). Now rearrange the term to avoid optimization
+ *      ctfp_expm1(r+c). Now rearrange the term to avoid optimization
  *      screw up:
  *                      (      2                                    2 )
  *                      ({  ( r    [ R1 -  (3 - R1*r/2) ]  )  }    r  )
- *       expm1(r+c)~r - ({r*(--- * [--------------------]-c)-c} - --- )
+ *       ctfp_expm1(r+c)~r - ({r*(--- * [--------------------]-c)-c} - --- )
  *                      ({  ( 2    [ 6 - r*(3 - R1*r/2) ]  )  }    2  )
  *                      (                                             )
  *
  *                 = r - E
- *   3. Scale back to obtain expm1(x):
+ *   3. Scale back to obtain ctfp_expm1(x):
  *      From step 1, we have
- *         expm1(x) = either 2^k*[expm1(r)+1] - 1
- *                  = or     2^k*[expm1(r) + (1-2^-k)]
+ *         ctfp_expm1(x) = either 2^k*[ctfp_expm1(r)+1] - 1
+ *                  = or     2^k*[ctfp_expm1(r) + (1-2^-k)]
  *   4. Implementation notes:
  *      (A). To save one multiplication, we scale the coefficient Qi
  *           to Qi*2^i, and replace z by (x^2)/2.
- *      (B). To achieve maximum accuracy, we compute expm1(x) by
+ *      (B). To achieve maximum accuracy, we compute ctfp_expm1(x) by
  *        (i)   if x < -56*ln2, return -1.0, (raise inexact if x!=inf)
  *        (ii)  if k=0, return r-E
  *        (iii) if k=-1, return 0.5*(r-E)-0.5
  *        (iv)  if k=1 if r < -0.25, return 2*((r+0.5)- E)
  *                     else          return  1.0+2.0*(r-E);
- *        (v)   if (k<-2||k>56) return 2^k(1-(E-r)) - 1 (or exp(x)-1)
+ *        (v)   if (k<-2||k>56) return 2^k(1-(E-r)) - 1 (or ctfp_exp(x)-1)
  *        (vi)  if k <= 20, return 2^k((1-2^-k)-(E-r)), else
  *        (vii) return 2^k(1-((E+2^-k)-r))
  *
  * Special cases:
- *      expm1(INF) is INF, expm1(NaN) is NaN;
- *      expm1(-INF) is -1, and
- *      for finite argument, only expm1(0)=0 is exact.
+ *      ctfp_expm1(INF) is INF, ctfp_expm1(NaN) is NaN;
+ *      ctfp_expm1(-INF) is -1, and
+ *      for ctfp_finite argument, only ctfp_expm1(0)=0 is exact.
  *
  * Accuracy:
  *      according to an error analysis, the error is always less than
@@ -95,7 +97,7 @@
  *
  * Misc. info.
  *      For IEEE double
- *          if x >  7.09782712893383973096e+02 then expm1(x) overflow
+ *          if x >  7.09782712893383973096e+02 then ctfp_expm1(x) overflow
  *
  * Constants:
  * The hexadecimal values are the intended ones for the following
@@ -118,14 +120,14 @@ Q3 = -7.93650757867487942473e-05, /* BF14CE19 9EAADBB7 */
 Q4 =  4.00821782732936239552e-06, /* 3ED0CFCA 86E65239 */
 Q5 = -2.01099218183624371326e-07; /* BE8AFDB7 6E09C32D */
 
-double expm1(double x)
+double ctfp_expm1(double x)
 {
 	double_t y,hi,lo,c,t,e,hxs,hfx,r1,twopk;
 	union {double f; uint64_t i;} u = {x};
 	uint32_t hx = u.i>>32 & 0x7fffffff;
 	int k, sign = u.i>>63;
 
-	/* filter out huge and non-finite argument */
+	/* filter out huge and non-ctfp_finite argument */
 	if (hx >= 0x4043687A) {  /* if |x|>=56*ln2 */
 		if (isnan(x))
 			return x;
@@ -174,7 +176,7 @@ double expm1(double x)
 		return x - (x*e-hxs);
 	e  = x*(e-c) - c;
 	e -= hxs;
-	/* exp(x) ~ 2^k (x_reduced - e + 1) */
+	/* ctfp_exp(x) ~ 2^k (x_reduced - e + 1) */
 	if (k == -1)
 		return 0.5*(x-e) - 0.5;
 	if (k == 1) {
@@ -184,7 +186,7 @@ double expm1(double x)
 	}
 	u.i = (uint64_t)(0x3ff + k)<<52;  /* 2^k */
 	twopk = u.f;
-	if (k < 0 || k > 56) {  /* suffice to return exp(x)-1 */
+	if (k < 0 || k > 56) {  /* suffice to return ctfp_exp(x)-1 */
 		y = x - e + 1.0;
 		if (k == 1024)
 			y = y*2.0*0x1p1023;

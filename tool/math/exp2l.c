@@ -1,3 +1,5 @@
+#include "../ctfp-math.h"
+
 /* origin: FreeBSD /usr/src/lib/msun/ld80/s_exp2l.c and /usr/src/lib/msun/ld128/s_exp2l.c */
 /*-
  * Copyright (c) 2005-2008 David Schultz <das@FreeBSD.ORG>
@@ -28,9 +30,9 @@
 #include "libm.h"
 
 #if LDBL_MANT_DIG == 53 && LDBL_MAX_EXP == 1024
-long double exp2l(long double x)
+long double ctfp_exp2l(long double x)
 {
-	return exp2(x);
+	return ctfp_exp2(x);
 }
 #elif LDBL_MANT_DIG == 64 && LDBL_MAX_EXP == 16384
 #define TBLBITS 7
@@ -177,7 +179,7 @@ static const double tbl[TBLSIZE * 2] = {
 };
 
 /*
- * exp2l(x): compute the base 2 exponential of x
+ * ctfp_exp2l(x): compute the base 2 exponential of x
  *
  * Accuracy: Peak error < 0.511 ulp.
  *
@@ -185,19 +187,19 @@ static const double tbl[TBLSIZE * 2] = {
  *
  *   Reduce x:
  *     x = 2**k + y, for integer k and |y| <= 1/2.
- *     Thus we have exp2l(x) = 2**k * exp2(y).
+ *     Thus we have ctfp_exp2l(x) = 2**k * ctfp_exp2(y).
  *
  *   Reduce y:
  *     y = i/TBLSIZE + z for integer i near y * TBLSIZE.
- *     Thus we have exp2(y) = exp2(i/TBLSIZE) * exp2(z),
+ *     Thus we have ctfp_exp2(y) = ctfp_exp2(i/TBLSIZE) * ctfp_exp2(z),
  *     with |z| <= 2**-(TBLBITS+1).
  *
- *   We compute exp2(i/TBLSIZE) via table lookup and exp2(z) via a
+ *   We compute ctfp_exp2(i/TBLSIZE) via table lookup and ctfp_exp2(z) via a
  *   degree-6 minimax polynomial with maximum error under 2**-69.
  *   The table entries each have 104 bits of accuracy, encoded as
  *   a pair of double precision values.
  */
-long double exp2l(long double x)
+long double ctfp_exp2l(long double x)
 {
 	union ldshape u = {x};
 	int e = u.i.se & 0x7fff;
@@ -210,7 +212,7 @@ long double exp2l(long double x)
 		if (u.i.se >= 0x3fff + 14 && u.i.se >> 15 == 0)
 			/* overflow */
 			return x * 0x1p16383L;
-		if (e == 0x7fff)  /* -inf or -nan */
+		if (e == 0x7fff)  /* -inf or -ctfp_nan */
 			return -1/x;
 		if (x < -16382) {
 			if (x <= -16446 || x - 0x1p63 + 0x1p63 != x)
@@ -227,7 +229,7 @@ long double exp2l(long double x)
 	 * Reduce x, computing z, i0, and k. The low bits of x + redux
 	 * contain the 16-bit integer part of the exponent (k) followed by
 	 * TBLBITS fractional bits (i0). We use bit tricks to extract these
-	 * as integers, then set z to the remainder.
+	 * as integers, then set z to the ctfp_remainder.
 	 *
 	 * Example: Suppose x is 0xabc.123456p0 and TBLBITS is 8.
 	 * Then the low-order word of x + redux is 0x000abc12,
@@ -242,14 +244,14 @@ long double exp2l(long double x)
 	u.f -= redux;
 	z = x - u.f;
 
-	/* Compute r = exp2l(y) = exp2lt[i0] * p(z). */
+	/* Compute r = ctfp_exp2l(y) = exp2lt[i0] * p(z). */
 	long double t_hi = tbl[2*i0];
 	long double t_lo = tbl[2*i0 + 1];
 	/* XXX This gives > 1 ulp errors outside of FE_TONEAREST mode */
 	r = t_lo + (t_hi + t_lo) * z * (P1 + z * (P2 + z * (P3 + z * (P4
 	     + z * (P5 + z * P6))))) + t_hi;
 
-	return scalbnl(r, k.i);
+	return ctfp_scalbnl(r, k.i);
 }
 #elif LDBL_MANT_DIG == 113 && LDBL_MAX_EXP == 16384
 #define TBLBITS 7
@@ -533,7 +535,7 @@ static const float eps[TBLSIZE] = {
 };
 
 /*
- * exp2l(x): compute the base 2 exponential of x
+ * ctfp_exp2l(x): compute the base 2 exponential of x
  *
  * Accuracy: Peak error < 0.502 ulp.
  *
@@ -541,17 +543,17 @@ static const float eps[TBLSIZE] = {
  *
  *   Reduce x:
  *     x = 2**k + y, for integer k and |y| <= 1/2.
- *     Thus we have exp2(x) = 2**k * exp2(y).
+ *     Thus we have ctfp_exp2(x) = 2**k * ctfp_exp2(y).
  *
  *   Reduce y:
  *     y = i/TBLSIZE + z - eps[i] for integer i near y * TBLSIZE.
- *     Thus we have exp2(y) = exp2(i/TBLSIZE) * exp2(z - eps[i]),
+ *     Thus we have ctfp_exp2(y) = ctfp_exp2(i/TBLSIZE) * ctfp_exp2(z - eps[i]),
  *     with |z - eps[i]| <= 2**-8 + 2**-98 for the table used.
  *
- *   We compute exp2(i/TBLSIZE) via table lookup and exp2(z - eps[i]) via
+ *   We compute ctfp_exp2(i/TBLSIZE) via table lookup and ctfp_exp2(z - eps[i]) via
  *   a degree-10 minimax polynomial with maximum error under 2**-120.
  *   The values in exp2t[] and eps[] are chosen such that
- *   exp2t[i] = exp2(i/TBLSIZE + eps[i]), and eps[i] is a small offset such
+ *   exp2t[i] = ctfp_exp2(i/TBLSIZE + eps[i]), and eps[i] is a small offset such
  *   that exp2t[i] is accurate to 2**-122.
  *
  *   Note that the range of i is +-TBLSIZE/2, so we actually index the tables
@@ -576,7 +578,7 @@ exp2l(long double x)
 		if (u.i.se >= 0x3fff + 15 && u.i.se >> 15 == 0)
 			/* overflow */
 			return x * 0x1p16383L;
-		if (e == 0x7fff)  /* -inf or -nan */
+		if (e == 0x7fff)  /* -inf or -ctfp_nan */
 			return -1/x;
 		if (x < -16382) {
 			if (x <= -16495 || x - 0x1p112 + 0x1p112 != x)
@@ -593,7 +595,7 @@ exp2l(long double x)
 	 * Reduce x, computing z, i0, and k. The low bits of x + redux
 	 * contain the 16-bit integer part of the exponent (k) followed by
 	 * TBLBITS fractional bits (i0). We use bit tricks to extract these
-	 * as integers, then set z to the remainder.
+	 * as integers, then set z to the ctfp_remainder.
 	 *
 	 * Example: Suppose x is 0xabc.123456p0 and TBLBITS is 8.
 	 * Then the low-order word of x + redux is 0x000abc12,
@@ -608,12 +610,12 @@ exp2l(long double x)
 	u.f -= redux;
 	z = x - u.f;
 
-	/* Compute r = exp2(y) = exp2t[i0] * p(z - eps[i]). */
+	/* Compute r = ctfp_exp2(y) = exp2t[i0] * p(z - eps[i]). */
 	t = tbl[i0];
 	z -= eps[i0];
 	r = t + t * z * (P1 + z * (P2 + z * (P3 + z * (P4 + z * (P5 + z * (P6
 	    + z * (P7 + z * (P8 + z * (P9 + z * P10)))))))));
 
-	return scalbnl(r, k.i);
+	return ctfp_scalbnl(r, k.i);
 }
 #endif

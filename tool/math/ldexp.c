@@ -1,6 +1,8 @@
+#include "../ctfp-math.h"
+
 #include <math.h>
 
-double ldexp(double x, int n)
+double ctfp_ldexp(double x, int n)
 {
-	return scalbn(x, n);
+	return ctfp_scalbn(x, n);
 }

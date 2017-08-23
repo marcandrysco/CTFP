@@ -1,12 +1,14 @@
+#include "../ctfp-math.h"
+
 #include "libm.h"
 
 #if LDBL_MANT_DIG == 53 && LDBL_MAX_EXP == 1024
-long double remquol(long double x, long double y, int *quo)
+long double ctfp_remquol(long double x, long double y, int *quo)
 {
-	return remquo(x, y, quo);
+	return ctfp_remquo(x, y, quo);
 }
 #elif (LDBL_MANT_DIG == 64 || LDBL_MANT_DIG == 113) && LDBL_MAX_EXP == 16384
-long double remquol(long double x, long double y, int *quo)
+long double ctfp_remquol(long double x, long double y, int *quo)
 {
 	union ldshape ux = {x}, uy = {y};
 	int ex = ux.i.se & 0x7fff;

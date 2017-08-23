@@ -1,3 +1,5 @@
+#include "../ctfp-math.h"
+
 /* origin: OpenBSD /usr/src/lib/libm/src/ld80/e_expm1l.c */
 /*
  * Copyright (c) 2008 Stephen L. Moshier <steve@moshier.net>
@@ -21,9 +23,9 @@
  *
  * SYNOPSIS:
  *
- * long double x, y, expm1l();
+ * long double x, y, ctfp_expm1l();
  *
- * y = expm1l( x );
+ * y = ctfp_expm1l( x );
  *
  *
  * DESCRIPTION:
@@ -36,7 +38,7 @@
  *     x    k  f
  *    e  = 2  e.
  *
- * An expansion x + .5 x^2 + x^3 R(x) approximates exp(f) - 1
+ * An expansion x + .5 x^2 + x^3 R(x) approximates ctfp_exp(f) - 1
  * in the basic range [-0.5 ln 2, 0.5 ln 2].
  *
  *
@@ -50,13 +52,13 @@
 #include "libm.h"
 
 #if LDBL_MANT_DIG == 53 && LDBL_MAX_EXP == 1024
-long double expm1l(long double x)
+long double ctfp_expm1l(long double x)
 {
-	return expm1(x);
+	return ctfp_expm1(x);
 }
 #elif LDBL_MANT_DIG == 64 && LDBL_MAX_EXP == 16384
 
-/* exp(x) - 1 = x + 0.5 x^2 + x^3 P(x)/Q(x)
+/* ctfp_exp(x) - 1 = x + 0.5 x^2 + x^3 P(x)/Q(x)
    -.5 ln 2  <  x  <  .5 ln 2
    Theoretical peak relative error = 3.4e-22  */
 static const long double
@@ -79,7 +81,7 @@ minarg = -4.5054566736396445112120088E1L,
 /* ln 2^16384 */
 maxarg = 1.1356523406294143949492E4L;
 
-long double expm1l(long double x)
+long double ctfp_expm1l(long double x)
 {
 	long double px, qx, xx;
 	int k;
@@ -94,30 +96,30 @@ long double expm1l(long double x)
 		return -1.0;
 
 	xx = C1 + C2;
-	/* Express x = ln 2 (k + remainder), remainder not exceeding 1/2. */
-	px = floorl(0.5 + x / xx);
+	/* Express x = ln 2 (k + ctfp_remainder), ctfp_remainder not exceeding 1/2. */
+	px = ctfp_floorl(0.5 + x / xx);
 	k = px;
-	/* remainder times ln 2 */
+	/* ctfp_remainder times ln 2 */
 	x -= px * C1;
 	x -= px * C2;
 
-	/* Approximate exp(remainder ln 2).*/
+	/* Approximate ctfp_exp(ctfp_remainder ln 2).*/
 	px = (((( P4 * x + P3) * x + P2) * x + P1) * x + P0) * x;
 	qx = (((( x + Q4) * x + Q3) * x + Q2) * x + Q1) * x + Q0;
 	xx = x * x;
 	qx = x + (0.5 * xx + xx * px / qx);
 
-	/* exp(x) = exp(k ln 2) exp(remainder ln 2) = 2^k exp(remainder ln 2).
-	 We have qx = exp(remainder ln 2) - 1, so
-	 exp(x) - 1  =  2^k (qx + 1) - 1  =  2^k qx + 2^k - 1.  */
-	px = scalbnl(1.0, k);
+	/* ctfp_exp(x) = ctfp_exp(k ln 2) ctfp_exp(ctfp_remainder ln 2) = 2^k ctfp_exp(ctfp_remainder ln 2).
+	 We have qx = ctfp_exp(ctfp_remainder ln 2) - 1, so
+	 ctfp_exp(x) - 1  =  2^k (qx + 1) - 1  =  2^k qx + 2^k - 1.  */
+	px = ctfp_scalbnl(1.0, k);
 	x = px * qx + (px - 1.0);
 	return x;
 }
 #elif LDBL_MANT_DIG == 113 && LDBL_MAX_EXP == 16384
 // TODO: broken implementation to make things compile
-long double expm1l(long double x)
+long double ctfp_expm1l(long double x)
 {
-	return expm1(x);
+	return ctfp_expm1(x);
 }
 #endif

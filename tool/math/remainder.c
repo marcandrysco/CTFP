@@ -1,10 +1,12 @@
+#include "../ctfp-math.h"
+
 #include <math.h>
 #include "libc.h"
 
-double remainder(double x, double y)
+double ctfp_remainder(double x, double y)
 {
 	int q;
-	return remquo(x, y, &q);
+	return ctfp_remquo(x, y, &q);
 }
 
-weak_alias(remainder, drem);
+weak_alias(ctfp_remainder, drem);

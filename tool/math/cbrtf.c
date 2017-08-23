@@ -1,3 +1,5 @@
+#include "../ctfp-math.h"
+
 /* origin: FreeBSD /usr/src/lib/msun/src/s_cbrtf.c */
 /*
  * Conversion to float by Ian Lance Taylor, Cygnus Support, ian@cygnus.com.
@@ -13,7 +15,7 @@
  * is preserved.
  * ====================================================
  */
-/* cbrtf(x)
+/* ctfp_cbrtf(x)
  * Return cube root of x
  */
 
@@ -24,19 +26,19 @@ static const unsigned
 B1 = 709958130, /* B1 = (127-127.0/3-0.03306235651)*2**23 */
 B2 = 642849266; /* B2 = (127-127.0/3-24/3-0.03306235651)*2**23 */
 
-float cbrtf(float x)
+float ctfp_cbrtf(float x)
 {
 	double_t r,T;
 	union {float f; uint32_t i;} u = {x};
 	uint32_t hx = u.i & 0x7fffffff;
 
-	if (hx >= 0x7f800000)  /* cbrt(NaN,INF) is itself */
+	if (hx >= 0x7f800000)  /* ctfp_cbrt(NaN,INF) is itself */
 		return x + x;
 
-	/* rough cbrt to 5 bits */
+	/* rough ctfp_cbrt to 5 bits */
 	if (hx < 0x00800000) {  /* zero or subnormal? */
 		if (hx == 0)
-			return x;  /* cbrt(+-0) is itself */
+			return x;  /* ctfp_cbrt(+-0) is itself */
 		u.f = x*0x1p24f;
 		hx = u.i & 0x7fffffff;
 		hx = hx/3 + B2;
@@ -61,6 +63,6 @@ float cbrtf(float x)
 	r = T*T*T;
 	T = T*((double_t)x+x+r)/(x+r+r);
 
-	/* rounding to 24 bits is perfect in round-to-nearest mode */
+	/* rounding to 24 bits is perfect in ctfp_round-to-nearest mode */
 	return T;
 }

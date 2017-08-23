@@ -1,6 +1,8 @@
+#include "../ctfp-math.h"
+
 #include <math.h>
 
-double fmin(double x, double y)
+double ctfp_fmin(double x, double y)
 {
 	if (isnan(x))
 		return y;

@@ -1,7 +1,9 @@
+#include "../ctfp-math.h"
+
 #include <limits.h>
 #include "libm.h"
 
-int ilogb(double x)
+int ctfp_ilogb(double x)
 {
 	#pragma STDC FENV_ACCESS ON
 	union {double f; uint64_t i;} u = {x};

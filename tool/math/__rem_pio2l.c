@@ -1,3 +1,5 @@
+#include "../ctfp-math.h"
+
 /* origin: FreeBSD /usr/src/lib/msun/ld80/e_rem_pio2.c */
 /*
  * ====================================================
@@ -14,10 +16,10 @@
  */
 #include "libm.h"
 #if (LDBL_MANT_DIG == 64 || LDBL_MANT_DIG == 113) && LDBL_MAX_EXP == 16384
-/* ld80 and ld128 version of __rem_pio2(x,y)
+/* ld80 and ld128 version of ctfp___rem_pio2(x,y)
  *
- * return the remainder of x rem pi/2 in y[0]+y[1]
- * use __rem_pio2_large() for large x
+ * return the ctfp_remainder of x rem pi/2 in y[0]+y[1]
+ * use ctfp___rem_pio2_large() for large x
  */
 
 static const long double toint = 1.5/LDBL_EPSILON;
@@ -66,7 +68,7 @@ pio2_3  =  2.0670321098263988236499468110329591e-43L,	/*  0x127044533e63a0105e00
 pio2_3t = -2.5650587247459238361625433492959285e-65L;	/* -0x159c4ec64ddaeb5f78671cbfb2210.0p-327 */
 #endif
 
-int __rem_pio2l(long double x, long double *y)
+int ctfp___rem_pio2l(long double x, long double *y)
 {
 	union ldshape u,uz;
 	long double z,w,t,r,fn;
@@ -76,11 +78,11 @@ int __rem_pio2l(long double x, long double *y)
 	u.f = x;
 	ex = u.i.se & 0x7fff;
 	if (SMALL(u)) {
-		/* rint(x/(pi/2)), Assume round-to-nearest. */
+		/* ctfp_rint(x/(pi/2)), Assume ctfp_round-to-nearest. */
 		fn = x*invpio2 + toint - toint;
 		n = QUOBITS(fn);
 		r = x-fn*pio2_1;
-		w = fn*pio2_1t;  /* 1st round good to 102/180 bits (ld80/ld128) */
+		w = fn*pio2_1t;  /* 1st ctfp_round good to 102/180 bits (ld80/ld128) */
 		y[0] = r-w;
 		u.f = y[0];
 		ey = u.i.se & 0x7fff;
@@ -110,7 +112,7 @@ int __rem_pio2l(long double x, long double *y)
 		y[0] = y[1] = x - x;
 		return 0;
 	}
-	/* set z = scalbn(|x|,-ilogb(x)+23) */
+	/* set z = ctfp_scalbn(|x|,-ctfp_ilogb(x)+23) */
 	uz.f = x;
 	uz.i.se = 0x3fff + 23;
 	z = uz.f;
@@ -121,13 +123,13 @@ int __rem_pio2l(long double x, long double *y)
 	tx[i] = z;
 	while (tx[i] == 0)
 		i--;
-	n = __rem_pio2_large(tx, ty, ex-0x3fff-23, i+1, NY);
+	n = ctfp___rem_pio2_large(tx, ty, ex-0x3fff-23, i+1, NY);
 	w = ty[1];
 	if (NY == 3)
 		w += ty[2];
 	r = ty[0] + w;
 	/* TODO: for ld128 this does not follow the recommendation of the
-	comments of __rem_pio2_large which seem wrong if |ty[0]| > |ty[1]+ty[2]| */
+	comments of ctfp___rem_pio2_large which seem wrong if |ty[0]| > |ty[1]+ty[2]| */
 	w -= r - ty[0];
 	if (u.i.se >> 15) {
 		y[0] = -r;

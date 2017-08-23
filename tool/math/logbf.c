@@ -1,10 +1,12 @@
+#include "../ctfp-math.h"
+
 #include <math.h>
 
-float logbf(float x)
+float ctfp_logbf(float x)
 {
 	if (!isfinite(x))
 		return x * x;
 	if (x == 0)
 		return -1/(x*x);
-	return ilogbf(x);
+	return ctfp_ilogbf(x);
 }

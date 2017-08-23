@@ -1,7 +1,9 @@
+#include "../ctfp-math.h"
+
 #include <math.h>
 #include <stdint.h>
 
-float fmodf(float x, float y)
+float ctfp_fmodf(float x, float y)
 {
 	union {float f; uint32_t i;} ux = {x}, uy = {y};
 	int ex = ux.i>>23 & 0xff;

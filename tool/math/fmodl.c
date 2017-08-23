@@ -1,12 +1,14 @@
+#include "../ctfp-math.h"
+
 #include "libm.h"
 
 #if LDBL_MANT_DIG == 53 && LDBL_MAX_EXP == 1024
-long double fmodl(long double x, long double y)
+long double ctfp_fmodl(long double x, long double y)
 {
-	return fmod(x, y);
+	return ctfp_fmod(x, y);
 }
 #elif (LDBL_MANT_DIG == 64 || LDBL_MANT_DIG == 113) && LDBL_MAX_EXP == 16384
-long double fmodl(long double x, long double y)
+long double ctfp_fmodl(long double x, long double y)
 {
 	union ldshape ux = {x}, uy = {y};
 	int ex = ux.i.se & 0x7fff;

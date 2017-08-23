@@ -1,7 +1,9 @@
+#include "../ctfp-math.h"
+
 #include "libm.h"
 
 // FIXME: macro in math.h
-int __signbit(double x)
+int ctfp___signbit(double x)
 {
 	union {
 		double d;

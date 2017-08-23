@@ -1,12 +1,14 @@
+#include "../ctfp-math.h"
+
 #include "libm.h"
 
 #if LDBL_MANT_DIG == 53 && LDBL_MAX_EXP == 1024
-int __fpclassifyl(long double x)
+int ctfp___fpclassifyl(long double x)
 {
-	return __fpclassify(x);
+	return ctfp___fpclassify(x);
 }
 #elif LDBL_MANT_DIG == 64 && LDBL_MAX_EXP == 16384
-int __fpclassifyl(long double x)
+int ctfp___fpclassifyl(long double x)
 {
 	union ldshape u = {x};
 	int e = u.i.se & 0x7fff;
@@ -20,7 +22,7 @@ int __fpclassifyl(long double x)
 	return FP_NORMAL;
 }
 #elif LDBL_MANT_DIG == 113 && LDBL_MAX_EXP == 16384
-int __fpclassifyl(long double x)
+int ctfp___fpclassifyl(long double x)
 {
 	union ldshape u = {x};
 	int e = u.i.se & 0x7fff;

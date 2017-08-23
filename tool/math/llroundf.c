@@ -1,6 +1,8 @@
+#include "../ctfp-math.h"
+
 #include <math.h>
 
-long long llroundf(float x)
+long long ctfp_llroundf(float x)
 {
-	return roundf(x);
+	return ctfp_roundf(x);
 }

@@ -1,6 +1,8 @@
+#include "../ctfp-math.h"
+
 #include <math.h>
 
-double fmax(double x, double y)
+double ctfp_fmax(double x, double y)
 {
 	if (isnan(x))
 		return y;

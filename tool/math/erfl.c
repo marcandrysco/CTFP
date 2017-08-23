@@ -1,3 +1,5 @@
+#include "../ctfp-math.h"
+
 /* origin: OpenBSD /usr/src/lib/libm/src/ld80/e_erfl.c */
 /*
  * ====================================================
@@ -24,86 +26,86 @@
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
-/* double erf(double x)
+/* double ctfp_erf(double x)
  * double erfc(double x)
  *                           x
  *                    2      |\
- *     erf(x)  =  ---------  | exp(-t*t)dt
+ *     ctfp_erf(x)  =  ---------  | ctfp_exp(-t*t)dt
  *                 sqrt(pi) \|
  *                           0
  *
- *     erfc(x) =  1-erf(x)
+ *     erfc(x) =  1-ctfp_erf(x)
  *  Note that
- *              erf(-x) = -erf(x)
+ *              ctfp_erf(-x) = -ctfp_erf(x)
  *              erfc(-x) = 2 - erfc(x)
  *
  * Method:
  *      1. For |x| in [0, 0.84375]
- *          erf(x)  = x + x*R(x^2)
- *          erfc(x) = 1 - erf(x)           if x in [-.84375,0.25]
+ *          ctfp_erf(x)  = x + x*R(x^2)
+ *          erfc(x) = 1 - ctfp_erf(x)           if x in [-.84375,0.25]
  *                  = 0.5 + ((0.5-x)-x*R)  if x in [0.25,0.84375]
  *         Remark. The formula is derived by noting
- *          erf(x) = (2/sqrt(pi))*(x - x^3/3 + x^5/10 - x^7/42 + ....)
+ *          ctfp_erf(x) = (2/sqrt(pi))*(x - x^3/3 + x^5/10 - x^7/42 + ....)
  *         and that
  *          2/sqrt(pi) = 1.128379167095512573896158903121545171688
  *         is close to one. The interval is chosen because the fix
- *         point of erf(x) is near 0.6174 (i.e., erf(x)=x when x is
+ *         point of ctfp_erf(x) is near 0.6174 (i.e., ctfp_erf(x)=x when x is
  *         near 0.6174), and by some experiment, 0.84375 is chosen to
- *         guarantee the error is less than one ulp for erf.
+ *         guarantee the error is less than one ulp for ctfp_erf.
  *
  *      2. For |x| in [0.84375,1.25], let s = |x| - 1, and
  *         c = 0.84506291151 rounded to single (24 bits)
- *      erf(x)  = sign(x) * (c  + P1(s)/Q1(s))
+ *      ctfp_erf(x)  = sign(x) * (c  + P1(s)/Q1(s))
  *      erfc(x) = (1-c)  - P1(s)/Q1(s) if x > 0
  *                        1+(c+P1(s)/Q1(s))    if x < 0
  *         Remark: here we use the taylor series expansion at x=1.
- *              erf(1+s) = erf(1) + s*Poly(s)
+ *              ctfp_erf(1+s) = ctfp_erf(1) + s*Poly(s)
  *                       = 0.845.. + P1(s)/Q1(s)
  *         Note that |P1/Q1|< 0.078 for x in [0.84375,1.25]
  *
  *      3. For x in [1.25,1/0.35(~2.857143)],
- *      erfc(x) = (1/x)*exp(-x*x-0.5625+R1(z)/S1(z))
+ *      erfc(x) = (1/x)*ctfp_exp(-x*x-0.5625+R1(z)/S1(z))
  *              z=1/x^2
- *      erf(x)  = 1 - erfc(x)
+ *      ctfp_erf(x)  = 1 - erfc(x)
  *
  *      4. For x in [1/0.35,107]
- *      erfc(x) = (1/x)*exp(-x*x-0.5625+R2/S2) if x > 0
- *                      = 2.0 - (1/x)*exp(-x*x-0.5625+R2(z)/S2(z))
+ *      erfc(x) = (1/x)*ctfp_exp(-x*x-0.5625+R2/S2) if x > 0
+ *                      = 2.0 - (1/x)*ctfp_exp(-x*x-0.5625+R2(z)/S2(z))
  *                             if -6.666<x<0
  *                      = 2.0 - tiny            (if x <= -6.666)
  *              z=1/x^2
- *      erf(x)  = sign(x)*(1.0 - erfc(x)) if x < 6.666, else
- *      erf(x)  = sign(x)*(1.0 - tiny)
+ *      ctfp_erf(x)  = sign(x)*(1.0 - erfc(x)) if x < 6.666, else
+ *      ctfp_erf(x)  = sign(x)*(1.0 - tiny)
  *      Note1:
- *         To compute exp(-x*x-0.5625+R/S), let s be a single
+ *         To compute ctfp_exp(-x*x-0.5625+R/S), let s be a single
  *         precision number and s := x; then
  *              -x*x = -s*s + (s-x)*(s+x)
- *              exp(-x*x-0.5626+R/S) =
- *                      exp(-s*s-0.5625)*exp((s-x)*(s+x)+R/S);
+ *              ctfp_exp(-x*x-0.5626+R/S) =
+ *                      ctfp_exp(-s*s-0.5625)*ctfp_exp((s-x)*(s+x)+R/S);
  *      Note2:
  *         Here 4 and 5 make use of the asymptotic series
- *                        exp(-x*x)
+ *                        ctfp_exp(-x*x)
  *              erfc(x) ~ ---------- * ( 1 + Poly(1/x^2) )
  *                        x*sqrt(pi)
  *
  *      5. For inf > x >= 107
- *      erf(x)  = sign(x) *(1 - tiny)  (raise inexact)
+ *      ctfp_erf(x)  = sign(x) *(1 - tiny)  (raise inexact)
  *      erfc(x) = tiny*tiny (raise underflow) if x > 0
  *                      = 2 - tiny if x<0
  *
  *      7. Special case:
- *      erf(0)  = 0, erf(inf)  = 1, erf(-inf) = -1,
+ *      ctfp_erf(0)  = 0, ctfp_erf(inf)  = 1, ctfp_erf(-inf) = -1,
  *      erfc(0) = 1, erfc(inf) = 0, erfc(-inf) = 2,
- *              erfc/erf(NaN) is NaN
+ *              erfc/ctfp_erf(NaN) is NaN
  */
 
 
 #include "libm.h"
 
 #if LDBL_MANT_DIG == 53 && LDBL_MAX_EXP == 1024
-long double erfl(long double x)
+long double ctfp_erfl(long double x)
 {
-	return erf(x);
+	return ctfp_erf(x);
 }
 long double erfcl(long double x)
 {
@@ -114,7 +116,7 @@ static const long double
 erx = 0.845062911510467529296875L,
 
 /*
- * Coefficients for approximation to  erf on [0,0.84375]
+ * Coefficients for approximation to  ctfp_erf on [0,0.84375]
  */
 /* 8 * (2/sqrt(pi) - 1) */
 efx8 = 1.0270333367641005911692712249723613735048E0L,
@@ -137,9 +139,9 @@ qq[6] = {
 },
 
 /*
- * Coefficients for approximation to  erf  in [0.84375,1.25]
+ * Coefficients for approximation to  ctfp_erf  in [0.84375,1.25]
  */
-/* erf(x+1) = 0.845062911510467529296875 + pa(x)/qa(x)
+/* ctfp_erf(x+1) = 0.845062911510467529296875 + pa(x)/qa(x)
    -0.15625 <= x <= +.25
    Peak relative error 8.5e-22  */
 pa[8] = {
@@ -166,7 +168,7 @@ qa[7] =  {
 /*
  * Coefficients for approximation to  erfc in [1.25,1/0.35]
  */
-/* erfc(1/x) = x exp (-1/x^2 - 0.5625 + ra(x^2)/sa(x^2))
+/* erfc(1/x) = x ctfp_exp (-1/x^2 - 0.5625 + ra(x^2)/sa(x^2))
    1/2.85711669921875 < 1/x < 1/1.25
    Peak relative error 3.1e-21  */
 ra[] = {
@@ -196,7 +198,7 @@ sa[] = {
 /*
  * Coefficients for approximation to  erfc in [1/.35,107]
  */
-/* erfc(1/x) = x exp (-1/x^2 - 0.5625 + rb(x^2)/sb(x^2))
+/* erfc(1/x) = x ctfp_exp (-1/x^2 - 0.5625 + rb(x^2)/sb(x^2))
    1/6.6666259765625 < 1/x < 1/2.85711669921875
    Peak relative error 4.2e-22  */
 rb[] = {
@@ -219,7 +221,7 @@ sb[] = {
 	1.182059497870819562441683560749192539345E1L,
 	/* 1.000000000000000000000000000000000000000E0 */
 },
-/* erfc(1/x) = x exp (-1/x^2 - 0.5625 + rc(x^2)/sc(x^2))
+/* erfc(1/x) = x ctfp_exp (-1/x^2 - 0.5625 + rc(x^2)/sc(x^2))
    1/107 <= 1/x <= 1/6.6666259765625
    Peak relative error 1.1e-21  */
 rc[] = {
@@ -243,7 +245,7 @@ static long double erfc1(long double x)
 {
 	long double s,P,Q;
 
-	s = fabsl(x) - 1;
+	s = ctfp_fabsl(x) - 1;
 	P = pa[0] + s * (pa[1] + s * (pa[2] +
 	     s * (pa[3] + s * (pa[4] + s * (pa[5] + s * (pa[6] + s * pa[7]))))));
 	Q = qa[0] + s * (qa[1] + s * (qa[2] +
@@ -259,7 +261,7 @@ static long double erfc2(uint32_t ix, long double x)
 	if (ix < 0x3fffa000)  /* 0.84375 <= |x| < 1.25 */
 		return erfc1(x);
 
-	x = fabsl(x);
+	x = ctfp_fabsl(x);
 	s = 1 / (x * x);
 	if (ix < 0x4000b6db) {  /* 1.25 <= |x| < 2.857 ~ 1/.35 */
 		R = ra[0] + s * (ra[1] + s * (ra[2] + s * (ra[3] + s * (ra[4] +
@@ -280,10 +282,10 @@ static long double erfc2(uint32_t ix, long double x)
 	u.f = x;
 	u.i.m &= -1ULL << 40;
 	z = u.f;
-	return expl(-z*z - 0.5625) * expl((z - x) * (z + x) + R / S) / x;
+	return ctfp_expl(-z*z - 0.5625) * ctfp_expl((z - x) * (z + x) + R / S) / x;
 }
 
-long double erfl(long double x)
+long double ctfp_erfl(long double x)
 {
 	long double r, s, z, y;
 	union ldshape u = {x};
@@ -291,7 +293,7 @@ long double erfl(long double x)
 	int sign = u.i.se >> 15;
 
 	if (ix >= 0x7fff0000)
-		/* erf(nan)=nan, erf(+-inf)=+-1 */
+		/* ctfp_erf(ctfp_nan)=ctfp_nan, ctfp_erf(+-inf)=+-1 */
 		return 1 - 2*sign + 1/x;
 	if (ix < 0x3ffed800) {  /* |x| < 0.84375 */
 		if (ix < 0x3fde8000) {  /* |x| < 2**-33 */
@@ -320,7 +322,7 @@ long double erfcl(long double x)
 	int sign = u.i.se >> 15;
 
 	if (ix >= 0x7fff0000)
-		/* erfc(nan) = nan, erfc(+-inf) = 0,2 */
+		/* erfc(ctfp_nan) = ctfp_nan, erfc(+-inf) = 0,2 */
 		return 2*sign + 1/x;
 	if (ix < 0x3ffed800) {  /* |x| < 0.84375 */
 		if (ix < 0x3fbe0000)  /* |x| < 2**-65 */
@@ -342,9 +344,9 @@ long double erfcl(long double x)
 }
 #elif LDBL_MANT_DIG == 113 && LDBL_MAX_EXP == 16384
 // TODO: broken implementation to make things compile
-long double erfl(long double x)
+long double ctfp_erfl(long double x)
 {
-	return erf(x);
+	return ctfp_erf(x);
 }
 long double erfcl(long double x)
 {

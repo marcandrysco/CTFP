@@ -1,14 +1,16 @@
+#include "../ctfp-math.h"
+
 #include <math.h>
 #include <stdint.h>
 
-float frexpf(float x, int *e)
+float ctfp_frexpf(float x, int *e)
 {
 	union { float f; uint32_t i; } y = { x };
 	int ee = y.i>>23 & 0xff;
 
 	if (!ee) {
 		if (x) {
-			x = frexpf(x*0x1p64, e);
+			x = ctfp_frexpf(x*0x1p64, e);
 			*e -= 64;
 		} else *e = 0;
 		return x;

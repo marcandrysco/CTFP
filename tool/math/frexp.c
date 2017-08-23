@@ -1,14 +1,16 @@
+#include "../ctfp-math.h"
+
 #include <math.h>
 #include <stdint.h>
 
-double frexp(double x, int *e)
+double ctfp_frexp(double x, int *e)
 {
 	union { double d; uint64_t i; } y = { x };
 	int ee = y.i>>52 & 0x7ff;
 
 	if (!ee) {
 		if (x) {
-			x = frexp(x*0x1p64, e);
+			x = ctfp_frexp(x*0x1p64, e);
 			*e -= 64;
 		} else *e = 0;
 		return x;

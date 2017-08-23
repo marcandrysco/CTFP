@@ -1,3 +1,5 @@
+#include "../ctfp-math.h"
+
 /* origin: FreeBSD /usr/src/lib/msun/src/e_log.c */
 /*
  * ====================================================
@@ -9,7 +11,7 @@
  * is preserved.
  * ====================================================
  */
-/* log(x)
+/* ctfp_log(x)
  * Return the logarithm of x
  *
  * Method :
@@ -17,8 +19,8 @@
  *                      x = 2^k * (1+f),
  *         where  sqrt(2)/2 < 1+f < sqrt(2) .
  *
- *   2. Approximation of log(1+f).
- *      Let s = f/(2+f) ; based on log(1+f) = log(1+s) - log(1-s)
+ *   2. Approximation of ctfp_log(1+f).
+ *      Let s = f/(2+f) ; based on ctfp_log(1+f) = ctfp_log(1+s) - ctfp_log(1-s)
  *               = 2s + 2/3 s**3 + 2/5 s**5 + .....,
  *               = 2s + s*R
  *      We use a special Remez algorithm on [0,0.1716] to generate
@@ -33,21 +35,21 @@
  *          | Lg1*s +...+Lg7*s    -  R(z) | <= 2
  *          |                             |
  *      Note that 2s = f - s*f = f - hfsq + s*hfsq, where hfsq = f*f/2.
- *      In order to guarantee error in log below 1ulp, we compute log
+ *      In order to guarantee error in ctfp_log below 1ulp, we compute log
  *      by
- *              log(1+f) = f - s*(f - R)        (if f is not too large)
- *              log(1+f) = f - (hfsq - s*(hfsq+R)).     (better accuracy)
+ *              ctfp_log(1+f) = f - s*(f - R)        (if f is not too large)
+ *              ctfp_log(1+f) = f - (hfsq - s*(hfsq+R)).     (better accuracy)
  *
- *      3. Finally,  log(x) = k*ln2 + log(1+f).
+ *      3. Finally,  ctfp_log(x) = k*ln2 + ctfp_log(1+f).
  *                          = k*ln2_hi+(f-(hfsq-(s*(hfsq+R)+k*ln2_lo)))
  *         Here ln2 is split into two floating point number:
  *                      ln2_hi + ln2_lo,
  *         where n*ln2_hi is always exact for |n| < 2000.
  *
  * Special cases:
- *      log(x) is NaN with signal if x < 0 (including -INF) ;
- *      log(+INF) is +INF; log(0) is -INF with signal;
- *      log(NaN) is that NaN with no signal.
+ *      ctfp_log(x) is NaN with signal if x < 0 (including -INF) ;
+ *      ctfp_log(+INF) is +INF; ctfp_log(0) is -INF with signal;
+ *      ctfp_log(NaN) is that NaN with no signal.
  *
  * Accuracy:
  *      according to an error analysis, the error is always less than
@@ -74,7 +76,7 @@ Lg5 = 1.818357216161805012e-01,  /* 3FC74664 96CB03DE */
 Lg6 = 1.531383769920937332e-01,  /* 3FC39A09 D078C69F */
 Lg7 = 1.479819860511658591e-01;  /* 3FC2F112 DF3E5244 */
 
-double log(double x)
+double ctfp_log(double x)
 {
 	union {double f; uint64_t i;} u = {x};
 	double_t hfsq,f,s,z,R,w,t1,t2,dk;
@@ -85,9 +87,9 @@ double log(double x)
 	k = 0;
 	if (hx < 0x00100000 || hx>>31) {
 		if (u.i<<1 == 0)
-			return -1/(x*x);  /* log(+-0)=-inf */
+			return -1/(x*x);  /* ctfp_log(+-0)=-inf */
 		if (hx>>31)
-			return (x-x)/0.0; /* log(-#) = NaN */
+			return (x-x)/0.0; /* ctfp_log(-#) = NaN */
 		/* subnormal number, scale x up */
 		k -= 54;
 		x *= 0x1p54;

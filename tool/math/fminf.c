@@ -1,6 +1,8 @@
+#include "../ctfp-math.h"
+
 #include <math.h>
 
-float fminf(float x, float y)
+float ctfp_fminf(float x, float y)
 {
 	if (isnan(x))
 		return y;

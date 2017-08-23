@@ -1,12 +1,14 @@
+#include "../ctfp-math.h"
+
 #include "libm.h"
 
 #if LDBL_MANT_DIG == 53 && LDBL_MAX_EXP == 1024
-long double nextafterl(long double x, long double y)
+long double ctfp_nextafterl(long double x, long double y)
 {
-	return nextafter(x, y);
+	return ctfp_nextafter(x, y);
 }
 #elif LDBL_MANT_DIG == 64 && LDBL_MAX_EXP == 16384
-long double nextafterl(long double x, long double y)
+long double ctfp_nextafterl(long double x, long double y)
 {
 	union ldshape ux, uy;
 
@@ -33,7 +35,7 @@ long double nextafterl(long double x, long double y)
 		}
 		ux.i.m--;
 	}
-	/* raise overflow if ux is infinite and x is finite */
+	/* raise overflow if ux is infinite and x is ctfp_finite */
 	if ((ux.i.se & 0x7fff) == 0x7fff)
 		return x + x;
 	/* raise underflow if ux is subnormal or zero */
@@ -42,7 +44,7 @@ long double nextafterl(long double x, long double y)
 	return ux.f;
 }
 #elif LDBL_MANT_DIG == 113 && LDBL_MAX_EXP == 16384
-long double nextafterl(long double x, long double y)
+long double ctfp_nextafterl(long double x, long double y)
 {
 	union ldshape ux, uy;
 
@@ -64,7 +66,7 @@ long double nextafterl(long double x, long double y)
 			ux.i2.hi--;
 		ux.i2.lo--;
 	}
-	/* raise overflow if ux is infinite and x is finite */
+	/* raise overflow if ux is infinite and x is ctfp_finite */
 	if ((ux.i.se & 0x7fff) == 0x7fff)
 		return x + x;
 	/* raise underflow if ux is subnormal or zero */

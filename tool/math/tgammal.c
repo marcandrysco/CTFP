@@ -1,3 +1,5 @@
+#include "../ctfp-math.h"
+
 /* origin: OpenBSD /usr/src/lib/libm/src/ld80/e_tgammal.c */
 /*
  * Copyright (c) 2008 Stephen L. Moshier <steve@moshier.net>
@@ -20,9 +22,9 @@
  *
  * SYNOPSIS:
  *
- * long double x, y, tgammal();
+ * long double x, y, ctfp_tgammal();
  *
- * y = tgammal( x );
+ * y = ctfp_tgammal( x );
  *
  *
  * DESCRIPTION:
@@ -44,20 +46,20 @@
  *    IEEE     -40,+40      10000       3.6e-19     7.9e-20
  *    IEEE    -1755,+1755   10000       4.8e-18     6.5e-19
  *
- * Accuracy for large arguments is dominated by error in powl().
+ * Accuracy for large arguments is dominated by error in ctfp_powl().
  *
  */
 
 #include "libm.h"
 
 #if LDBL_MANT_DIG == 53 && LDBL_MAX_EXP == 1024
-long double tgammal(long double x)
+long double ctfp_tgammal(long double x)
 {
-	return tgamma(x);
+	return ctfp_tgamma(x);
 }
 #elif LDBL_MANT_DIG == 64 && LDBL_MAX_EXP == 16384
 /*
-tgamma(x+2) = tgamma(x+2) P(x)/Q(x)
+tgamma(x+2) = ctfp_tgamma(x+2) P(x)/Q(x)
 0 <= x <= 1
 Relative error
 n=7, d=8
@@ -113,7 +115,7 @@ static const long double Q[] = {
 /*static const long double LOGPI = 1.14472988584940017414L;*/
 
 /* Stirling's formula for the gamma function
-tgamma(x) = sqrt(2 pi) x^(x-.5) exp(-x) (1 + 1/x P(1/x))
+tgamma(x) = sqrt(2 pi) x^(x-.5) ctfp_exp(-x) (1 + 1/x P(1/x))
 z(x) = x
 13 <= x <= 1024
 Relative error
@@ -136,7 +138,7 @@ static const long double STIR[9] = {
 #define MAXSTIR 1024.0L
 static const long double SQTPI = 2.50662827463100050242E0L;
 
-/* 1/tgamma(x) = z P(z)
+/* 1/ctfp_tgamma(x) = z P(z)
  * z(x) = 1/x
  * 0 < x < 0.03125
  * Peak relative error 4.2e-23
@@ -153,7 +155,7 @@ static const long double S[9] = {
  1.000000000000000000000E0L,
 };
 
-/* 1/tgamma(-x) = z P(z)
+/* 1/ctfp_tgamma(-x) = z P(z)
  * z(x) = 1/x
  * 0 < x < 0.03125
  * Peak relative error 5.16e-23
@@ -190,29 +192,29 @@ static long double stirf(long double x)
 		 + 8.33333333333333333333E-2L) * w
 		 + 1.0;
 	else
-		w = 1.0 + w * __polevll(w, STIR, 8);
-	y = expl(x);
-	if (x > MAXSTIR) { /* Avoid overflow in pow() */
-		v = powl(x, 0.5L * x - 0.25L);
+		w = 1.0 + w * ctfp___polevll(w, STIR, 8);
+	y = ctfp_expl(x);
+	if (x > MAXSTIR) { /* Avoid overflow in ctfp_pow() */
+		v = ctfp_powl(x, 0.5L * x - 0.25L);
 		y = v * (v / y);
 	} else {
-		y = powl(x, x - 0.5L) / y;
+		y = ctfp_powl(x, x - 0.5L) / y;
 	}
 	y = SQTPI * y * w;
 	return y;
 }
 
-long double tgammal(long double x)
+long double ctfp_tgammal(long double x)
 {
 	long double p, q, z;
 
 	if (!isfinite(x))
 		return x + INFINITY;
 
-	q = fabsl(x);
+	q = ctfp_fabsl(x);
 	if (q > 13.0) {
 		if (x < 0.0) {
-			p = floorl(q);
+			p = ctfp_floorl(q);
 			z = q - p;
 			if (z == 0)
 				return 0 / z;
@@ -223,11 +225,11 @@ long double tgammal(long double x)
 					p += 1.0;
 					z = q - p;
 				}
-				z = q * sinl(PIL * z);
-				z = fabsl(z) * stirf(q);
+				z = q * ctfp_sinl(PIL * z);
+				z = ctfp_fabsl(z) * stirf(q);
 				z = PIL/z;
 			}
-			if (0.5 * p == floorl(q * 0.5))
+			if (0.5 * p == ctfp_floorl(q * 0.5))
 				z = -z;
 		} else if (x > MAXGAML) {
 			z = x * 0x1p16383L;
@@ -256,8 +258,8 @@ long double tgammal(long double x)
 		return z;
 
 	x -= 2.0;
-	p = __polevll(x, P, 7);
-	q = __polevll(x, Q, 8);
+	p = ctfp___polevll(x, P, 7);
+	q = ctfp___polevll(x, Q, 8);
 	z = z * p / q;
 	return z;
 
@@ -267,15 +269,15 @@ small:
 		return x / x;
 	if (x < 0.0) {
 		x = -x;
-		q = z / (x * __polevll(x, SN, 8));
+		q = z / (x * ctfp___polevll(x, SN, 8));
 	} else
-		q = z / (x * __polevll(x, S, 8));
+		q = z / (x * ctfp___polevll(x, S, 8));
 	return q;
 }
 #elif LDBL_MANT_DIG == 113 && LDBL_MAX_EXP == 16384
 // TODO: broken implementation to make things compile
-long double tgammal(long double x)
+long double ctfp_tgammal(long double x)
 {
-	return tgamma(x);
+	return ctfp_tgamma(x);
 }
 #endif

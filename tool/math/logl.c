@@ -1,3 +1,5 @@
+#include "../ctfp-math.h"
+
 /* origin: OpenBSD /usr/src/lib/libm/src/ld80/e_logl.c */
 /*
  * Copyright (c) 2008 Stephen L. Moshier <steve@moshier.net>
@@ -20,9 +22,9 @@
  *
  * SYNOPSIS:
  *
- * long double x, y, logl();
+ * long double x, y, ctfp_logl();
  *
- * y = logl( x );
+ * y = ctfp_logl( x );
  *
  *
  * DESCRIPTION:
@@ -33,11 +35,11 @@
  * parts.  If the exponent is between -1 and +1, the logarithm
  * of the fraction is approximated by
  *
- *     log(1+x) = x - 0.5 x**2 + x**3 P(x)/Q(x).
+ *     ctfp_log(1+x) = x - 0.5 x**2 + x**3 P(x)/Q(x).
  *
  * Otherwise, setting  z = 2(x-1)/(x+1),
  *
- *     log(x) = log(1+z/2) - log(1-z/2) = z + z**3 P(z)/Q(z).
+ *     ctfp_log(x) = ctfp_log(1+z/2) - ctfp_log(1-z/2) = z + z**3 P(z)/Q(z).
  *
  *
  * ACCURACY:
@@ -45,9 +47,9 @@
  *                      Relative error:
  * arithmetic   domain     # trials      peak         rms
  *    IEEE      0.5, 2.0    150000      8.71e-20    2.75e-20
- *    IEEE     exp(+-10000) 100000      5.39e-20    2.34e-20
+ *    IEEE     ctfp_exp(+-10000) 100000      5.39e-20    2.34e-20
  *
- * In the tests over the interval exp(+-10000), the logarithms
+ * In the tests over the interval ctfp_exp(+-10000), the logarithms
  * of the random arguments were uniformly distributed over
  * [-10000, +10000].
  */
@@ -55,12 +57,12 @@
 #include "libm.h"
 
 #if LDBL_MANT_DIG == 53 && LDBL_MAX_EXP == 1024
-long double logl(long double x)
+long double ctfp_logl(long double x)
 {
-	return log(x);
+	return ctfp_log(x);
 }
 #elif LDBL_MANT_DIG == 64 && LDBL_MAX_EXP == 16384
-/* Coefficients for log(1+x) = x - x**2/2 + x**3 P(x)/Q(x)
+/* Coefficients for ctfp_log(1+x) = x - x**2/2 + x**3 P(x)/Q(x)
  * 1/sqrt(2) <= x < sqrt(2)
  * Theoretical peak relative error = 2.32e-20
  */
@@ -83,7 +85,7 @@ static const long double Q[] = {
  6.0118660497603843919306E1L,
 };
 
-/* Coefficients for log(x) = z + z^3 P(z^2)/Q(z^2),
+/* Coefficients for ctfp_log(x) = z + z^3 P(z^2)/Q(z^2),
  * where z = 2(x-1)/(x+1)
  * 1/sqrt(2) <= x < sqrt(2)
  * Theoretical peak relative error = 6.16e-22
@@ -105,7 +107,7 @@ static const long double C2 = 1.4286068203094172321215E-6L;
 
 #define SQRTH 0.70710678118654752440L
 
-long double logl(long double x)
+long double ctfp_logl(long double x)
 {
 	long double y, z;
 	int e;
@@ -117,16 +119,16 @@ long double logl(long double x)
 	if (x <= 0.0) {
 		if (x == 0.0)
 			return -1/(x*x); /* -inf with divbyzero */
-		return 0/0.0f; /* nan with invalid */
+		return 0/0.0f; /* ctfp_nan with invalid */
 	}
 
 	/* separate mantissa from exponent */
-	/* Note, frexp is used so that denormal numbers
+	/* Note, ctfp_frexp is used so that denormal numbers
 	 * will be handled properly.
 	 */
-	x = frexpl(x, &e);
+	x = ctfp_frexpl(x, &e);
 
-	/* logarithm using log(x) = z + z**3 P(z)/Q(z),
+	/* logarithm using ctfp_log(x) = z + z**3 P(z)/Q(z),
 	 * where z = 2(x-1)/(x+1)
 	 */
 	if (e > 2 || e < -2) {
@@ -141,14 +143,14 @@ long double logl(long double x)
 		}
 		x = z / y;
 		z = x*x;
-		z = x * (z * __polevll(z, R, 3) / __p1evll(z, S, 3));
+		z = x * (z * ctfp___polevll(z, R, 3) / __p1evll(z, S, 3));
 		z = z + e * C2;
 		z = z + x;
 		z = z + e * C1;
 		return z;
 	}
 
-	/* logarithm using log(1+x) = x - .5x**2 + x**3 P(x)/Q(x) */
+	/* logarithm using ctfp_log(1+x) = x - .5x**2 + x**3 P(x)/Q(x) */
 	if (x < SQRTH) {
 		e -= 1;
 		x = 2.0*x - 1.0;
@@ -156,7 +158,7 @@ long double logl(long double x)
 		x = x - 1.0;
 	}
 	z = x*x;
-	y = x * (z * __polevll(x, P, 6) / __p1evll(x, Q, 6));
+	y = x * (z * ctfp___polevll(x, P, 6) / __p1evll(x, Q, 6));
 	y = y + e * C2;
 	z = y - 0.5*z;
 	/* Note, the sum of above terms does not exceed x/4,
@@ -168,8 +170,8 @@ long double logl(long double x)
 }
 #elif LDBL_MANT_DIG == 113 && LDBL_MAX_EXP == 16384
 // TODO: broken implementation to make things compile
-long double logl(long double x)
+long double ctfp_logl(long double x)
 {
-	return log(x);
+	return ctfp_log(x);
 }
 #endif

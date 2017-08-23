@@ -1,3 +1,5 @@
+#include "../ctfp-math.h"
+
 #include <float.h>
 #include <math.h>
 #include <stdint.h>
@@ -11,7 +13,7 @@
 #endif
 static const float_t toint = 1/EPS;
 
-float rintf(float x)
+float ctfp_rintf(float x)
 {
 	union {float f; uint32_t i;} u = {x};
 	int e = u.i>>23 & 0xff;

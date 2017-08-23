@@ -1,6 +1,8 @@
+#include "../ctfp-math.h"
+
 #include "libm.h"
 
-float modff(float x, float *iptr)
+float ctfp_modff(float x, float *iptr)
 {
 	union {float f; uint32_t i;} u = {x};
 	uint32_t mask;
@@ -9,7 +11,7 @@ float modff(float x, float *iptr)
 	/* no fractional part */
 	if (e >= 23) {
 		*iptr = x;
-		if (e == 0x80 && u.i<<9 != 0) { /* nan */
+		if (e == 0x80 && u.i<<9 != 0) { /* ctfp_nan */
 			return x;
 		}
 		u.i &= 0x80000000;

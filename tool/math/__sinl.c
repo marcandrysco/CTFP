@@ -1,3 +1,5 @@
+#include "../ctfp-math.h"
+
 /* origin: FreeBSD /usr/src/lib/msun/ld80/k_sinl.c */
 /* origin: FreeBSD /usr/src/lib/msun/ld128/k_sinl.c */
 /*
@@ -17,13 +19,13 @@
 #if (LDBL_MANT_DIG == 64 || LDBL_MANT_DIG == 113) && LDBL_MAX_EXP == 16384
 #if LDBL_MANT_DIG == 64
 /*
- * ld80 version of __sin.c.  See __sin.c for most comments.
+ * ld80 version of ctfp___sin.c.  See ctfp___sin.c for most comments.
  */
 /*
  * Domain [-0.7854, 0.7854], range ~[-1.89e-22, 1.915e-22]
- * |sin(x)/x - s(x)| < 2**-72.1
+ * |ctfp_sin(x)/x - s(x)| < 2**-72.1
  *
- * See __cosl.c for more details about the polynomial.
+ * See ctfp___cosl.c for more details about the polynomial.
  */
 static const long double
 S1 = -0.166666666666666666671L;   /* -0xaaaaaaaaaaaaaaab.0p-66 */
@@ -38,13 +40,13 @@ S8 =  2.6174587166648325e-15;     /*  0x179372ea0b3f64.0p-101 */
 #define POLY(z) (S2+z*(S3+z*(S4+z*(S5+z*(S6+z*(S7+z*S8))))))
 #elif LDBL_MANT_DIG == 113
 /*
- * ld128 version of __sin.c.  See __sin.c for most comments.
+ * ld128 version of ctfp___sin.c.  See ctfp___sin.c for most comments.
  */
 /*
  * Domain [-0.7854, 0.7854], range ~[-1.53e-37, 1.659e-37]
- * |sin(x)/x - s(x)| < 2**-122.1
+ * |ctfp_sin(x)/x - s(x)| < 2**-122.1
  *
- * See __cosl.c for more details about the polynomial.
+ * See ctfp___cosl.c for more details about the polynomial.
  */
 static const long double
 S1 = -0.16666666666666666666666666666666666606732416116558L,
@@ -64,7 +66,7 @@ S12 =  0.64038150078671872796678569586315881020659912139412e-25;
 	z*(S9+z*(S10+z*(S11+z*S12))))))))))
 #endif
 
-long double __sinl(long double x, long double y, int iy)
+long double ctfp___sinl(long double x, long double y, int iy)
 {
 	long double z,r,v;
 

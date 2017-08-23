@@ -1,3 +1,5 @@
+#include "../ctfp-math.h"
+
 /* origin: FreeBSD /usr/src/lib/msun/src/s_cbrt.c */
 /*
  * ====================================================
@@ -11,7 +13,7 @@
  *
  * Optimized by Bruce D. Evans.
  */
-/* cbrt(x)
+/* ctfp_cbrt(x)
  * Return cube root of x
  */
 
@@ -22,7 +24,7 @@ static const uint32_t
 B1 = 715094163, /* B1 = (1023-1023/3-0.03306235651)*2**20 */
 B2 = 696219795; /* B2 = (1023-1023/3-54/3-0.03306235651)*2**20 */
 
-/* |1/cbrt(x) - p(x)| < 2**-23.5 (~[-7.93e-8, 7.929e-8]). */
+/* |1/ctfp_cbrt(x) - p(x)| < 2**-23.5 (~[-7.93e-8, 7.929e-8]). */
 static const double
 P0 =  1.87595182427177009643,  /* 0x3ffe03e6, 0x0f61e692 */
 P1 = -1.88497979543377169875,  /* 0xbffe28e0, 0x92f02420 */
@@ -30,24 +32,24 @@ P2 =  1.621429720105354466140, /* 0x3ff9f160, 0x4a49d6c2 */
 P3 = -0.758397934778766047437, /* 0xbfe844cb, 0xbee751d9 */
 P4 =  0.145996192886612446982; /* 0x3fc2b000, 0xd4e4edd7 */
 
-double cbrt(double x)
+double ctfp_cbrt(double x)
 {
 	union {double f; uint64_t i;} u = {x};
 	double_t r,s,t,w;
 	uint32_t hx = u.i>>32 & 0x7fffffff;
 
-	if (hx >= 0x7ff00000)  /* cbrt(NaN,INF) is itself */
+	if (hx >= 0x7ff00000)  /* ctfp_cbrt(NaN,INF) is itself */
 		return x+x;
 
 	/*
-	 * Rough cbrt to 5 bits:
-	 *    cbrt(2**e*(1+m) ~= 2**(e/3)*(1+(e%3+m)/3)
+	 * Rough ctfp_cbrt to 5 bits:
+	 *    ctfp_cbrt(2**e*(1+m) ~= 2**(e/3)*(1+(e%3+m)/3)
 	 * where e is integral and >= 0, m is real and in [0, 1), and "/" and
 	 * "%" are integer division and modulus with rounding towards minus
 	 * infinity.  The RHS is always >= the LHS and has a maximum relative
 	 * error of about 1 in 16.  Adding a bias of -0.03306235651 to the
 	 * (e%3+m)/3 term reduces the error to about 1 in 32. With the IEEE
-	 * floating point representation, for finite positive normal values,
+	 * floating point representation, for ctfp_finite positive normal values,
 	 * ordinary integer divison of the value in bits magically gives
 	 * almost exactly the RHS of the above provided we first subtract the
 	 * exponent bias (1023 for doubles) and later add it back.  We do the
@@ -58,7 +60,7 @@ double cbrt(double x)
 		u.f = x*0x1p54;
 		hx = u.i>>32 & 0x7fffffff;
 		if (hx == 0)
-			return x;  /* cbrt(0) is itself */
+			return x;  /* ctfp_cbrt(0) is itself */
 		hx = hx/3 + B2;
 	} else
 		hx = hx/3 + B1;
@@ -67,11 +69,11 @@ double cbrt(double x)
 	t = u.f;
 
 	/*
-	 * New cbrt to 23 bits:
-	 *    cbrt(x) = t*cbrt(x/t**3) ~= t*P(t**3/x)
-	 * where P(r) is a polynomial of degree 4 that approximates 1/cbrt(r)
+	 * New ctfp_cbrt to 23 bits:
+	 *    ctfp_cbrt(x) = t*ctfp_cbrt(x/t**3) ~= t*P(t**3/x)
+	 * where P(r) is a polynomial of degree 4 that approximates 1/ctfp_cbrt(r)
 	 * to within 2**-23.5 when |r - 1| < 1/10.  The rough approximation
-	 * has produced t such than |t/cbrt(x) - 1| ~< 1/32, and cubing this
+	 * has produced t such than |t/ctfp_cbrt(x) - 1| ~< 1/32, and cubing this
 	 * gives us bounds for r = t**3/x.
 	 *
 	 * Try to optimize for parallel evaluation as in __tanf.c.
@@ -81,7 +83,7 @@ double cbrt(double x)
 
 	/*
 	 * Round t away from zero to 23 bits (sloppily except for ensuring that
-	 * the result is larger in magnitude than cbrt(x) but not much more than
+	 * the result is larger in magnitude than ctfp_cbrt(x) but not much more than
 	 * 2 23-bit ulps larger).  With rounding towards zero, the error bound
 	 * would be ~5/6 instead of ~4/6.  With a maximum error of 2 23-bit ulps
 	 * in the rounded t, the infinite-precision error in the Newton

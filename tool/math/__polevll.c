@@ -1,3 +1,5 @@
+#include "../ctfp-math.h"
+
 /* origin: OpenBSD /usr/src/lib/libm/src/polevll.c */
 /*
  * Copyright (c) 2008 Stephen L. Moshier <steve@moshier.net>
@@ -62,7 +64,7 @@
  * Polynomial evaluator:
  *  P[0] x^n  +  P[1] x^(n-1)  +  ...  +  P[n]
  */
-long double __polevll(long double x, const long double *P, int n)
+long double ctfp___polevll(long double x, const long double *P, int n)
 {
 	long double y;
 

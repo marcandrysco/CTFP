@@ -1,12 +1,14 @@
+#include "../ctfp-math.h"
+
 #include "libm.h"
 
 #if LDBL_MANT_DIG == 53 && LDBL_MAX_EXP == 1024
-long double sinl(long double x)
+long double ctfp_sinl(long double x)
 {
-	return sin(x);
+	return ctfp_sin(x);
 }
 #elif (LDBL_MANT_DIG == 64 || LDBL_MANT_DIG == 113) && LDBL_MAX_EXP == 16384
-long double sinl(long double x)
+long double ctfp_sinl(long double x)
 {
 	union ldshape u = {x};
 	unsigned n;
@@ -21,21 +23,21 @@ long double sinl(long double x)
 			FORCE_EVAL(u.i.se == 0 ? x*0x1p-120f : x+0x1p120f);
 			return x;
 		}
-		return __sinl(x, 0.0, 0);
+		return ctfp___sinl(x, 0.0, 0);
 	}
-	n = __rem_pio2l(x, y);
+	n = ctfp___rem_pio2l(x, y);
 	hi = y[0];
 	lo = y[1];
 	switch (n & 3) {
 	case 0:
-		return __sinl(hi, lo, 1);
+		return ctfp___sinl(hi, lo, 1);
 	case 1:
-		return __cosl(hi, lo);
+		return ctfp___cosl(hi, lo);
 	case 2:
-		return -__sinl(hi, lo, 1);
+		return -ctfp___sinl(hi, lo, 1);
 	case 3:
 	default:
-		return -__cosl(hi, lo);
+		return -ctfp___cosl(hi, lo);
 	}
 }
 #endif

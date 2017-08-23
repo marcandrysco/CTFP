@@ -1,3 +1,5 @@
+#include "../ctfp-math.h"
+
 /* origin: FreeBSD /usr/src/lib/msun/src/s_atan.c */
 /*
  * ====================================================
@@ -9,18 +11,18 @@
  * is preserved.
  * ====================================================
  */
-/* atan(x)
+/* ctfp_atan(x)
  * Method
- *   1. Reduce x to positive by atan(x) = -atan(-x).
+ *   1. Reduce x to positive by ctfp_atan(x) = -ctfp_atan(-x).
  *   2. According to the integer k=4t+0.25 chopped, t=x, the argument
  *      is further reduced to one of the following intervals and the
  *      arctangent of t is evaluated by the corresponding formula:
  *
- *      [0,7/16]      atan(x) = t-t^3*(a1+t^2*(a2+...(a10+t^2*a11)...)
- *      [7/16,11/16]  atan(x) = atan(1/2) + atan( (t-0.5)/(1+t/2) )
- *      [11/16.19/16] atan(x) = atan( 1 ) + atan( (t-1)/(1+t) )
- *      [19/16,39/16] atan(x) = atan(3/2) + atan( (t-1.5)/(1+1.5t) )
- *      [39/16,INF]   atan(x) = atan(INF) + atan( -1/t )
+ *      [0,7/16]      ctfp_atan(x) = t-t^3*(a1+t^2*(a2+...(a10+t^2*a11)...)
+ *      [7/16,11/16]  ctfp_atan(x) = ctfp_atan(1/2) + ctfp_atan( (t-0.5)/(1+t/2) )
+ *      [11/16.19/16] ctfp_atan(x) = ctfp_atan( 1 ) + ctfp_atan( (t-1)/(1+t) )
+ *      [19/16,39/16] ctfp_atan(x) = ctfp_atan(3/2) + ctfp_atan( (t-1.5)/(1+1.5t) )
+ *      [39/16,INF]   ctfp_atan(x) = ctfp_atan(INF) + ctfp_atan( -1/t )
  *
  * Constants:
  * The hexadecimal values are the intended ones for the following
@@ -33,17 +35,17 @@
 #include "libm.h"
 
 static const double atanhi[] = {
-  4.63647609000806093515e-01, /* atan(0.5)hi 0x3FDDAC67, 0x0561BB4F */
-  7.85398163397448278999e-01, /* atan(1.0)hi 0x3FE921FB, 0x54442D18 */
-  9.82793723247329054082e-01, /* atan(1.5)hi 0x3FEF730B, 0xD281F69B */
-  1.57079632679489655800e+00, /* atan(inf)hi 0x3FF921FB, 0x54442D18 */
+  4.63647609000806093515e-01, /* ctfp_atan(0.5)hi 0x3FDDAC67, 0x0561BB4F */
+  7.85398163397448278999e-01, /* ctfp_atan(1.0)hi 0x3FE921FB, 0x54442D18 */
+  9.82793723247329054082e-01, /* ctfp_atan(1.5)hi 0x3FEF730B, 0xD281F69B */
+  1.57079632679489655800e+00, /* ctfp_atan(inf)hi 0x3FF921FB, 0x54442D18 */
 };
 
 static const double atanlo[] = {
-  2.26987774529616870924e-17, /* atan(0.5)lo 0x3C7A2B7F, 0x222F65E2 */
-  3.06161699786838301793e-17, /* atan(1.0)lo 0x3C81A626, 0x33145C07 */
-  1.39033110312309984516e-17, /* atan(1.5)lo 0x3C700788, 0x7AF0CBBD */
-  6.12323399573676603587e-17, /* atan(inf)lo 0x3C91A626, 0x33145C07 */
+  2.26987774529616870924e-17, /* ctfp_atan(0.5)lo 0x3C7A2B7F, 0x222F65E2 */
+  3.06161699786838301793e-17, /* ctfp_atan(1.0)lo 0x3C81A626, 0x33145C07 */
+  1.39033110312309984516e-17, /* ctfp_atan(1.5)lo 0x3C700788, 0x7AF0CBBD */
+  6.12323399573676603587e-17, /* ctfp_atan(inf)lo 0x3C91A626, 0x33145C07 */
 };
 
 static const double aT[] = {
@@ -60,7 +62,7 @@ static const double aT[] = {
   1.62858201153657823623e-02, /* 0x3F90AD3A, 0xE322DA11 */
 };
 
-double atan(double x)
+double ctfp_atan(double x)
 {
 	double_t w,s1,s2,z;
 	uint32_t ix,sign;
@@ -84,7 +86,7 @@ double atan(double x)
 		}
 		id = -1;
 	} else {
-		x = fabs(x);
+		x = ctfp_fabs(x);
 		if (ix < 0x3ff30000) {  /* |x| < 1.1875 */
 			if (ix < 0x3fe60000) {  /*  7/16 <= |x| < 11/16 */
 				id = 0;

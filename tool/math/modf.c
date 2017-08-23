@@ -1,6 +1,8 @@
+#include "../ctfp-math.h"
+
 #include "libm.h"
 
-double modf(double x, double *iptr)
+double ctfp_modf(double x, double *iptr)
 {
 	union {double f; uint64_t i;} u = {x};
 	uint64_t mask;
@@ -9,7 +11,7 @@ double modf(double x, double *iptr)
 	/* no fractional part */
 	if (e >= 52) {
 		*iptr = x;
-		if (e == 0x400 && u.i<<12 != 0) /* nan */
+		if (e == 0x400 && u.i<<12 != 0) /* ctfp_nan */
 			return x;
 		u.i &= 1ULL<<63;
 		return u.f;

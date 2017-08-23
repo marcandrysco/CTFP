@@ -1,3 +1,5 @@
+#include "../ctfp-math.h"
+
 #include <math.h>
 #include <stdint.h>
 #include <float.h>
@@ -19,7 +21,7 @@ static void sq(double_t *hi, double_t *lo, double x)
 	*lo = xh*xh - *hi + 2*xh*xl + xl*xl;
 }
 
-double hypot(double x, double y)
+double ctfp_hypot(double x, double y)
 {
 	union {double f; uint64_t i;} ux = {x}, uy = {y}, ut;
 	int ex, ey;
@@ -39,12 +41,12 @@ double hypot(double x, double y)
 	ey = uy.i>>52;
 	x = ux.f;
 	y = uy.f;
-	/* note: hypot(inf,nan) == inf */
+	/* note: ctfp_hypot(inf,ctfp_nan) == inf */
 	if (ey == 0x7ff)
 		return y;
 	if (ex == 0x7ff || uy.i == 0)
 		return x;
-	/* note: hypot(x,y) ~= x + y*y/x/2 with inexact for small y/x */
+	/* note: ctfp_hypot(x,y) ~= x + y*y/x/2 with inexact for small y/x */
 	/* 64 difference is enough for ld80 double_t */
 	if (ex - ey > 64)
 		return x + y;
