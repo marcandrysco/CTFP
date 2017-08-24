@@ -121,7 +121,7 @@ struct CTFP : public FunctionPass {
 		Module *mod = func.getParent();
 		if(func.getParent()->getFunction("ctfp_add_f_1") == nullptr) {
 			SMDiagnostic err;
-			std::unique_ptr<Module> parse = parseIRFile("/data/ctfp/lib/ctfp.ll", err, ctx);
+			std::unique_ptr<Module> parse = parseIRFile("/home/marc/ctfp/tool/ctfp.bc", err, ctx);
 			assert(mod != nullptr);
 
 			if(Linker::linkModules(*mod, std::move(parse)))
@@ -319,8 +319,11 @@ struct CTFP : public FunctionPass {
 							}
 							else {
 								auto find = std::find(std::begin(list), std::end(list), func->getName());
-								if(find != std::end(list))
+								if(find != std::end(list)) {
+									std::string ctfp = "ctfp_" + *find;
+									call->setCalledFunction(mod->getOrInsertFunction(ctfp, func->getFunctionType()));
 									printf("special! %s\n", func->getName().data());
+								}
 							}
 						}
 					}

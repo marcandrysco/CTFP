@@ -11,6 +11,9 @@ typedef double v2d __attribute__((vector_size(16)));
 typedef double v4d __attribute__((vector_size(32)));
 
 
+#include "ctfp-math.h"
+
+
 /**
  * Addition between floats, masks subnormals.
  *   @v1: Value one.
