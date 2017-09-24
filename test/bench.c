@@ -2,12 +2,47 @@
 #include <float.h>
 #include <emmintrin.h>
 #include <math.h>
+#include <string.h>
 
 
 /*
  * sources and sinks
  */
 volatile double sink, src1, src2;
+volatile float sinkf, src1f, src2f;
+
+static inline double m_xor_d(double left, double right)
+{
+	double out;
+	uint64_t v1, v2, v3;
+
+	memcpy(&v1, &left, 8);
+	memcpy(&v2, &right, 8);
+
+	v3 = v1 ^ v2;
+
+	memcpy(&out, &v3, 8);
+
+	return out;
+}
+
+static inline float m_xor_f(float left, float right)
+{
+	float out;
+	uint32_t v1, v2, v3;
+
+	memcpy(&v1, &left, 4);
+	memcpy(&v2, &right, 4);
+
+	v3 = v1 ^ v2;
+
+	memcpy(&out, &v3, 4);
+
+	return out;
+}
+
+#define DO_32(thing)  thing thing thing thing  thing thing thing thing  thing thing thing thing  thing thing thing thing \
+                      thing thing thing thing  thing thing thing thing  thing thing thing thing  thing thing thing thing
 
 
 /**
@@ -16,20 +51,20 @@ volatile double sink, src1, src2;
  */
 __attribute__((noinline)) static uint32_t base(void)
 {
-	double in, out;
+	double in, out, res;
 	uint32_t begin, end;
 
 	src1 = 0.0;
-	asm volatile("");
 	in = src1;
+	res = src1;
 
 	asm volatile("" :: "x"(in), "x"(out));
 	begin = perf_begin();
 
-	//out = in;
-	//asm volatile("movq %0,%%r15" :: "x"(out) : "r15");
-	//sink = out;
-	//_mm_mfence();
+	DO_32(
+		out = in;
+		in = m_xor_d(m_xor_d(out, res), in);
+	)
 
 	end = perf_end();
 	asm volatile("" :: "x"(in), "x"(out));
@@ -43,29 +78,24 @@ __attribute__((noinline)) static uint32_t base(void)
  */
 __attribute__((noinline)) static uint32_t add_dbl(void)
 {
-	double in1, in2, in3, in4, in5, in6, in7, in8, out;
+	uint32_t idx;
+	double in1, in2, out, res;
 	uint32_t begin, end;
 
 	in1 = src1;
 	in2 = src2;
-	in3 = src1;
-	in4 = src2;
-	in5 = src1;
-	in6 = src2;
-	in7 = src1;
-	in8 = src2;
+	res = src1 + src2;
 
-	asm volatile("" :: "x"(in1), "x"(in2), "x"(in3), "x"(in4), "x"(in5), "x"(in6), "x"(in7), "x"(in8), "x"(out));
+	asm volatile("" :: "x"(in1), "x"(in2), "x"(out), "x"(res));
 	begin = perf_begin();
 
-	out = in1 + in2 + in3 + in4 + in5 + in6 + in7 + in8;
-	asm volatile("movq %0,%%r15" :: "x"(out) : "r15");
-	asm volatile("add %%r15,%%r15" ::: "r15");
-	//sink = out;
-	//_mm_mfence();
+	DO_32(
+		out = in1 + in2;
+		in1 = m_xor_d(m_xor_d(out, res), in1);
+	)
 
 	end = perf_end();
-	asm volatile("" :: "x"(in1), "x"(in2), "x"(in3), "x"(in4), "x"(in5), "x"(in6), "x"(in7), "x"(in8), "x"(out));
+	asm volatile("" :: "x"(in1), "x"(in2), "x"(out), "x"(res));
 
 	sink = out;
 
@@ -78,31 +108,83 @@ __attribute__((noinline)) static uint32_t add_dbl(void)
  */
 __attribute__((noinline)) static uint32_t mul_dbl(void)
 {
-	double in1, in2, in3, in4, in5, in6, in7, in8, out;
+	double in1, in2, out, res;
 	uint32_t begin, end;
 
 	in1 = src1;
 	in2 = src2;
-	in3 = src1;
-	in4 = src2;
-	in5 = src1;
-	in6 = src2;
-	in7 = src1;
-	in8 = src2;
+	res = src1 * src2;
 
-	asm volatile("" :: "x"(in1), "x"(in2), "x"(in3), "x"(in4), "x"(in5), "x"(in6), "x"(in7), "x"(in8), "x"(out));
+	asm volatile("" :: "x"(in1), "x"(in2), "x"(out));
 	begin = perf_begin();
 
-	out = in1 * in2 * in3 * in4 * in5 * in6 * in7 * in8;
-	asm volatile("movq %0,%%r15" :: "x"(out) : "r15");
-	asm volatile("add %%r15,%%r15" ::: "r15");
-	//sink = out;
-	//_mm_mfence();
+	DO_32(
+		out = in1 * in2;
+		in1 = m_xor_d(m_xor_d(out, res), in1);
+	)
 
 	end = perf_end();
-	asm volatile("" :: "x"(in1), "x"(in2), "x"(in3), "x"(in4), "x"(in5), "x"(in6), "x"(in7), "x"(in8), "x"(out));
+	asm volatile("" :: "x"(in1), "x"(in2), "x"(out));
 
 	sink = out;
+
+	return end - begin;
+}
+
+/**
+ * Divide doubles.
+ *   &returns: The execution time.
+ */
+__attribute__((noinline)) static uint32_t div_dbl(void)
+{
+	double in1, in2, out, res;
+	uint32_t begin, end;
+
+	in1 = src1;
+	in2 = src2;
+	res = src1 / src2;
+
+	asm volatile("" :: "x"(in1), "x"(in2), "x"(out));
+	begin = perf_begin();
+
+	DO_32(
+		out = in1 / in2;
+		in1 = m_xor_d(m_xor_d(out, res), in1);
+	)
+
+	end = perf_end();
+	asm volatile("" :: "x"(in1), "x"(in2), "x"(out));
+
+	sink = out;
+
+	return end - begin;
+}
+
+/**
+ * Divide floats.
+ *   &returns: The execution time.
+ */
+__attribute__((noinline)) static uint32_t div_flt(void)
+{
+	float in1, in2, out, res;
+	uint32_t begin, end;
+
+	in1 = src1f;
+	in2 = src2f;
+	res = src1f / src2f;
+
+	asm volatile("" :: "x"(in1), "x"(in2), "x"(out));
+	begin = perf_begin();
+
+	DO_32(
+		out = in1 / in2;
+		in1 = m_xor_f(m_xor_f(out, res), in1);
+	)
+
+	end = perf_end();
+	asm volatile("" :: "x"(in1), "x"(in2), "x"(out));
+
+	sinkf = out;
 
 	return end - begin;
 }
@@ -171,6 +253,73 @@ static uint32_t mdnii(void)
 	return mul_dbl();
 }
 
+/**
+ * Divide double normal/normal=normal benchmark.
+ *   &returns: The execution time.
+ */
+static uint32_t ddnnn(void)
+{
+	src1 = 1.6; src2 = 2.4;
+
+	return div_dbl();
+}
+
+/**
+ * Divide double subnormal/normal=subnormal benchmark.
+ *   &returns: The execution time.
+ */
+static uint32_t ddsns(void)
+{
+	src1 = 1.6e-312; src2 = 2.4;
+
+	return div_dbl();
+}
+
+/**
+ * Divide double zero/normal=zero benchmark.
+ *   &returns: The execution time.
+ */
+static uint32_t ddznz(void)
+{
+	src1 = 0.0; src2 = 2.4;
+
+	return div_dbl();
+}
+
+
+/**
+ * Divide single normal/normal=normal benchmark.
+ *   &returns: The execution time.
+ */
+static uint32_t dsnnn(void)
+{
+	src1f = 1.6; src2f = 2.4;
+
+	return div_flt();
+}
+
+/**
+ * Divide single subnormal/normal=subnormal benchmark.
+ *   &returns: The execution time.
+ */
+static uint32_t dssns(void)
+{
+	src1f = 1.6e-42; src2f = 2.4;
+
+	return div_flt();
+}
+
+/**
+ * Divide single zero/normal=zero benchmark.
+ *   &returns: The execution time.
+ */
+static uint32_t dsznz(void)
+{
+	src1f = 0.0; src2f = 2.4;
+
+	return div_flt();
+}
+
 bench_f BENCH[bench_n] = {
 	base,
 	adnnn,
@@ -179,4 +328,10 @@ bench_f BENCH[bench_n] = {
 	mdsns,
 	mul_dssz,
 	mdnii,
+	ddnnn,
+	ddsns,
+	ddznz,
+	dsnnn,
+	dssns,
+	dsznz,
 };

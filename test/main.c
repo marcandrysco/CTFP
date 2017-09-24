@@ -28,7 +28,7 @@ struct bench_t {
 
 int main(int argc, char **argv)
 {
-	unsigned int cnt = 200000;
+	unsigned int cnt = 100000;
 
 	cpu_set_t set;
 	CPU_ZERO(&set);
@@ -70,7 +70,7 @@ int main(int argc, char **argv)
 		ref.ave[i] /= (cnt / 2);
 		ctfp.ave[i] /= (cnt / 2);
 
-		printf("bench %d : %.3f(%.3f) vs %.3f(%.3f)\n", i, (ref.ave[i] - ref.ave[0]) / (ref.ave[1] - ref.ave[0]), ref.ave[i], (ctfp.ave[i] - ctfp.ave[0]) / (ref.ave[1] - ref.ave[0]), ctfp.ave[i]);
+		printf("bench %s : %.3f(%.3f) vs %.3f(%.3f)\n", bench_name(i), (ref.ave[i] - ref.ave[0]) / (ref.ave[1] - ref.ave[0]), ref.ave[i], (ctfp.ave[i] - ctfp.ave[0]) / (ref.ave[1] - ref.ave[0]), ctfp.ave[i]);
 	}
 
 	for(i = 0; i < bench_n; i++) {
@@ -98,4 +98,32 @@ void foo()
 	asm volatile("" :: "x"(a), "x"(b), "x"(c));
 
 	dest0 = c;
+}
+
+
+/**
+ * Retrieve the benchmark name.
+ *   @bench: The benchmark.
+ *   &returns: The name.
+ */
+const char *bench_name(enum bench_e bench) {
+	switch(bench) {
+	case bench_base: return "base         ";
+	case bench_add_dnnn: return "add dbl n+n=n";
+	case bench_add_dsss: return "add dbl s+s=s";
+	case bench_mul_nnn: return "mul dbl n*n=n";
+	case bench_mul_sns: return "mul dbl s*n=s";
+	case bench_mdssz: return "mul dbl s*s=z";
+	case bench_mdnii: return "mul dbl n*i=i";
+	case bench_ddnnn: return "div dbl n*n=n";
+	case bench_ddsns: return "div dbl s*n=s";
+	case bench_ddznz: return "div dbl 0*n=0";
+	case bench_dsnnn: return "div flt n*n=n";
+	case bench_dssns: return "div flt s*n=s";
+	case bench_dsznz: return "div flt 0*n=0";
+	case bench_n: break;
+	}
+
+	fprintf(stderr, "Invalid benchmark.");
+	abort();
 }

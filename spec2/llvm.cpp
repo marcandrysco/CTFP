@@ -121,15 +121,10 @@ struct CTFP : public FunctionPass {
 			return false;
 
 		Module *mod = func.getParent();
-		if(func.getParent()->getFunction("ctfp_add_f_1") == nullptr) {
+		if(func.getParent()->getFunction("ctfp_add1_f1") == nullptr) {
 			SMDiagnostic err;
-<<<<<<< HEAD
-			std::unique_ptr<Module> parse = parseIRFile("/home/marc/ctfp/tool/ctfp.bc", err, ctx);
-			assert(mod != nullptr);
-=======
-			std::unique_ptr<Module> parse = parseIRFile("/data/ctfp/tool/ctfp.bc", err, ctx);
+			std::unique_ptr<Module> parse = parseIRFile("/data/ctfp/spec2/ctfp.bc", err, ctx);
 			assert(parse != nullptr);
->>>>>>> a8f7029... added a generator for the transformations
 
 			if(Linker::linkModules(*mod, std::move(parse)))
 				fprintf(stderr, "Link failed.\n"), exit(1);
@@ -142,17 +137,17 @@ struct CTFP : public FunctionPass {
 				switch(inst->getOpcode()) {
 				case Instruction::FAdd:
 					if(inst->getType()->isFloatTy())
-						insert(inst, "ctfp_add_f_1");
+						insert(inst, "ctfp_add1_f1");
 					else if(inst->getType()->isDoubleTy())
-						insert(inst, "ctfp_add_d_1");
+						insert(inst, "ctfp_add1_d1");
 					else if(inst->getType()->isVectorTy()) {
 						VectorType *type = cast<VectorType>(inst->getType());
 						switch(type->getNumElements()) {
 						case 2:
 							if(type->getElementType()->isFloatTy())
-								insert(inst, "ctfp_add_f_2");
+								insert(inst, "ctfp_add1_f2");
 							else if(type->getElementType()->isDoubleTy())
-								insert(inst, "ctfp_add_d_2");
+								insert(inst, "ctfp_add1_d2");
 							else
 								printf("Unhandled type\n");
 
@@ -160,9 +155,9 @@ struct CTFP : public FunctionPass {
 
 						case 4:
 							if(type->getElementType()->isFloatTy())
-								insert(inst, "ctfp_add_f_4");
+								insert(inst, "ctfp_add1_f4");
 							else if(type->getElementType()->isDoubleTy())
-								insert(inst, "ctfp_add_d_4");
+								insert(inst, "ctfp_add1_d4");
 							else
 								printf("Unhandled type\n");
 
@@ -179,17 +174,17 @@ struct CTFP : public FunctionPass {
 
 				case Instruction::FSub:
 					if(inst->getType()->isFloatTy())
-						insert(inst, "ctfp_sub_f_1");
+						insert(inst, "ctfp_sub1_f1");
 					else if(inst->getType()->isDoubleTy())
-						insert(inst, "ctfp_sub_d_1");
+						insert(inst, "ctfp_sub1_d1");
 					else if(inst->getType()->isVectorTy()) {
 						VectorType *type = cast<VectorType>(inst->getType());
 						switch(type->getNumElements()) {
 						case 2:
 							if(type->getElementType()->isFloatTy())
-								insert(inst, "ctfp_sub_f_2");
+								insert(inst, "ctfp_sub1_f2");
 							else if(type->getElementType()->isDoubleTy())
-								insert(inst, "ctfp_sub_d_2");
+								insert(inst, "ctfp_sub1_d2");
 							else
 								printf("Unhandled type\n");
 
@@ -197,9 +192,9 @@ struct CTFP : public FunctionPass {
 
 						case 4:
 							if(type->getElementType()->isFloatTy())
-								insert(inst, "ctfp_sub_f_4");
+								insert(inst, "ctfp_sub1_f4");
 							else if(type->getElementType()->isDoubleTy())
-								insert(inst, "ctfp_sub_d_4");
+								insert(inst, "ctfp_sub1_d4");
 							else
 								printf("Unhandled type\n");
 
@@ -216,17 +211,17 @@ struct CTFP : public FunctionPass {
 
 				case Instruction::FMul:
 					if(inst->getType()->isFloatTy())
-						insert(inst, "ctfp_mul_f_1");
+						insert(inst, "ctfp_mul_f1");
 					else if(inst->getType()->isDoubleTy())
-						insert(inst, "ctfp_mul_d_1");
+						insert(inst, "ctfp_mul1_d1");
 					else if(inst->getType()->isVectorTy()) {
 						VectorType *type = cast<VectorType>(inst->getType());
 						switch(type->getNumElements()) {
 						case 2:
 							if(type->getElementType()->isFloatTy())
-								insert(inst, "ctfp_mul_f_2");
+								insert(inst, "ctfp_mul1_f2");
 							else if(type->getElementType()->isDoubleTy())
-								insert(inst, "ctfp_mul_d_2");
+								insert(inst, "ctfp_mul1_d2");
 							else
 								printf("Unhandled type\n");
 
@@ -234,9 +229,9 @@ struct CTFP : public FunctionPass {
 
 						case 4:
 							if(type->getElementType()->isFloatTy())
-								insert(inst, "ctfp_mul_f_4");
+								insert(inst, "ctfp_mul1_f4");
 							else if(type->getElementType()->isDoubleTy())
-								insert(inst, "ctfp_mul_d_4");
+								insert(inst, "ctfp_mul1_d4");
 							else
 								printf("Unhandled type\n");
 
@@ -253,17 +248,17 @@ struct CTFP : public FunctionPass {
 
 				case Instruction::FDiv:
 					if(inst->getType()->isFloatTy())
-						insert(inst, "ctfp_div_f_1");
+						insert(inst, "ctfp_div1_f1");
 					else if(inst->getType()->isDoubleTy())
-						insert(inst, "ctfp_div_d_1");
+						insert(inst, "ctfp_div1_d1");
 					else if(inst->getType()->isVectorTy()) {
 						VectorType *type = cast<VectorType>(inst->getType());
 						switch(type->getNumElements()) {
 						case 2:
 							if(type->getElementType()->isFloatTy())
-								insert(inst, "ctfp_div_f_2");
+								insert(inst, "ctfp_div1_f2");
 							else if(type->getElementType()->isDoubleTy())
-								insert(inst, "ctfp_div_d_2");
+								insert(inst, "ctfp_div1_d2");
 							else
 								printf("Unhandled type\n");
 
@@ -271,9 +266,9 @@ struct CTFP : public FunctionPass {
 
 						case 4:
 							if(type->getElementType()->isFloatTy())
-								insert(inst, "ctfp_div_f_4");
+								insert(inst, "ctfp_div1_f4");
 							else if(type->getElementType()->isDoubleTy())
-								insert(inst, "ctfp_div_d_4");
+								insert(inst, "ctfp_div1_d4");
 							else
 								printf("Unhandled type\n");
 
@@ -318,19 +313,16 @@ struct CTFP : public FunctionPass {
 
 							if(func->getName() == "sqrt") {
 								//call->dump();
-								insert(inst, "ctfp_sqrt_d_1");
+								//insert(inst, "ctfp_sqrt1_d1");
 							}
 							else if(func->getName() == "sqrtf") {
 								//call->dump();
-								insert(inst, "ctfp_sqrt_f_1");
+								//insert(inst, "ctfp_sqrt1_f1");
 							}
 							else {
 								auto find = std::find(std::begin(list), std::end(list), func->getName());
-								if(find != std::end(list)) {
-									std::string ctfp = "ctfp_" + *find;
-									call->setCalledFunction(mod->getOrInsertFunction(ctfp, func->getFunctionType()));
+								if(find != std::end(list))
 									printf("special! %s\n", func->getName().data());
-								}
 							}
 						}
 					}

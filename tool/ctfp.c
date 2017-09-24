@@ -27,7 +27,7 @@ __attribute__((weak)) float ctfp_add_f_1(float v1, float v2)
 	r1[0] = v1;
 	r2[0] = v2;
 
-	__m128 min = { sqrt(DBL_MIN), sqrt(DBL_MIN), sqrt(DBL_MIN), sqrt(DBL_MIN) };
+	__m128 min = { sqrt(FLT_MIN), sqrt(FLT_MIN), sqrt(FLT_MIN), sqrt(FLT_MIN) };
 
 	__m128 abs = _mm_castsi128_ps(_mm_srli_epi32(_mm_set1_epi32(-1), 1));
 	r1 = _mm_and_ps(r1, _mm_cmpge_ps(_mm_and_ps(r1, abs), min));
@@ -51,7 +51,7 @@ __attribute__((weak)) v2f ctfp_add_f_2(v2f v1, v2f v2)
 	r1[0] = v1[0]; r1[1] = v1[1];
 	r2[0] = v2[0]; r2[1] = v2[1];
 
-	__m128 min = { sqrt(DBL_MIN), sqrt(DBL_MIN), sqrt(DBL_MIN), sqrt(DBL_MIN) };
+	__m128 min = { sqrt(FLT_MIN), sqrt(FLT_MIN), sqrt(FLT_MIN), sqrt(FLT_MIN) };
 
 	__m128 abs = _mm_castsi128_ps(_mm_srli_epi32(_mm_set1_epi32(-1), 1));
 	r1 = _mm_and_ps(r1, _mm_cmpge_ps(_mm_and_ps(r1, abs), min));
@@ -75,7 +75,7 @@ __attribute__((weak)) v4f ctfp_add_f_4(v4f v1, v4f v2)
 	r1[0] = v1[0]; r1[1] = v1[1]; r1[2] = v1[2]; r1[3] = v1[3];
 	r2[0] = v2[0]; r2[1] = v2[1]; r2[2] = v2[2]; r2[3] = v2[3];
 
-	__m128 min = { sqrt(DBL_MIN), sqrt(DBL_MIN), sqrt(DBL_MIN), sqrt(DBL_MIN) };
+	__m128 min = { sqrt(FLT_MIN), sqrt(FLT_MIN), sqrt(FLT_MIN), sqrt(FLT_MIN) };
 
 	__m128 abs = _mm_castsi128_ps(_mm_srli_epi32(_mm_set1_epi32(-1), 1));
 	r1 = _mm_and_ps(r1, _mm_cmpge_ps(_mm_and_ps(r1, abs), min));
@@ -176,7 +176,7 @@ __attribute__((weak)) float ctfp_sub_f_1(float v1, float v2)
 	r1[0] = v1;
 	r2[0] = v2;
 
-	__m128 min = { sqrt(DBL_MIN), sqrt(DBL_MIN), sqrt(DBL_MIN), sqrt(DBL_MIN) };
+	__m128 min = { sqrt(FLT_MIN), sqrt(FLT_MIN), sqrt(FLT_MIN), sqrt(FLT_MIN) };
 
 	__m128 abs = _mm_castsi128_ps(_mm_srli_epi32(_mm_set1_epi32(-1), 1));
 	r1 = _mm_and_ps(r1, _mm_cmpge_ps(_mm_and_ps(r1, abs), min));
@@ -200,7 +200,7 @@ __attribute__((weak)) v2f ctfp_sub_f_2(v2f v1, v2f v2)
 	r1[0] = v1[0]; r1[1] = v1[1];
 	r2[0] = v2[0]; r2[1] = v2[1];
 
-	__m128 min = { sqrt(DBL_MIN), sqrt(DBL_MIN), sqrt(DBL_MIN), sqrt(DBL_MIN) };
+	__m128 min = { sqrt(FLT_MIN), sqrt(FLT_MIN), sqrt(FLT_MIN), sqrt(FLT_MIN) };
 
 	__m128 abs = _mm_castsi128_ps(_mm_srli_epi32(_mm_set1_epi32(-1), 1));
 	r1 = _mm_and_ps(r1, _mm_cmpge_ps(_mm_and_ps(r1, abs), min));
@@ -224,7 +224,7 @@ __attribute__((weak)) v4f ctfp_sub_f_4(v4f v1, v4f v2)
 	r1[0] = v1[0]; r1[1] = v1[1]; r1[2] = v1[2]; r1[3] = v1[3];
 	r2[0] = v2[0]; r2[1] = v2[1]; r2[2] = v2[2]; r2[3] = v2[3];
 
-	__m128 min = { sqrt(DBL_MIN), sqrt(DBL_MIN), sqrt(DBL_MIN), sqrt(DBL_MIN) };
+	__m128 min = { sqrt(FLT_MIN), sqrt(FLT_MIN), sqrt(FLT_MIN), sqrt(FLT_MIN) };
 
 	__m128 abs = _mm_castsi128_ps(_mm_srli_epi32(_mm_set1_epi32(-1), 1));
 	r1 = _mm_and_ps(r1, _mm_cmpge_ps(_mm_and_ps(r1, abs), min));
@@ -313,7 +313,7 @@ __attribute__((weak)) float ctfp_mul_f_1(float v1, float v2)
 	r1[0] = v1;
 	r2[0] = v2;
 
-	__m128 min = { sqrt(DBL_MIN), sqrt(DBL_MIN), sqrt(DBL_MIN), sqrt(DBL_MIN) };
+	__m128 min = { sqrt(FLT_MIN), sqrt(FLT_MIN), sqrt(FLT_MIN), sqrt(FLT_MIN) };
 
 	__m128 abs = _mm_castsi128_ps(_mm_srli_epi32(_mm_set1_epi32(-1), 1));
 	r1 = _mm_and_ps(r1, _mm_cmpge_ps(_mm_and_ps(r1, abs), min));
@@ -361,7 +361,7 @@ __attribute__((weak)) v4f ctfp_mul_f_4(v4f v1, v4f v2)
 	r1[0] = v1[0]; r1[1] = v1[1]; r1[2] = v1[2]; r1[3] = v1[3];
 	r2[0] = v2[0]; r2[1] = v2[1]; r2[2] = v2[2]; r2[3] = v2[3];
 
-	__m128 min = { sqrt(DBL_MIN), sqrt(DBL_MIN), sqrt(DBL_MIN), sqrt(DBL_MIN) };
+	__m128 min = { sqrt(FLT_MIN), sqrt(FLT_MIN), sqrt(FLT_MIN), sqrt(FLT_MIN) };
 
 	__m128 abs = _mm_castsi128_ps(_mm_srli_epi32(_mm_set1_epi32(-1), 1));
 	r1 = _mm_and_ps(r1, _mm_cmpge_ps(_mm_and_ps(r1, abs), min));
@@ -446,14 +446,15 @@ __attribute__((weak)) float ctfp_div_f_1(float v1, float v2)
 {
 	__m128 r1, r2, r3;
 
-	r1[0] = v1;
-	r2[0] = v2;
+	r1[0] = r1[1] = r1[2] = r1[3] = v1;
+	r2[0] = r2[1] = r2[2] = r2[3] = v2;
 
-	__m128 min = { sqrt(DBL_MIN), sqrt(DBL_MIN), sqrt(DBL_MIN), sqrt(DBL_MIN) };
+	__m128 min = { sqrt(FLT_MIN), sqrt(FLT_MIN), sqrt(FLT_MIN), sqrt(FLT_MIN) };
+	__m128 max = { sqrt(FLT_MAX), sqrt(FLT_MAX), sqrt(FLT_MAX), sqrt(FLT_MAX) };
 
 	__m128 abs = _mm_castsi128_ps(_mm_srli_epi32(_mm_set1_epi32(-1), 1));
 	r1 = _mm_and_ps(r1, _mm_cmpge_ps(_mm_and_ps(r1, abs), min));
-	r2 = _mm_and_ps(r2, _mm_cmpge_ps(_mm_and_ps(r2, abs), min));
+	r2 = _mm_and_ps(r2, _mm_cmple_ps(_mm_and_ps(r2, abs), max));
 
 	r3 = _mm_div_ps(r1, r2);
 
@@ -473,7 +474,7 @@ __attribute__((weak)) v2f ctfp_div_f_2(v2f v1, v2f v2)
 	r1[0] = v1[0]; r1[1] = v1[1];
 	r2[0] = v2[0]; r2[1] = v2[1];
 
-	__m128 min = { sqrt(DBL_MIN), sqrt(DBL_MIN), sqrt(DBL_MIN), sqrt(DBL_MIN) };
+	__m128 min = { sqrt(FLT_MIN), sqrt(FLT_MIN), sqrt(FLT_MIN), sqrt(FLT_MIN) };
 
 	__m128 abs = _mm_castsi128_ps(_mm_srli_epi32(_mm_set1_epi32(-1), 1));
 	r1 = _mm_and_ps(r1, _mm_cmpge_ps(_mm_and_ps(r1, abs), min));
@@ -522,10 +523,11 @@ __attribute__((weak)) double ctfp_div_d_1(double v1, double v2)
 	r2[0] = v2;
 
 	__m128d abs = _mm_castsi128_pd(_mm_srli_epi64(_mm_set1_epi32(-1), 1));
-	__m128d min = { DBL_MIN, DBL_MIN };
+	__m128d min = { sqrt(DBL_MIN), sqrt(DBL_MIN) };
+	__m128d max = { sqrt(DBL_MAX), sqrt(DBL_MAX) };
 
 	r1 = _mm_and_pd(r1, _mm_cmpge_pd(_mm_and_pd(r1, abs), min));
-	r2 = _mm_and_pd(r2, _mm_cmpge_pd(_mm_and_pd(r2, abs), min));
+	r2 = _mm_and_pd(r2, _mm_cmple_pd(_mm_and_pd(r2, abs), max));
 	r3 = _mm_div_pd(r1, r2);
 
 	return r3[0];
@@ -546,9 +548,10 @@ __attribute__((weak)) v2d ctfp_div_d_2(v2d v1, v2d v2)
 
 	__m128d abs = _mm_castsi128_pd(_mm_srli_epi64(_mm_set1_epi32(-1), 1));
 	__m128d min = { DBL_MIN, DBL_MIN };
+	__m128d max = { sqrt(DBL_MAX), sqrt(DBL_MAX) };
 
 	r1 = _mm_and_pd(r1, _mm_cmpge_pd(_mm_and_pd(r1, abs), min));
-	r2 = _mm_and_pd(r2, _mm_cmpge_pd(_mm_and_pd(r2, abs), min));
+	r2 = _mm_and_pd(r2, _mm_cmple_pd(_mm_and_pd(r2, abs), max));
 	r3 = _mm_div_pd(r1, r2);
 
 	return (v2d){ r3[0], r3[1] };

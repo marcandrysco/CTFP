@@ -212,7 +212,7 @@ MATH = \
 all: ctfp.bc ctfp-llvm.so ctfp-math.so
 
 ctfp.bc: ctfp.c Makefile
-	clang -c -O2 $< -o $@ -emit-llvm -fpic
+	clang -c -O2 $< -o $@ -emit-llvm
 
 ctfp-llvm.so: llvm.cpp Makefile ctfp.bc
 	clang -shared -O2 -Wall -march=native -fpic $< -o $@ -std=gnu++11
