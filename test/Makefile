@@ -17,7 +17,7 @@ bench_ref.o: bench.c $(DEPS)
 
 bench_ctfp.o: bench.c $(DEPS)
 	#$(CC) -D BENCH=run_ctfp -D CTFP -c $(CFLAGS) $< -o $@
-	$(CC) -D BENCH=run_ctfp -D CTFP -c -fplugin=../spec2/ctfp-llvm.so $(CFLAGS) $< -o $@
+	$(CC) -D BENCH=run_ctfp -D CTFP -c -fplugin=../tool2/ctfp-llvm.so $(CFLAGS) $< -o $@
 
 run: all
 	./ctfp-test
