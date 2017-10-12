@@ -24,7 +24,9 @@ ctfp-math.so: $(MATH) Makefile ctfp-llvm.so math/libm.h
 
 
 run: all test
-	./ctfp-test
+	@#./ctfp-test
+	clang -shared -O2 -Wall -march=native -fpic math/exp.c -o /dev/null -fplugin=./ctfp-llvm.so -nostdlib
+	@#opt test.ll -load=./ctfp-llvm.so -ctfp -S -o=/dev/null
 
 
 .PHONY: all test run

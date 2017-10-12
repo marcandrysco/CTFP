@@ -1,3 +1,5 @@
+#include <float.h>
+#include <cmath>
 #include <set>
 #include <vector>
 #include <unordered_set>
@@ -27,6 +29,14 @@ public:
 		hi = _hi;
 	}
 
+	static Range subfloat(double sign) {
+		return Range(std::copysign(nextafterf(0.0, INFINITY), sign), std::copysign(nextafterf(FLT_MIN, -INFINITY), sign));
+	}
+
+	static Range subdouble(double sign) {
+		return Range(std::copysign(nextafter(0.0, INFINITY), sign), std::copysign(nextafter(DBL_MIN, -INFINITY), sign));
+	}
+
 	bool operator<(const Range &cmp) const {
 		if(lo < cmp.lo)
 			return true;
@@ -35,23 +45,107 @@ public:
 		else
 			return hi < cmp.hi;
 	}
+
+	bool safefloat() {
+		return !overlap(*this, Range::subfloat(1.0)) && !overlap(*this, Range::subfloat(-1.0));
+	}
+
+	bool safedouble() {
+		return !overlap(*this, Range::subdouble(1.0)) && !overlap(*this, Range::subdouble(-1.0));
+	}
+
+	static bool overlap(const Range &left, const Range &right) {
+		return (left.lo <= right.hi) && (right.lo <= left.hi);
+	}
 };
 
 class Fact {
 public:
+	/*
+	 * nan and ranges
+	 */
+	bool nan;
 	std::vector<Range> ranges;
-	
+
+	/*
+	 * construction/destructors
+	 */
+	Fact() { nan = false; }
+	~Fact() { }
+
+	/**
+	 * Create a fact with no ranges.
+	 *   &returns: The fact.
+	 */
+	static Fact none() {
+		return Fact();
+	}
+
+	/**
+	 * Create a face with a single value.
+	 *   @val: The value.
+	 *   &returns: The fact.
+	 */
+	static Fact single(double val) {
+		Fact res;
+
+		res.nan = false;
+		res.insert(Range(val, val));
+
+		return res;
+	};
+
+	/**
+	 * Create a fact with everything. ranges.
+	 *   &returns: The fact.
+	 */
 	static Fact all() {
 		Fact res;
 
+		res.nan = true;
 		res.insert(Range(-INFINITY, INFINITY));
 
 		return res;
 	}
 
+	/**
+	 * Create a fact for a signed integer.
+	 *   &returns: The fact.
+	 */
+	static Fact sint() {
+		Fact res;
+
+		res.nan = false;
+		res.insert(Range(-INFINITY, -1.0));
+		res.insert(Range(0.0, 0.0));
+		res.insert(Range(1.0, INFINITY));
+
+		return res;
+	}
+
+	/**
+	 * Creat a fact for an unsigned integer.
+	 *   &returns: The fact.
+	 */
+	static Fact uint() {
+		Fact res;
+
+		res.nan = false;
+		res.insert(Range(0.0, 0.0));
+		res.insert(Range(1.0, INFINITY));
+
+		return res;
+	}
+
+
+	/**
+	 * Insert a range into the fact.
+	 *   @range: The range.
+	 */
 	void insert(const Range &range) {
 		ranges.push_back(range);
 	}
+
 
 	/**
 	 * Add two facts together.
@@ -60,7 +154,7 @@ public:
 	 *   &returns: The new fact.
 	 */
 	static Fact add(const Fact &left, const Fact &right) {
-		Fact res = all();
+		Fact res = Fact::none();
 
 		for(auto l = left.ranges.begin(); l != left.ranges.end(); l++) {
 			for(auto r = right.ranges.begin(); r != right.ranges.end(); r++)
@@ -70,8 +164,14 @@ public:
 		return res;
 	}
 
+	/**
+	 * Create a fact from subtraction.
+	 *   @left: The left fact.
+	 *   @right: The right fact.
+	 *   &returns: The new fact.
+	 */
 	static Fact sub(const Fact &left, const Fact &right) {
-		Fact res = all();
+		Fact res = Fact::none();
 
 		for(auto l = left.ranges.begin(); l != left.ranges.end(); l++) {
 			for(auto r = right.ranges.begin(); r != right.ranges.end(); r++)
@@ -81,17 +181,21 @@ public:
 		return res;
 	}
 
+	/**
+	 * Create a fact from multiplication.
+	 *   @left: The left fact.
+	 *   @right: The right fact.
+	 *   &returns: The new fact.
+	 */
 	static Fact mul(const Fact &left, const Fact &right) {
-		Fact res = all();
+		Fact res = Fact::none();
 
 		for(auto l = left.ranges.begin(); l != left.ranges.end(); l++) {
 			for(auto r = right.ranges.begin(); r != right.ranges.end(); r++) {
-				double a, b, c, d;
-
-				a = l->lo * r->lo;
-				b = l->lo * r->hi;
-				c = l->hi * r->lo;
-				d = l->hi * r->hi;
+				double a = l->lo * r->lo;
+				double b = l->lo * r->hi;
+				double c = l->hi * r->lo;
+				double d = l->hi * r->hi;
 
 				res.insert(Range(fmin(fmin(a, b), fmin(c, d)), fmax(fmax(a, b), fmax(c, d))));
 			}
@@ -100,25 +204,131 @@ public:
 		return res;
 	}
 
+	/**
+	 * Create a fact from squaring an input.
+	 *   @in: The input.
+	 *   &returns: The fact.
+	 */
+	static Fact square(const Fact &in) {
+		Fact res = Fact::none();
+
+		for(auto r = in.ranges.begin(); r != in.ranges.end(); r++) {
+			double a = r->lo * r->lo;
+			double b = r->hi * r->hi;
+			double lo = fmin(a, b);
+			double hi = fmax(a, b);
+
+			res.insert(Range(((r->lo * r->hi) < 0.0) ? 0.0 : lo, hi));
+		}
+
+		return res;
+	}
+
 	static Fact div(const Fact &left, const Fact &right) {
-		return Fact::all();
+		Fact res = Fact::none();
+
+		for(auto l = left.ranges.begin(); l != left.ranges.end(); l++) {
+			for(auto r = right.ranges.begin(); r != right.ranges.end(); r++) {
+				if((r->lo <= 0.0) && (r->hi >= 0)) {
+					res.nan = true;
+				}
+				else {
+					double a = l->lo / r->lo;
+					double b = l->lo / r->hi;
+					double c = l->hi / r->lo;
+					double d = l->hi / r->hi;
+
+					res.insert(Range(fmin(fmin(a, b), fmin(c, d)), fmax(fmax(a, b), fmax(c, d))));
+				}
+			}
+		}
+
+		return res;
+	}
+
+
+	/**
+	 * Check if the fact is safe for floats.
+	 *   &returns: True if safe.
+	 */
+	bool safefloat() {
+		bool safe = true;
+
+		for(auto r = ranges.begin(); r != ranges.end(); r++)
+			safe &= r->safefloat();
+
+		return safe;
+	}
+
+	/**
+	 * Check if the fact is safe for doubles.
+	 *   &returns: True if safe.
+	 */
+	bool safedouble() {
+		bool safe = true;
+
+		for(auto r = ranges.begin(); r != ranges.end(); r++)
+			safe &= r->safedouble();
+
+		return safe;
+	}
+
+	void dump() {
+		for(auto r = ranges.begin(); r != ranges.end(); r++)
+			fprintf(stderr, "%.4e:%.4e, ", r->lo, r->hi);
+
+		fprintf(stderr, "%s\n", safefloat() ? "safe" : "unsafe");
 	}
 };
 
 class Analysis {
 public:
-	std::unordered_map<Instruction *, Fact> facts;
+	std::unordered_map<Value *, Fact> facts;
 
-	Fact get(Instruction *inst) {
-		auto find = facts.find(inst);
+	/**
+	 * Check if a fact exists.
+	 *   @value: The value.
+	 *   &returns: True if exists.
+	 */
+	bool exists(Value *value)
+	{
+		return facts.find(value) != facts.end();
+	}
+
+	/**
+	 * Get a fact about a value. If the value is not found, the fact is
+	 * set to everything.
+	 *   @value: The value.
+	 *   &returns: The fact.
+	 */
+	Fact get(Value *value) {
+		auto find = facts.find(value);
 		if(find != facts.end())
 			return find->second;
 
-		return facts[inst] = Fact::all();
+		if(isa<ConstantFP>(value)) {
+			double flt;
+
+			if(value->getType() == Type::getFloatTy(value->getContext()))
+				flt = cast<ConstantFP>(value)->getValueAPF().convertToFloat(); 
+			else if(value->getType() == Type::getDoubleTy(value->getContext()))
+				flt = cast<ConstantFP>(value)->getValueAPF().convertToDouble(); 
+			else
+				return facts[value] = Fact::all();
+
+			return facts[value] = Fact::single(flt);
+		}
+		else
+			return facts[value] = Fact::all();
 	}
 
-	void set(Instruction *inst, Fact fact) {
-		facts[inst] = fact;
+	/**
+	 * Set a fact corresponding to a value.
+	 *   @value: The value.
+	 *   @fact: The fact.
+	 */
+	void set(Value *value, Fact fact) {
+		facts[value] = fact;
 	}
 };
 
@@ -126,20 +336,35 @@ public:
 struct CTFP : public FunctionPass {
 	static char ID;
 
-	CTFP() : FunctionPass(ID) { }
+	CTFP() : FunctionPass(ID) {
+		repl = 0;
+		skip = 0;
+	}
 
-	int numT = 0;
-	void insert(Instruction *inst, const char *id) {
+	~CTFP() {
+		printf("repl: %u\n", repl);
+		printf("skip: %u\n", skip);
+	}
+
+	/**
+	 * Member variables.
+	 *   @repl, skip: The number of replacements and skips.
+	 */
+	unsigned int repl, skip;
+
+
+	void insert(Instruction *inst, const char *id, Analysis &analysis) {
 		Module *mod = inst->getParent()->getParent()->getParent();
+		LLVMContext &ctx = mod->getContext();
+
+		if(analysis.get(inst).safefloat())
+			skip++;
+		else
+			repl++;
 
 		Function *func = mod->getFunction(id);
-		if(func == NULL) fprintf(stderr, "Missing CTFP function '%s'.\n", id), abort();
-
-		LLVMContext &ctx = func->getContext();
-
-		if(func == nullptr) printf("missing  %s\n", id);
-		if(func == nullptr) return; // TODO: remove
-		assert(func != nullptr);
+		if(func == NULL)
+			fprintf(stderr, "Missing CTFP function '%s'.\n", id), abort();
 
 		std::vector<Value *> args;
 
@@ -230,38 +455,59 @@ struct CTFP : public FunctionPass {
 
 		for(auto block = func.begin(); block != func.end(); block++) {
 			for(auto inst = block->begin(); inst != block->end(); inst++) {
+				Use *ops = inst->getOperandList();
+
 				switch(inst->getOpcode()) {
 				case Instruction::FAdd:
 					analysis.set(&*inst, Fact::add(analysis.get(inst->getOperand(0)), analysis.get(inst->getOperand(1))));
 					break;
 
 				case Instruction::FSub:
+					analysis.set(&*inst, Fact::sub(analysis.get(inst->getOperand(0)), analysis.get(inst->getOperand(1))));
 					break;
 
 				case Instruction::FMul:
+					if(ops[0] == ops[1])
+						analysis.set(&*inst, Fact::square(analysis.get(ops[0])));
+					else
+						analysis.set(&*inst, Fact::mul(analysis.get(ops[0]), analysis.get(ops[1])));
 					break;
 
 				case Instruction::FDiv:
+					analysis.set(&*inst, Fact::div(analysis.get(inst->getOperand(0)), analysis.get(inst->getOperand(1))));
+					break;
+
+				case Instruction::SIToFP:
+					analysis.set(&*inst, Fact::sint());
+					break;
+
+				case Instruction::UIToFP:
+					analysis.set(&*inst, Fact::uint());
 					break;
 				}
 			}
 		}
 
-
 		LLVMContext &ctx = func.getContext();
 
-		if(func.getName().str().find("ctfp_") == 0)
-			return false;
+		printf("func: %s\n", func.getName().str().data());
 
 		Module *mod = func.getParent();
-		if(func.getParent()->getFunction("ctfp_add1_f1") == nullptr) {
+		if(mod->getFunction("ctfp_add1_f1") == nullptr) {
 			SMDiagnostic err;
-			std::unique_ptr<Module> parse = parseIRFile("/data/ctfp/tool2/ctfp.bc", err, ctx);
-			assert(parse != nullptr);
+			std::string root = getenv("CTFP_DIR");
+			if(root.c_str() == nullptr)
+				fprintf(stderr, "Missing 'CTFP_DIR' variable.\n"), abort();
+
+			std::string path = root + std::string("/ctfp.bc");
+			std::unique_ptr<Module> parse = parseIRFile(path, err, ctx);
+			if(parse == nullptr)
+				fprintf(stderr, "Failed to load CTFP bitcode (%s).\n", path.c_str()), abort();
 
 			if(Linker::linkModules(*mod, std::move(parse)))
-				fprintf(stderr, "Link failed.\n"), exit(1);
+				fprintf(stderr, "Link failed.\n"), abort();
 		}
+
 		for(auto block = func.begin(); block != func.end(); block++) {
 			auto iter = block->begin();
 			while(iter != block->end()) {
@@ -270,17 +516,17 @@ struct CTFP : public FunctionPass {
 				switch(inst->getOpcode()) {
 				case Instruction::FAdd:
 					if(inst->getType()->isFloatTy())
-						insert(inst, "ctfp_add1_f1");
+						insert(inst, "ctfp_add1_f1", analysis);
 					else if(inst->getType()->isDoubleTy())
-						insert(inst, "ctfp_add1_d1");
+						insert(inst, "ctfp_add1_d1", analysis);
 					else if(inst->getType()->isVectorTy()) {
 						VectorType *type = cast<VectorType>(inst->getType());
 						switch(type->getNumElements()) {
 						case 2:
 							if(type->getElementType()->isFloatTy())
-								insert(inst, "ctfp_add1_f2");
+								insert(inst, "ctfp_add1_f2", analysis);
 							else if(type->getElementType()->isDoubleTy())
-								insert(inst, "ctfp_add1_d2");
+								insert(inst, "ctfp_add1_d2", analysis);
 							else
 								printf("Unhandled type\n");
 
@@ -288,9 +534,9 @@ struct CTFP : public FunctionPass {
 
 						case 4:
 							if(type->getElementType()->isFloatTy())
-								insert(inst, "ctfp_add1_f4");
+								insert(inst, "ctfp_add1_f4", analysis);
 							else if(type->getElementType()->isDoubleTy())
-								insert(inst, "ctfp_add1_d4");
+								insert(inst, "ctfp_add1_d4", analysis);
 							else
 								printf("Unhandled type\n");
 
@@ -307,17 +553,17 @@ struct CTFP : public FunctionPass {
 
 				case Instruction::FSub:
 					if(inst->getType()->isFloatTy())
-						insert(inst, "ctfp_sub1_f1");
+						insert(inst, "ctfp_sub1_f1", analysis);
 					else if(inst->getType()->isDoubleTy())
-						insert(inst, "ctfp_sub1_d1");
+						insert(inst, "ctfp_sub1_d1", analysis);
 					else if(inst->getType()->isVectorTy()) {
 						VectorType *type = cast<VectorType>(inst->getType());
 						switch(type->getNumElements()) {
 						case 2:
 							if(type->getElementType()->isFloatTy())
-								insert(inst, "ctfp_sub1_f2");
+								insert(inst, "ctfp_sub1_f2", analysis);
 							else if(type->getElementType()->isDoubleTy())
-								insert(inst, "ctfp_sub1_d2");
+								insert(inst, "ctfp_sub1_d2", analysis);
 							else
 								printf("Unhandled type\n");
 
@@ -325,9 +571,9 @@ struct CTFP : public FunctionPass {
 
 						case 4:
 							if(type->getElementType()->isFloatTy())
-								insert(inst, "ctfp_sub1_f4");
+								insert(inst, "ctfp_sub1_f4", analysis);
 							else if(type->getElementType()->isDoubleTy())
-								insert(inst, "ctfp_sub1_d4");
+								insert(inst, "ctfp_sub1_d4", analysis);
 							else
 								printf("Unhandled type\n");
 
@@ -344,17 +590,17 @@ struct CTFP : public FunctionPass {
 
 				case Instruction::FMul:
 					if(inst->getType()->isFloatTy())
-						insert(inst, "ctfp_mul1_f1");
+						insert(inst, "ctfp_mul1_f1", analysis);
 					else if(inst->getType()->isDoubleTy())
-						insert(inst, "ctfp_mul1_d1");
+						insert(inst, "ctfp_mul1_d1", analysis);
 					else if(inst->getType()->isVectorTy()) {
 						VectorType *type = cast<VectorType>(inst->getType());
 						switch(type->getNumElements()) {
 						case 2:
 							if(type->getElementType()->isFloatTy())
-								insert(inst, "ctfp_mul1_f2");
+								insert(inst, "ctfp_mul1_f2", analysis);
 							else if(type->getElementType()->isDoubleTy())
-								insert(inst, "ctfp_mul1_d2");
+								insert(inst, "ctfp_mul1_d2", analysis);
 							else
 								printf("Unhandled type\n");
 
@@ -362,9 +608,9 @@ struct CTFP : public FunctionPass {
 
 						case 4:
 							if(type->getElementType()->isFloatTy())
-								insert(inst, "ctfp_mul1_f4");
+								insert(inst, "ctfp_mul1_f4", analysis);
 							else if(type->getElementType()->isDoubleTy())
-								insert(inst, "ctfp_mul1_d4");
+								insert(inst, "ctfp_mul1_d4", analysis);
 							else
 								printf("Unhandled type\n");
 
@@ -381,17 +627,17 @@ struct CTFP : public FunctionPass {
 
 				case Instruction::FDiv:
 					if(inst->getType()->isFloatTy())
-						insert(inst, "ctfp_div1_f1");
+						insert(inst, "ctfp_div1_f1", analysis);
 					else if(inst->getType()->isDoubleTy())
-						insert(inst, "ctfp_div1_d1");
+						insert(inst, "ctfp_div1_d1", analysis);
 					else if(inst->getType()->isVectorTy()) {
 						VectorType *type = cast<VectorType>(inst->getType());
 						switch(type->getNumElements()) {
 						case 2:
 							if(type->getElementType()->isFloatTy())
-								insert(inst, "ctfp_div1_f2");
+								insert(inst, "ctfp_div1_f2", analysis);
 							else if(type->getElementType()->isDoubleTy())
-								insert(inst, "ctfp_div1_d2");
+								insert(inst, "ctfp_div1_d2", analysis);
 							else
 								printf("Unhandled type\n");
 
@@ -399,16 +645,16 @@ struct CTFP : public FunctionPass {
 
 						case 4:
 							if(type->getElementType()->isFloatTy())
-								insert(inst, "ctfp_div1_f4");
+								insert(inst, "ctfp_div1_f4", analysis);
 							else if(type->getElementType()->isDoubleTy())
-								insert(inst, "ctfp_div1_d4");
+								insert(inst, "ctfp_div1_d4", analysis);
 							else
 								printf("Unhandled type\n");
 
 							break;
 
 						default:
-							printf("Unhandled fdiv%lu\n", type->getNumElements());
+							printf("Unhandled fdiv\n");
 						}
 					}
 					else
@@ -446,16 +692,19 @@ struct CTFP : public FunctionPass {
 
 							if(func->getName() == "sqrt") {
 								call->dump();
-								insert(inst, "ctfp_sqrt1_d1");
+								insert(inst, "ctfp_sqrt1_d1", analysis);
 							}
 							else if(func->getName() == "sqrtf") {
 								call->dump();
-								insert(inst, "ctfp_sqrt1_f1");
+								insert(inst, "ctfp_sqrt1_f1", analysis);
 							}
 							else {
 								auto find = std::find(std::begin(list), std::end(list), func->getName());
-								if(find != std::end(list))
+								if(find != std::end(list)) {
+									std::string ctfp = "ctfp_" + *find;
+									call->setCalledFunction(mod->getOrInsertFunction(ctfp, func->getFunctionType()));
 									printf("special! %s\n", func->getName().data());
+								}
 							}
 						}
 					}
