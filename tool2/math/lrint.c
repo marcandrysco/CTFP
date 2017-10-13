@@ -30,7 +30,7 @@ as a double.
 #if LONG_MAX < 1U<<53 && defined(FE_INEXACT)
 long ctfp_lrint(double x)
 {
-	#pragma STDC FENV_ACCESS ON
+	//#pragma STDC FENV_ACCESS ON
 	int e;
 
 	e = fetestexcept(FE_INEXACT);

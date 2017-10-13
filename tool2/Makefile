@@ -1,4 +1,4 @@
-all: ctfp.o ctfp.ll ctfp.bc ctfp-llvm.so #ctfp-math.so
+all: ctfp.o ctfp.ll ctfp.bc ctfp-llvm.so ctfp-math.so
 
 ctfp.o: ctfp.bc Makefile
 	llc -O3 -mcpu=broadwell ctfp.bc -o ctfp.o -filetype=obj
@@ -20,7 +20,7 @@ ctfp-test: test.c ctfp.bc Makefile
 	clang test.c ctfp.bc -o ctfp-test -O2 -lm -mcpu=broadwell -std=gnu11
 
 ctfp-math.so: $(MATH) Makefile ctfp-llvm.so math/libm.h
-	clang -shared -O2 -Wall -march=native -fpic $(MATH) -o $@ -fplugin=./ctfp-llvm.so -nostdlib
+	CTFP_DIR=. clang -shared -O2 -Wall -march=native -fpic $(MATH) -o $@ -fplugin=./ctfp-llvm.so -nostdlib
 
 
 run: all test

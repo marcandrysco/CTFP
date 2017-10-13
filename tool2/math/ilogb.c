@@ -5,7 +5,7 @@
 
 int ctfp_ilogb(double x)
 {
-	#pragma STDC FENV_ACCESS ON
+	//#pragma STDC FENV_ACCESS ON
 	union {double f; uint64_t i;} u = {x};
 	uint64_t i = u.i;
 	int e = i>>52 & 0x7ff;

@@ -81,7 +81,7 @@ static int getexp(long double x)
 
 double ctfp_fma(double x, double y, double z)
 {
-	#pragma STDC FENV_ACCESS ON
+	//#pragma STDC FENV_ACCESS ON
 	long double hi, lo1, lo2, xy;
 	int ctfp_round, ez, exy;
 
@@ -333,7 +333,7 @@ static inline struct dd dd_mul(double a, double b)
  */
 double ctfp_fma(double x, double y, double z)
 {
-	#pragma STDC FENV_ACCESS ON
+	//#pragma STDC FENV_ACCESS ON
 	double xs, ys, zs, adj;
 	struct dd xy, r;
 	int oround;

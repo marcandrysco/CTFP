@@ -166,7 +166,7 @@ static inline struct dd dd_mul(long double a, long double b)
  */
 long double ctfp_fmal(long double x, long double y, long double z)
 {
-	#pragma STDC FENV_ACCESS ON
+	//#pragma STDC FENV_ACCESS ON
 	long double xs, ys, zs, adj;
 	struct dd xy, r;
 	int oround;

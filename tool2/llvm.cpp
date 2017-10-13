@@ -144,6 +144,19 @@ public:
 	 */
 	void insert(const Range &range) {
 		ranges.push_back(range);
+
+		if(ranges.size() > 16) {
+			double lo = ranges[0].lo;
+			double hi = ranges[0].hi;
+
+			for(int i = 1; i < ranges.size(); i++) {
+				lo = fmin(lo, ranges[i].lo);
+				hi = fmin(hi, ranges[i].hi);
+			}
+
+			ranges.clear();
+			ranges.push_back(Range(lo, hi));
+		}
 	}
 
 
@@ -453,6 +466,17 @@ struct CTFP : public FunctionPass {
 	virtual bool runOnFunction(Function &func) {
 		Analysis analysis;
 
+		if(func.getName().str().find("ctfp_add") == 0)
+			return false;
+		else if(func.getName().str().find("ctfp_sub") == 0)
+			return false;
+		else if(func.getName().str().find("ctfp_mul") == 0)
+			return false;
+		else if(func.getName().str().find("ctfp_div") == 0)
+			return false;
+		else if(func.getName().str().find("ctfp_sqrt") == 0)
+			return false;
+
 		for(auto block = func.begin(); block != func.end(); block++) {
 			for(auto inst = block->begin(); inst != block->end(); inst++) {
 				Use *ops = inst->getOperandList();
@@ -495,11 +519,10 @@ struct CTFP : public FunctionPass {
 		Module *mod = func.getParent();
 		if(mod->getFunction("ctfp_add1_f1") == nullptr) {
 			SMDiagnostic err;
-			std::string root = getenv("CTFP_DIR");
-			if(root.c_str() == nullptr)
+			if(getenv("CTFP_DIR") == nullptr)
 				fprintf(stderr, "Missing 'CTFP_DIR' variable.\n"), abort();
 
-			std::string path = root + std::string("/ctfp.bc");
+			std::string path = std::string(getenv("CTFP_DIR")) + std::string("/ctfp.bc");
 			std::unique_ptr<Module> parse = parseIRFile(path, err, ctx);
 			if(parse == nullptr)
 				fprintf(stderr, "Failed to load CTFP bitcode (%s).\n", path.c_str()), abort();
