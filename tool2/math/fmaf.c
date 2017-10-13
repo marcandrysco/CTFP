@@ -40,7 +40,7 @@
  */
 float ctfp_fmaf(float x, float y, float z)
 {
-	#pragma STDC FENV_ACCESS ON
+	//#pragma STDC FENV_ACCESS ON
 	double xy, result;
 	union {double f; uint64_t i;} u;
 	int e;
