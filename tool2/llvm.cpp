@@ -20,6 +20,75 @@
 using namespace llvm;
 
 
+#define FLT_NORM_MIN    1.17549435082228751e-38
+#define FLT_NORM_MAX    3.40282346638528860e+38
+#define FLT_SUBNORM_MIN 1.40129846432481707e-45
+#define FLT_SUBNORM_MAX 1.17549421069244108e-38
+#define FLT_ADD_MIN     9.86076072751547216e-32
+#define FLT_MUL_MIN     1.08420217248550443e-19
+#define FLT_DIV_MAX     9.22337203685477581e+18
+#define DBL_NORM_MIN    2.22507385850720138e-308
+#define DBL_NORM_MAX    1.79769313486231571e+308
+#define DBL_SUBNORM_MIN 4.94065645841246544e-324
+#define DBL_SUBNORM_MAX 2.22507385850720089e-308
+#define DBL_ADD_MIN     -4.94065645841246544e-324
+#define DBL_MUL_MIN     1.49166814624004135e-154
+#define DBL_DIV_MAX     6.70390396497129855e+153
+
+
+/**
+ * Check if a type has a float base type.
+ *   @type: The type.
+ *   &returns: True if float.
+ */
+bool isfloat(Type *type)
+{
+	if(type->isVectorTy())
+		return cast<VectorType>(type)->getElementType()->isFloatTy();
+	else 
+		return type->isFloatTy();
+}
+
+/**
+ * Check if a type is a double base type.
+ *   @type: The type.
+ *   &returns: True if double.
+ */
+bool isdouble(Type *type)
+{
+	if(type->isVectorTy())
+		return cast<VectorType>(type)->getElementType()->isDoubleTy();
+	else 
+		return type->isDoubleTy();
+}
+
+/**
+ * Check if a type is a 80-bit FP type.
+ *   @type: The type.
+ *   &returns: True if 80-bit FP type.
+ */
+bool isfp80(Type *type)
+{
+	if(type->isVectorTy())
+		return cast<VectorType>(type)->getElementType()->isX86_FP80Ty();
+	else 
+		return type->isX86_FP80Ty();
+}
+
+/**
+ * Get the width of a type.
+ *   @type: The type.
+ *   &returns: The width.
+ */
+unsigned int getwidth(Type *type)
+{
+	if(type->isVectorTy())
+		return cast<VectorType>(type)->getNumElements();
+	else
+		return 1;
+}
+
+
 class Range {
 public:
 	double lo, hi;
@@ -159,6 +228,17 @@ public:
 		}
 	}
 
+	static Fact join(const Fact &left, const Fact &right) {
+		Fact res = Fact::none();
+
+		for(auto r = left.ranges.begin(); r != left.ranges.end(); r++)
+			res.insert(*r);
+
+		for(auto r = right.ranges.begin(); r != right.ranges.end(); r++)
+			res.insert(*r);
+
+		return res;
+	}
 
 	/**
 	 * Add two facts together.
@@ -357,6 +437,24 @@ struct CTFP : public FunctionPass {
 	~CTFP() {
 		printf("repl: %u\n", repl);
 		printf("skip: %u\n", skip);
+
+		unsigned int a = 0, b = 0;
+		FILE *file;
+		
+		file = fopen("ctfp.stats", "r");
+		if(file != NULL) {
+			fscanf(file, "%u %u\n", &a, &b);
+			fclose(file);
+		}
+
+		a += repl;
+		b += skip;
+
+		file = fopen("ctfp.stats", "w");
+		if(file != NULL) {
+			fprintf(file, "%u %u\n", a, b);
+			fclose(file);
+		}
 	}
 
 	/**
@@ -370,8 +468,33 @@ struct CTFP : public FunctionPass {
 		Module *mod = inst->getParent()->getParent()->getParent();
 		LLVMContext &ctx = mod->getContext();
 
-		if(analysis.get(inst).safefloat())
+		bool safe;
+		Fact fact = analysis.get(inst);
+
+		switch(inst->getOpcode()) {
+		case Instruction::FAdd:
+		case Instruction::FSub:
+		case Instruction::FMul:
+		case Instruction::FDiv:
+			if(inst->getType() == Type::getFloatTy(ctx))
+				safe = analysis.get(inst).safefloat() && analysis.get(inst->getOperand(0)).safefloat() && analysis.get(inst->getOperand(1)).safefloat();
+			else if(inst->getType() == Type::getDoubleTy(ctx))
+				safe = analysis.get(inst).safedouble() && analysis.get(inst->getOperand(0)).safedouble() && analysis.get(inst->getOperand(1)).safedouble();
+			else
+				safe = false;
+
+			break;
+
+		default:
+			safe = false;
+		}
+
+		if(safe) {
 			skip++;
+
+			if(getenv("CTFP_IVAL") != NULL)
+				return;
+		}
 		else
 			repl++;
 
@@ -508,6 +631,10 @@ struct CTFP : public FunctionPass {
 				case Instruction::UIToFP:
 					analysis.set(&*inst, Fact::uint());
 					break;
+
+				case Instruction::PHI:
+					analysis.set(&*inst, Fact::join(analysis.get(inst->getOperand(0)), analysis.get(inst->getOperand(1))));
+					break;
 				}
 			}
 		}
@@ -534,204 +661,85 @@ struct CTFP : public FunctionPass {
 		for(auto block = func.begin(); block != func.end(); block++) {
 			auto iter = block->begin();
 			while(iter != block->end()) {
+				char type, id[32];
+				std::string name = "";
 				Instruction *inst = &*iter++;
 
-				switch(inst->getOpcode()) {
-				case Instruction::FAdd:
-					if(inst->getType()->isFloatTy())
-						insert(inst, "ctfp_add1_f1", analysis);
-					else if(inst->getType()->isDoubleTy())
-						insert(inst, "ctfp_add1_d1", analysis);
-					else if(inst->getType()->isVectorTy()) {
-						VectorType *type = cast<VectorType>(inst->getType());
-						switch(type->getNumElements()) {
-						case 2:
-							if(type->getElementType()->isFloatTy())
-								insert(inst, "ctfp_add1_f2", analysis);
-							else if(type->getElementType()->isDoubleTy())
-								insert(inst, "ctfp_add1_d2", analysis);
-							else
-								printf("Unhandled type\n");
+				if(inst->getOpcode() == Instruction::FAdd)
+					name = "add";
+				else if(inst->getOpcode() == Instruction::FSub)
+					name = "sub";
+				else if(inst->getOpcode() == Instruction::FMul)
+					name = "mul";
+				else if(inst->getOpcode() == Instruction::FMul)
+					name = "div";
+				else if(inst->getOpcode() == Instruction::Call) {
+					CallInst *call = cast<CallInst>(inst);
+					Function *func = call->getCalledFunction();
+					if(func != nullptr) {
+						static std::vector<std::string> list {
+							"acos",        "acosf",       "acosh",         "acoshf",            "acoshl",         "acosl",         "asin",       "asinf",      "asinh",       "asinhf",      "asinhl",
+							"asinl",       "atan2",       "atan2f",        "atan2l",            "atan",           "atanf",         "atanh",      "atanhf",     "atanhl",      "atanl",       "cbrt",
+							"cbrtf",       "cbrtl",       "ceil",          "ceilf",             "ceill",          "copysign",      "copysignf",  "copysignl",  "__cos",       "cos",         "__cosdf",
+							"cosf",        "cosh",        "coshf",         "coshl",             "__cosl",         "cosl",          "erf",        "erff",       "erfl",        "exp10",       "exp10f",
+							"exp10l",      "exp2",        "exp2f",         "exp2l",             "exp",            "expf",          "expl",       "expm1",      "expm1f",      "expm1l",      "__expo2",
+							"__expo2f",    "fabs",        "fabsf",         "fabsl",             "fdim",           "fdimf",         "fdiml",      "finite",     "finitef",     "floor",       "floorf",
+							"floorl",      "fma",         "fmaf",          "fmal",              "fmax",           "fmaxf",         "fmaxl",      "fmin",       "fminf",       "fminl",       "fmod",
+							"fmodf",       "fmodl",       "__fpclassify",  "__fpclassifyf",     "__fpclassifyl",  "frexp",         "frexpf",     "frexpl",     "hypot",       "hypotf",      "hypotl",
+							"ilogb",       "ilogbf",      "ilogbl",        "__invtrigl",        "j0",             "j0f",           "j1",         "j1f",        "jn",          "jnf",         "ldexp",
+							"ldexpf",      "ldexpl",      "lgamma",        "lgammaf",           "lgammaf_r",      "lgammal",       "lgamma_r",   "llrint",     "llrintf",     "llrintl",     "llround",
+							"llroundf",    "llroundl",    "log10",         "log10f",            "log10l",         "log1p",         "log1pf",     "log1pl",     "log2",        "log2f",       "log2l",
+							"logb",        "logbf",       "logbl",         "log",               "logf",           "logl",          "lrint",      "lrintf",     "lrintl",      "lround",      "lroundf",
+							"lroundl",     "modf",        "modff",         "modfl",             "nan",            "nanf",          "nanl",       "nearbyint",  "nearbyintf",  "nearbyintl",  "nextafter",
+							"nextafterf",  "nextafterl",  "nexttoward",    "nexttowardf",       "nexttowardl",    "__polevll",     "pow",        "powf",       "powl",        "remainder",   "remainderf",
+							"remainderl",  "__rem_pio2",  "__rem_pio2f",   "__rem_pio2_large",  "__rem_pio2l",    "remquo",        "remquof",    "remquol",    "rint",        "rintf",       "rintl",
+							"round",       "roundf",      "roundl",        "scalb",             "scalbf",         "scalbln",       "scalblnf",   "scalblnl",   "scalbn",      "scalbnf",     "scalbnl",
+							"__signbit",   "__signbitf",  "__signbitl",    "signgam",           "significand",    "significandf",  "__sin",      "sin",        "sincos",      "sincosf",     "sincosl",
+							"__sindf",     "sinf",        "sinh",          "sinhf",             "sinhl",          "__sinl",        "sinl",       "sqrt",       "sqrtf",       /*"sqrtl",*/       "__tan",
+							"tan",         "__tandf",     "tanf",          "tanh",              "tanhf",          "tanhl",         "__tanl",     "tanl",       "tgamma",      "tgammaf",
+							"tgammal",     "trunc",       "truncf",        "truncl",
+						};
 
-							break;
-
-						case 4:
-							if(type->getElementType()->isFloatTy())
-								insert(inst, "ctfp_add1_f4", analysis);
-							else if(type->getElementType()->isDoubleTy())
-								insert(inst, "ctfp_add1_d4", analysis);
-							else
-								printf("Unhandled type\n");
-
-							break;
-
-						default:
-							printf("Unhandled fadd%lu\n", type->getNumElements());
+						if(func->getName() == "sqrt") {
+							insert(inst, "ctfp_sqrt1_d1", analysis);
 						}
-					}
-					else
-						fprintf(stderr, "Unknown type!\n");
-
-					break;
-
-				case Instruction::FSub:
-					if(inst->getType()->isFloatTy())
-						insert(inst, "ctfp_sub1_f1", analysis);
-					else if(inst->getType()->isDoubleTy())
-						insert(inst, "ctfp_sub1_d1", analysis);
-					else if(inst->getType()->isVectorTy()) {
-						VectorType *type = cast<VectorType>(inst->getType());
-						switch(type->getNumElements()) {
-						case 2:
-							if(type->getElementType()->isFloatTy())
-								insert(inst, "ctfp_sub1_f2", analysis);
-							else if(type->getElementType()->isDoubleTy())
-								insert(inst, "ctfp_sub1_d2", analysis);
-							else
-								printf("Unhandled type\n");
-
-							break;
-
-						case 4:
-							if(type->getElementType()->isFloatTy())
-								insert(inst, "ctfp_sub1_f4", analysis);
-							else if(type->getElementType()->isDoubleTy())
-								insert(inst, "ctfp_sub1_d4", analysis);
-							else
-								printf("Unhandled type\n");
-
-							break;
-
-						default:
-							printf("Unhandled fsub%lu\n", type->getNumElements());
+						else if(func->getName() == "sqrtf") {
+							insert(inst, "ctfp_sqrt1_f1", analysis);
 						}
-					}
-					else
-						fprintf(stderr, "Unknown type!\n");
-
-					break;
-
-				case Instruction::FMul:
-					if(inst->getType()->isFloatTy())
-						insert(inst, "ctfp_mul1_f1", analysis);
-					else if(inst->getType()->isDoubleTy())
-						insert(inst, "ctfp_mul1_d1", analysis);
-					else if(inst->getType()->isVectorTy()) {
-						VectorType *type = cast<VectorType>(inst->getType());
-						switch(type->getNumElements()) {
-						case 2:
-							if(type->getElementType()->isFloatTy())
-								insert(inst, "ctfp_mul1_f2", analysis);
-							else if(type->getElementType()->isDoubleTy())
-								insert(inst, "ctfp_mul1_d2", analysis);
-							else
-								printf("Unhandled type\n");
-
-							break;
-
-						case 4:
-							if(type->getElementType()->isFloatTy())
-								insert(inst, "ctfp_mul1_f4", analysis);
-							else if(type->getElementType()->isDoubleTy())
-								insert(inst, "ctfp_mul1_d4", analysis);
-							else
-								printf("Unhandled type\n");
-
-							break;
-
-						default:
-							printf("Unhandled fmul%lu\n", type->getNumElements());
-						}
-					}
-					else
-						fprintf(stderr, "Unknown type!\n");
-
-					break;
-
-				case Instruction::FDiv:
-					if(inst->getType()->isFloatTy())
-						insert(inst, "ctfp_div1_f1", analysis);
-					else if(inst->getType()->isDoubleTy())
-						insert(inst, "ctfp_div1_d1", analysis);
-					else if(inst->getType()->isVectorTy()) {
-						VectorType *type = cast<VectorType>(inst->getType());
-						switch(type->getNumElements()) {
-						case 2:
-							if(type->getElementType()->isFloatTy())
-								insert(inst, "ctfp_div1_f2", analysis);
-							else if(type->getElementType()->isDoubleTy())
-								insert(inst, "ctfp_div1_d2", analysis);
-							else
-								printf("Unhandled type\n");
-
-							break;
-
-						case 4:
-							if(type->getElementType()->isFloatTy())
-								insert(inst, "ctfp_div1_f4", analysis);
-							else if(type->getElementType()->isDoubleTy())
-								insert(inst, "ctfp_div1_d4", analysis);
-							else
-								printf("Unhandled type\n");
-
-							break;
-
-						default:
-							printf("Unhandled fdiv\n");
-						}
-					}
-					else
-						fprintf(stderr, "Unknown type!\n");
-
-					break;
-
-				case Instruction::Call:
-					if(isa<CallInst>(inst)) {
-						CallInst *call = cast<CallInst>(inst);
-						Function *func = call->getCalledFunction();
-						if(func != nullptr) {
-							static std::vector<std::string> list {
-								"acos",        "acosf",       "acosh",         "acoshf",            "acoshl",         "acosl",         "asin",       "asinf",      "asinh",       "asinhf",      "asinhl",
-								"asinl",       "atan2",       "atan2f",        "atan2l",            "atan",           "atanf",         "atanh",      "atanhf",     "atanhl",      "atanl",       "cbrt",
-								"cbrtf",       "cbrtl",       "ceil",          "ceilf",             "ceill",          "copysign",      "copysignf",  "copysignl",  "__cos",       "cos",         "__cosdf",
-								"cosf",        "cosh",        "coshf",         "coshl",             "__cosl",         "cosl",          "erf",        "erff",       "erfl",        "exp10",       "exp10f",
-								"exp10l",      "exp2",        "exp2f",         "exp2l",             "exp",            "expf",          "expl",       "expm1",      "expm1f",      "expm1l",      "__expo2",
-								"__expo2f",    "fabs",        "fabsf",         "fabsl",             "fdim",           "fdimf",         "fdiml",      "finite",     "finitef",     "floor",       "floorf",
-								"floorl",      "fma",         "fmaf",          "fmal",              "fmax",           "fmaxf",         "fmaxl",      "fmin",       "fminf",       "fminl",       "fmod",
-								"fmodf",       "fmodl",       "__fpclassify",  "__fpclassifyf",     "__fpclassifyl",  "frexp",         "frexpf",     "frexpl",     "hypot",       "hypotf",      "hypotl",
-								"ilogb",       "ilogbf",      "ilogbl",        "__invtrigl",        "j0",             "j0f",           "j1",         "j1f",        "jn",          "jnf",         "ldexp",
-								"ldexpf",      "ldexpl",      "lgamma",        "lgammaf",           "lgammaf_r",      "lgammal",       "lgamma_r",   "llrint",     "llrintf",     "llrintl",     "llround",
-								"llroundf",    "llroundl",    "log10",         "log10f",            "log10l",         "log1p",         "log1pf",     "log1pl",     "log2",        "log2f",       "log2l",
-								"logb",        "logbf",       "logbl",         "log",               "logf",           "logl",          "lrint",      "lrintf",     "lrintl",      "lround",      "lroundf",
-								"lroundl",     "modf",        "modff",         "modfl",             "nan",            "nanf",          "nanl",       "nearbyint",  "nearbyintf",  "nearbyintl",  "nextafter",
-								"nextafterf",  "nextafterl",  "nexttoward",    "nexttowardf",       "nexttowardl",    "__polevll",     "pow",        "powf",       "powl",        "remainder",   "remainderf",
-								"remainderl",  "__rem_pio2",  "__rem_pio2f",   "__rem_pio2_large",  "__rem_pio2l",    "remquo",        "remquof",    "remquol",    "rint",        "rintf",       "rintl",
-								"round",       "roundf",      "roundl",        "scalb",             "scalbf",         "scalbln",       "scalblnf",   "scalblnl",   "scalbn",      "scalbnf",     "scalbnl",
-								"__signbit",   "__signbitf",  "__signbitl",    "signgam",           "significand",    "significandf",  "__sin",      "sin",        "sincos",      "sincosf",     "sincosl",
-								"__sindf",     "sinf",        "sinh",          "sinhf",             "sinhl",          "__sinl",        "sinl",       "sqrt",       "sqrtf",       /*"sqrtl",*/       "__tan",
-								"tan",         "__tandf",     "tanf",          "tanh",              "tanhf",          "tanhl",         "__tanl",     "tanl",       "tgamma",      "tgammaf",
-								"tgammal",     "trunc",       "truncf",        "truncl",
-							};
-
-							if(func->getName() == "sqrt") {
-								call->dump();
-								insert(inst, "ctfp_sqrt1_d1", analysis);
-							}
-							else if(func->getName() == "sqrtf") {
-								call->dump();
-								insert(inst, "ctfp_sqrt1_f1", analysis);
-							}
-							else {
-								auto find = std::find(std::begin(list), std::end(list), func->getName());
-								if(find != std::end(list)) {
-									std::string ctfp = "ctfp_" + *find;
-									call->setCalledFunction(mod->getOrInsertFunction(ctfp, func->getFunctionType()));
-									printf("special! %s\n", func->getName().data());
-								}
+						else {
+							auto find = std::find(std::begin(list), std::end(list), func->getName());
+							if(find != std::end(list)) {
+								std::string ctfp = "ctfp_" + *find;
+								call->setCalledFunction(mod->getOrInsertFunction(ctfp, func->getFunctionType()));
+								//printf("special! %s\n", func->getName().data());
 							}
 						}
 					}
 				}
+
+				if(name == "")
+					continue;
+
+				if(isfloat(inst->getType()))
+					type = 'f';
+				else if(isdouble(inst->getType()))
+					type = 'd';
+				else if(isfp80(inst->getType()))
+					continue;
+				else {
+					printf("Unhandled type\n");
+
+					continue;
+				}
+
+				const char *ver = getenv("CTFP_VER");
+				if(ver == NULL)
+					fprintf(stderr, "Missing CTFP version.\n"), abort();
+				else if((strcmp(ver, "1") != 0) && (strcmp(ver, "2") != 0) && (strcmp(ver, "3") != 0))
+					fprintf(stderr, "Invalid CTFP version.\n"), abort();
+
+				sprintf(id, "ctfp_%s1_%c%u", name.c_str(), type, getwidth(inst->getType()));
+				insert(inst, id, analysis);
 			}
 		}
 

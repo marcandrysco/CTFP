@@ -20,7 +20,7 @@ ctfp-test: test.c ctfp.bc Makefile
 	clang test.c ctfp.bc -o ctfp-test -O2 -lm -mcpu=broadwell -std=gnu11
 
 ctfp-math.so: $(MATH) Makefile ctfp-llvm.so math/libm.h
-	CTFP_DIR=. clang -shared -O2 -Wall -march=native -fpic $(MATH) -o $@ -fplugin=./ctfp-llvm.so -nostdlib
+	CTFP_VER=3 CTFP_DIR=. clang -shared -O2 -Wall -march=native -fpic $(MATH) -o $@ -fplugin=./ctfp-llvm.so -nostdlib
 
 
 run: all test
