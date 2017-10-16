@@ -1,21 +1,12 @@
+#include "llvm.hpp"
+
 #include <float.h>
 #include <cmath>
 #include <set>
 #include <vector>
 #include <unordered_set>
 #include <unordered_map>
-#include <llvm/Pass.h>
-#include <llvm/IR/Function.h>
-#include <llvm/IRReader/IRReader.h>
-#include <llvm/IR/LLVMContext.h>
-#include <llvm/IR/Module.h>
-#include <llvm/IR/IRBuilder.h>
-#include <llvm/IR/LegacyPassManager.h>
-#include <llvm/Transforms/IPO/PassManagerBuilder.h>
-#include <llvm/Transforms/Utils/Cloning.h>
-#include <llvm/Linker/Linker.h>
-#include <llvm/IR/DiagnosticInfo.h>
-#include <llvm/IR/CFG.h>
+
 
 using namespace llvm;
 
@@ -88,6 +79,8 @@ unsigned int getwidth(Type *type)
 		return 1;
 }
 
+
+#if 0
 
 class Range {
 public:
@@ -374,6 +367,9 @@ public:
 	}
 };
 
+
+
+
 class Analysis {
 public:
 	std::unordered_map<Value *, Fact> facts;
@@ -426,6 +422,98 @@ public:
 };
 
 
+#endif
+
+
+
+class Fact {
+public:
+	Value *m_value;
+
+	Fact(Value *value) {
+		m_value = value;
+	}
+};
+
+class FloatRange {
+public:
+	float m_lo, m_hi;
+
+	FloatRange(float lo, float hi) {
+		m_lo = lo;
+		m_hi = hi;
+	}
+
+	~FloatRange() {
+	}
+};
+
+class FloatFact : Fact {
+public:
+	std::vector<FloatRange> ranges;
+
+	FloatFact(Value *value) : Fact(value) { }
+	~FloatFact();
+};
+
+class BoolFact : Fact {
+public:
+	bool m_true, m_false;
+
+	BoolFact(Value *value) : Fact(value) { }
+	~BoolFact();
+};
+
+/**
+ * Range analysis class.
+ */
+class Analysis {
+public:
+	/**
+	 * Member variables.
+	 *   @m_facts: The value to facts mapping.
+	 */
+	std::unordered_map<Value *, Fact> m_facts;
+
+	/*
+	 * default constructor/destructor
+	 */
+	Analysis() { };
+	~Analysis() { };
+
+	/**
+	 * Analyze a block.
+	 *   @block: The block.
+	 */
+	void block(BasicBlock *block) {
+		for(auto iter = block->begin(); iter != block->end(); iter++)
+			value(&*iter);
+		
+	}
+
+	/**
+	 * Analyze a value.
+	 *   @value: The value.
+	 */
+	void value(Value *value) {
+		if(isa<ConstantFP>(value)) {
+		}
+		else if(isa<Instruction>(value)) {
+			Instruction *inst = cast<Instruction>(value);
+
+			switch(inst->getOpcode()) {
+			case Instruction::FAdd:
+				break;
+			}
+		}
+	}
+
+	Fact *get(Value *value) {
+		return nullptr;
+	}
+};
+
+
 struct CTFP : public FunctionPass {
 	static char ID;
 
@@ -435,9 +523,7 @@ struct CTFP : public FunctionPass {
 	}
 
 	~CTFP() {
-		printf("repl: %u\n", repl);
-		printf("skip: %u\n", skip);
-
+		/*
 		unsigned int a = 0, b = 0;
 		FILE *file;
 		
@@ -455,6 +541,7 @@ struct CTFP : public FunctionPass {
 			fprintf(file, "%u %u\n", a, b);
 			fclose(file);
 		}
+		*/
 	}
 
 	/**
@@ -464,39 +551,9 @@ struct CTFP : public FunctionPass {
 	unsigned int repl, skip;
 
 
-	void insert(Instruction *inst, const char *id, Analysis &analysis) {
+	void insert(Instruction *inst, const char *id) {
 		Module *mod = inst->getParent()->getParent()->getParent();
 		LLVMContext &ctx = mod->getContext();
-
-		bool safe;
-		Fact fact = analysis.get(inst);
-
-		switch(inst->getOpcode()) {
-		case Instruction::FAdd:
-		case Instruction::FSub:
-		case Instruction::FMul:
-		case Instruction::FDiv:
-			if(inst->getType() == Type::getFloatTy(ctx))
-				safe = analysis.get(inst).safefloat() && analysis.get(inst->getOperand(0)).safefloat() && analysis.get(inst->getOperand(1)).safefloat();
-			else if(inst->getType() == Type::getDoubleTy(ctx))
-				safe = analysis.get(inst).safedouble() && analysis.get(inst->getOperand(0)).safedouble() && analysis.get(inst->getOperand(1)).safedouble();
-			else
-				safe = false;
-
-			break;
-
-		default:
-			safe = false;
-		}
-
-		if(safe) {
-			skip++;
-
-			if(getenv("CTFP_IVAL") != NULL)
-				return;
-		}
-		else
-			repl++;
 
 		Function *func = mod->getFunction(id);
 		if(func == NULL)
@@ -587,8 +644,6 @@ struct CTFP : public FunctionPass {
 	}
 
 	virtual bool runOnFunction(Function &func) {
-		Analysis analysis;
-
 		if(func.getName().str().find("ctfp_add") == 0)
 			return false;
 		else if(func.getName().str().find("ctfp_sub") == 0)
@@ -599,49 +654,7 @@ struct CTFP : public FunctionPass {
 			return false;
 		else if(func.getName().str().find("ctfp_sqrt") == 0)
 			return false;
-
-		for(auto block = func.begin(); block != func.end(); block++) {
-			for(auto inst = block->begin(); inst != block->end(); inst++) {
-				Use *ops = inst->getOperandList();
-
-				switch(inst->getOpcode()) {
-				case Instruction::FAdd:
-					analysis.set(&*inst, Fact::add(analysis.get(inst->getOperand(0)), analysis.get(inst->getOperand(1))));
-					break;
-
-				case Instruction::FSub:
-					analysis.set(&*inst, Fact::sub(analysis.get(inst->getOperand(0)), analysis.get(inst->getOperand(1))));
-					break;
-
-				case Instruction::FMul:
-					if(ops[0] == ops[1])
-						analysis.set(&*inst, Fact::square(analysis.get(ops[0])));
-					else
-						analysis.set(&*inst, Fact::mul(analysis.get(ops[0]), analysis.get(ops[1])));
-					break;
-
-				case Instruction::FDiv:
-					analysis.set(&*inst, Fact::div(analysis.get(inst->getOperand(0)), analysis.get(inst->getOperand(1))));
-					break;
-
-				case Instruction::SIToFP:
-					analysis.set(&*inst, Fact::sint());
-					break;
-
-				case Instruction::UIToFP:
-					analysis.set(&*inst, Fact::uint());
-					break;
-
-				case Instruction::PHI:
-					analysis.set(&*inst, Fact::join(analysis.get(inst->getOperand(0)), analysis.get(inst->getOperand(1))));
-					break;
-				}
-			}
-		}
-
 		LLVMContext &ctx = func.getContext();
-
-		printf("func: %s\n", func.getName().str().data());
 
 		Module *mod = func.getParent();
 		if(mod->getFunction("ctfp_add1_f1") == nullptr) {
@@ -701,10 +714,10 @@ struct CTFP : public FunctionPass {
 						};
 
 						if(func->getName() == "sqrt") {
-							insert(inst, "ctfp_sqrt1_d1", analysis);
+							insert(inst, "ctfp_sqrt1_d1");
 						}
 						else if(func->getName() == "sqrtf") {
-							insert(inst, "ctfp_sqrt1_f1", analysis);
+							insert(inst, "ctfp_sqrt1_f1");
 						}
 						else {
 							auto find = std::find(std::begin(list), std::end(list), func->getName());
@@ -739,9 +752,52 @@ struct CTFP : public FunctionPass {
 					fprintf(stderr, "Invalid CTFP version.\n"), abort();
 
 				sprintf(id, "ctfp_%s1_%c%u", name.c_str(), type, getwidth(inst->getType()));
-				insert(inst, id, analysis);
+				insert(inst, id);
 			}
 		}
+
+		Analysis analysis;
+
+		/*
+		for(auto block = func.begin(); block != func.end(); block++) {
+			for(auto inst = block->begin(); inst != block->end(); inst++) {
+				Use *ops = inst->getOperandList();
+
+				switch(inst->getOpcode()) {
+				case Instruction::FAdd:
+					analysis.set(&*inst, Fact::add(analysis.get(inst->getOperand(0)), analysis.get(inst->getOperand(1))));
+					break;
+
+				case Instruction::FSub:
+					analysis.set(&*inst, Fact::sub(analysis.get(inst->getOperand(0)), analysis.get(inst->getOperand(1))));
+					break;
+
+				case Instruction::FMul:
+					if(ops[0] == ops[1])
+						analysis.set(&*inst, Fact::square(analysis.get(ops[0])));
+					else
+						analysis.set(&*inst, Fact::mul(analysis.get(ops[0]), analysis.get(ops[1])));
+					break;
+
+				case Instruction::FDiv:
+					analysis.set(&*inst, Fact::div(analysis.get(inst->getOperand(0)), analysis.get(inst->getOperand(1))));
+					break;
+
+				case Instruction::SIToFP:
+					analysis.set(&*inst, Fact::sint());
+					break;
+
+				case Instruction::UIToFP:
+					analysis.set(&*inst, Fact::uint());
+					break;
+
+				case Instruction::PHI:
+					analysis.set(&*inst, Fact::join(analysis.get(inst->getOperand(0)), analysis.get(inst->getOperand(1))));
+					break;
+				}
+			}
+		}
+		*/
 
 		return true;
 	}
