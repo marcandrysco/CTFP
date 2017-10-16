@@ -66,7 +66,7 @@ def mktype(ty, width):
 		return "< " + str(width) + " x " + ty + " >"
 
 
-for width in [ 1, 2, 4 ]:
+for width in [ 1, 2, 4, 8 ]:
 	text = tpl
 
 	text = text.replace("FP", mktype("float", width))
@@ -94,7 +94,7 @@ for width in [ 1, 2, 4 ]:
 	outfile.write(text)
 
 
-for width in [ 1, 2, 4 ]:
+for width in [ 1, 2, 4, 8 ]:
 	text = tpl
 
 	text = text.replace("FP", mktype("double", width))

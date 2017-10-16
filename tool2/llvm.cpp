@@ -751,53 +751,10 @@ struct CTFP : public FunctionPass {
 				else if((strcmp(ver, "1") != 0) && (strcmp(ver, "2") != 0) && (strcmp(ver, "3") != 0))
 					fprintf(stderr, "Invalid CTFP version.\n"), abort();
 
-				sprintf(id, "ctfp_%s1_%c%u", name.c_str(), type, getwidth(inst->getType()));
+				sprintf(id, "ctfp_%s%s_%c%u", name.c_str(), ver, type, getwidth(inst->getType()));
 				insert(inst, id);
 			}
 		}
-
-		Analysis analysis;
-
-		/*
-		for(auto block = func.begin(); block != func.end(); block++) {
-			for(auto inst = block->begin(); inst != block->end(); inst++) {
-				Use *ops = inst->getOperandList();
-
-				switch(inst->getOpcode()) {
-				case Instruction::FAdd:
-					analysis.set(&*inst, Fact::add(analysis.get(inst->getOperand(0)), analysis.get(inst->getOperand(1))));
-					break;
-
-				case Instruction::FSub:
-					analysis.set(&*inst, Fact::sub(analysis.get(inst->getOperand(0)), analysis.get(inst->getOperand(1))));
-					break;
-
-				case Instruction::FMul:
-					if(ops[0] == ops[1])
-						analysis.set(&*inst, Fact::square(analysis.get(ops[0])));
-					else
-						analysis.set(&*inst, Fact::mul(analysis.get(ops[0]), analysis.get(ops[1])));
-					break;
-
-				case Instruction::FDiv:
-					analysis.set(&*inst, Fact::div(analysis.get(inst->getOperand(0)), analysis.get(inst->getOperand(1))));
-					break;
-
-				case Instruction::SIToFP:
-					analysis.set(&*inst, Fact::sint());
-					break;
-
-				case Instruction::UIToFP:
-					analysis.set(&*inst, Fact::uint());
-					break;
-
-				case Instruction::PHI:
-					analysis.set(&*inst, Fact::join(analysis.get(inst->getOperand(0)), analysis.get(inst->getOperand(1))));
-					break;
-				}
-			}
-		}
-		*/
 
 		return true;
 	}
