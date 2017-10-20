@@ -29,7 +29,7 @@ ctfp-math-3.so: $(MATH) Makefile ctfp-llvm.so math/libm.h
 	CTFP_VER=3 CTFP_DIR=. clang -shared -O2 -Wall -march=native -fpic $(MATH) -o $@ -fplugin=./ctfp-llvm.so -nostdlib
 
 
-ctfp-bench: bench.o bench_ref.o bench_ctfp1.o bench_ctfp3.o softfloat.a
+ctfp-bench: bench.o bench_ref.o bench_ctfp1.o bench_ctfp3.o
 	clang $^ -o $@ -lm
 
 bench.o: bench.c bench.h Makefile
