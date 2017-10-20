@@ -684,7 +684,7 @@ struct CTFP : public FunctionPass {
 					name = "sub";
 				else if(inst->getOpcode() == Instruction::FMul)
 					name = "mul";
-				else if(inst->getOpcode() == Instruction::FMul)
+				else if(inst->getOpcode() == Instruction::FDiv)
 					name = "div";
 				else if(inst->getOpcode() == Instruction::Call) {
 					CallInst *call = cast<CallInst>(inst);

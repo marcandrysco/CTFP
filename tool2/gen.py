@@ -8,7 +8,7 @@ import struct
 def tofloat(val):
 	return struct.unpack('f', struct.pack('f', val))[0]
 
-infile = open("add.spec", "r")
+infile = open("tpl.ll", "r")
 outfile = open("ctfp.ll", "w")
 
 FLT_MIN = 1.17549435082228751e-38
@@ -26,6 +26,7 @@ FLT_ADD_CMP = format(tofloat(FLT_MIN * FLT_SIG), ".17e")
 FLT_MUL_OFF = format(tofloat(math.sqrt(1.0 / FLT_MIN)), ".17e")
 FLT_MUL_CMP = format(tofloat(1.0), ".17e")
 FLT_DIV_OFF = format(math.sqrt(FLT_MIN), ".17e")
+FLT_SIG_BITS = str(0x007FFFFF)
 
 DBL_MIN = 2.22507385850720138e-308
 DBL_MAX = 1.79769313486231571e+308
@@ -43,6 +44,8 @@ DBL_MUL_OFF = format(1.0 / DBL_MIN, ".17e")
 DBL_MUL_OFF = format(math.sqrt(1.0 / DBL_MIN), ".17e")
 DBL_MUL_CMP = format(1.0, ".17e")
 DBL_DIV_OFF = format(math.sqrt(DBL_MIN), ".17e")
+DBL_SIG_BITS = str(0x000FFFFFFFFFFFFF)
+DBL_EXP_BITS = str(0x000FFFFFFFFFFFFF)
 
 tpl = infile.read();
 
@@ -66,22 +69,27 @@ def mktype(ty, width):
 		return "< " + str(width) + " x " + ty + " >"
 
 
-for width in [ 1, 2, 4, 8 ]:
+for width in [ 1, 2, 4, 8, 16, 32 ]:
 	text = tpl
 
 	text = text.replace("FP", mktype("float", width))
 	text = text.replace("INT", mktype("i32", width))
 	text = text.replace("VEC", (".v" + str(width) + "f32") if width > 1 else ".f32")
 	text = text.replace("VAL_ZERO", mkconst("0.0", "float", width))
+	text = text.replace("VAL_ONE", mkconst("1.0", "float", width))
 	text = text.replace("VAL_INF", mkconst("0x7FF0000000000000", "float", width))
+	text = text.replace("VAL_NAN", mkconst("0x7FF8000000000000", "float", width))
 	text = text.replace("BOOL", mktype("i1", width))
 	text = text.replace("ADDMIN", mkconst(FLT_ADDMIN, "float", width))
 	text = text.replace("MULMIN", mkconst(FLT_MULMIN, "float", width))
 	text = text.replace("DIVMAX", mkconst(FLT_DIVMAX, "float", width))
 	text = text.replace("ABS", mkconst(FLT_ABS, "i32", width))
+	text = text.replace("SIG_BITS", mkconst(FLT_SIG_BITS, "i32", width))
+	text = text.replace("VAL_DUMMY", mkconst("1.5", "float", width))
 
-	text = text.replace("ZEROS", mkconst("0", "i32", width))
+	text = text.replace("ZERO", mkconst("0", "i32", width))
 	text = text.replace("ONES", mkconst("-1", "i32", width))
+	text = text.replace("ONE", mkconst("1", "i32", width))
 
 	text = text.replace("NORM_MIN", mkconst(FLT_NORM_MIN, "float", width))
 	text = text.replace("ADD_OFF", mkconst(FLT_ADD_OFF, "float", width))
@@ -94,22 +102,27 @@ for width in [ 1, 2, 4, 8 ]:
 	outfile.write(text)
 
 
-for width in [ 1, 2, 4, 8 ]:
+for width in [ 1, 2, 4, 8, 16 ]:
 	text = tpl
 
 	text = text.replace("FP", mktype("double", width))
 	text = text.replace("INT", mktype("i64", width))
 	text = text.replace("VEC", (".v" + str(width) + "f64") if width > 1 else ".f64")
 	text = text.replace("VAL_ZERO", mkconst("0.0", "double", width))
+	text = text.replace("VAL_ONE", mkconst("1.0", "double", width))
 	text = text.replace("VAL_INF", mkconst("0x7FF0000000000000", "double", width))
+	text = text.replace("VAL_NAN", mkconst("0x7FF8000000000000", "double", width))
 	text = text.replace("BOOL", mktype("i1", width))
 	text = text.replace("ADDMIN", mkconst(DBL_ADDMIN, "double", width))
 	text = text.replace("MULMIN", mkconst(DBL_MULMIN, "double", width))
 	text = text.replace("DIVMAX", mkconst(DBL_DIVMAX, "double", width))
 	text = text.replace("ABS", mkconst(DBL_ABS, "i64", width))
+	text = text.replace("SIG_BITS", mkconst(DBL_SIG_BITS, "i64", width))
+	text = text.replace("VAL_DUMMY", mkconst("1.5", "double", width))
 
-	text = text.replace("ZEROS", mkconst("0", "i64", width))
+	text = text.replace("ZERO", mkconst("0", "i64", width))
 	text = text.replace("ONES", mkconst("-1", "i64", width))
+	text = text.replace("ONE", mkconst("1", "i64", width))
 
 	text = text.replace("NORM_MIN", mkconst(DBL_NORM_MIN, "double", width))
 	text = text.replace("ADD_OFF", mkconst(DBL_ADD_OFF, "double", width))

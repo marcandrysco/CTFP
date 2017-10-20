@@ -1,4 +1,4 @@
-all: ctfp.o ctfp.ll ctfp.bc ctfp-llvm.so ctfp-math-1.so ctfp-math-3.so
+all: ctfp.o ctfp.ll ctfp.bc ctfp-llvm.so # ctfp-math-1.so ctfp-math-3.so
 
 ctfp.o: ctfp.bc Makefile
 	llc -O3 -mcpu=broadwell ctfp.bc -o ctfp.o -filetype=obj
@@ -7,23 +7,20 @@ ctfp.o: ctfp.bc Makefile
 ctfp.bc: ctfp.ll Makefile
 	opt ctfp.ll -o ctfp.bc
 
-ctfp.ll: gen.py add.spec Makefile
+ctfp.ll: gen.py tpl.ll Makefile
 	./gen.py
 
 llvm.hpp.gch: llvm.hpp Makefile
-	clang++ -shared -O2 -Wall -march=native -fpic $< -o $@ -std=gnu++11
+	clang++ -O2 -Wall -march=native -fpic $< -o $@ -std=gnu++11
 
 ctfp-llvm.so: llvm.cpp Makefile ctfp.bc llvm.hpp.gch
 	clang++ -include llvm.hpp -shared -O2 -Wall -march=native -fpic $< -o $@ -std=gnu++11
 
 
-test: ctfp-test
+test: ctfp-test ctfp-bench
 
 ctfp-test: test.c ctfp.bc Makefile
 	clang test.c ctfp.bc -o ctfp-test -O2 -lm -mcpu=broadwell -std=gnu11
-
-ctfp-math.so: $(MATH) Makefile ctfp-llvm.so math/libm.h
-	CTFP_VER=3 CTFP_DIR=. clang -shared -O2 -Wall -march=native -fpic $(MATH) -o $@ -fplugin=./ctfp-llvm.so -nostdlib
 
 ctfp-math-1.so: $(MATH) Makefile ctfp-llvm.so math/libm.h
 	CTFP_VER=1 CTFP_DIR=. clang -shared -O2 -Wall -march=native -fpic $(MATH) -o $@ -fplugin=./ctfp-llvm.so -nostdlib
@@ -32,9 +29,27 @@ ctfp-math-3.so: $(MATH) Makefile ctfp-llvm.so math/libm.h
 	CTFP_VER=3 CTFP_DIR=. clang -shared -O2 -Wall -march=native -fpic $(MATH) -o $@ -fplugin=./ctfp-llvm.so -nostdlib
 
 
+ctfp-bench: bench.o bench_ref.o bench_ctfp1.o bench_ctfp3.o softfloat.a
+	clang $^ -o $@ -lm
+
+bench.o: bench.c bench.h Makefile
+	clang -c -g -O2 $< -o $@
+
+bench_ref.o: bench_tpl.c bench.h Makefile
+	clang -D BENCH=run_ref -O2 -g -O2 -c $< -o $@ -march=native -fno-fast-math
+
+bench_ctfp1.o: bench_tpl.c ctfp-llvm.so bench.h Makefile
+	CTFP_VER=1 CTFP_DIR=. clang -D BENCH=run_ctfp1 -fplugin=./ctfp-llvm.so -O2 -g -O2 -c $< -o $@ -march=native -fno-fast-math
+
+bench_ctfp3.o: bench_tpl.c ctfp-llvm.so bench.h Makefile
+	CTFP_VER=3 CTFP_DIR=. clang -D BENCH=run_ctfp3 -fplugin=./ctfp-llvm.so -O2 -g -O2 -c $< -o $@ -march=native -fno-fast-math
+
+
 run: all test
+	./ctfp-test
+	./ctfp-bench
 	@#./ctfp-test
-	clang -shared -O2 -Wall -march=native -fpic math/exp.c -o /dev/null -fplugin=./ctfp-llvm.so -nostdlib
+	@#clang -shared -O2 -Wall -march=native -fpic math/exp.c -o /dev/null -fplugin=./ctfp-llvm.so -nostdlib
 	@#opt test.ll -load=./ctfp-llvm.so -ctfp -S -o=/dev/null
 
 
