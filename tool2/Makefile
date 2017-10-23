@@ -5,7 +5,7 @@ ctfp.o: ctfp.bc Makefile
 	objdump -d ctfp.o -M intel > ctfp.s
 
 ctfp.bc: ctfp.ll Makefile
-	opt ctfp.ll -o ctfp.bc
+	opt ctfp.ll -always-inline -o ctfp.bc
 
 ctfp.ll: gen.py tpl.ll Makefile
 	./gen.py
@@ -17,7 +17,7 @@ ctfp-llvm.so: llvm.cpp Makefile ctfp.bc llvm.hpp.gch
 	clang++ -include llvm.hpp -shared -O2 -Wall -march=native -fpic $< -o $@ -std=gnu++11
 
 
-test: ctfp-test ctfp-bench
+test: ctfp-test ctfp-bench ctfp-count
 
 ctfp-test: test.c ctfp.bc Makefile
 	clang test.c ctfp.bc -o ctfp-test -O2 -lm -mcpu=broadwell -std=gnu11
@@ -43,6 +43,10 @@ bench_ctfp1.o: bench_tpl.c ctfp-llvm.so bench.h Makefile
 
 bench_ctfp3.o: bench_tpl.c ctfp-llvm.so bench.h Makefile
 	CTFP_VER=3 CTFP_DIR=. clang -D BENCH=run_ctfp3 -fplugin=./ctfp-llvm.so -O2 -g -O2 -c $< -o $@ -march=native -fno-fast-math
+
+
+ctfp-count: ctfp.s Makefile
+	cat $< | sed -n 's/^\s*[0-9a-f]*:\s*\([0-9a-f][0-9a-f] \)*\s*\([a-z]*\)\s.*/\2/p' | sort | uniq -c > $@
 
 
 run: all test

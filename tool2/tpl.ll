@@ -294,7 +294,7 @@ define weak FP @ctfp_div0_NAME(FP %a, FP %b) {
 	ret FP %r
 }
 
-define weak FP @ctfp_div_NAME(FP %a, FP %b) {
+define weak FP @ctfp_div_NAME(FP %a, FP %b) #0 {
 	; common constants
 	%one = bitcast FP VAL_ONE to INT
 	%inf = bitcast FP VAL_INF to INT
@@ -511,3 +511,4 @@ define weak FP @ctfp_sqrt1_NAME(FP %a) {
 }
 
 declare FP @llvm.sqrtVEC(FP %a)
+attributes #0 = { alwaysinline }
