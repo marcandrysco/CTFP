@@ -104,6 +104,9 @@ int main(int argc, char **argv)
 	chk(ctfp_div3_f1(FLT_MAX * 0.3f, 0.1f) == INFINITY);
 	chk(ctfp_div3_f1(1.0f, 1.0f) == 1.0f);
 	chk(ctfp_div3_f1(1.0f, FLT_MAX / 8.0f) == (1.0f / (FLT_MAX / 8.0f)));
+	chk(ctfp_div3_f1(FLT_MIN, 0.0f) == INFINITY);
+	chk(isnan(ctfp_div3_f1(0.0f, 0.0f)));
+	chk(isnan(ctfp_div3_f1((float)INFINITY, (float)INFINITY)));
 
 	return 0;
 

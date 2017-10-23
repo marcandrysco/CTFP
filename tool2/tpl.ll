@@ -241,7 +241,7 @@ define weak FP @ctfp_mul3_NAME(FP %a, FP %b) {
 	%t2 = and INT %t1, ABS
 	%t3 = bitcast INT %t2 to FP
 
-	%m0 = fcmp uge FP %t3, ADD_CMP
+	%m0 = fcmp uge FP %t3, MUL_CMP
 	%m1 = select BOOL %m0, INT ONES, INT ZERO
 	%m2 = fcmp ueq FP %t3, VAL_ZERO
 	%m3 = select BOOL %m2, INT ONES, INT ZERO
@@ -334,22 +334,19 @@ define weak FP @ctfp_div_NAME(FP %a, FP %b) {
 
 	; convert special comparisons into bitmasks
 	%u1 = select BOOL %t1, INT ONES, INT ZERO
-	%u1n = xor INT %u1, ONES
 	%u2 = select BOOL %t2, INT ONES, INT ZERO
-	%u2n = xor INT %u1, ONES
 	%u3 = select BOOL %t3, INT ONES, INT ZERO
-	%u3n = xor INT %u1, ONES
 	%u4 = select BOOL %t4, INT ONES, INT ZERO
-	%u4n = xor INT %u1, ONES
 	%u5 = select BOOL %t5, INT ONES, INT ZERO
-	%u5n = xor INT %u1, ONES
 	%u6 = select BOOL %t6, INT ONES, INT ZERO
-	%u6n = xor INT %u1, ONES
 	%u7 = select BOOL %t7, INT ONES, INT ZERO
-	%u7n = xor INT %u1, ONES
 
 	; check for nan (mask %c1, constant %c2)
-	%c1 = or INT %u3, %u6
+	%n1 = and INT %u2, %u5
+	%n2 = and INT %u1, %u4
+	%n3 = or INT %n1, %n2
+	%n4 = or INT %u3, %u6
+	%c1 = or INT %n3, %n4
 	%c1n = xor INT %c1, ONES
 	%c2 = and INT %c1, %nan
 
