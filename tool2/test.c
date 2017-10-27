@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <string.h>
 #include <float.h>
 #include <fenv.h>
@@ -19,6 +20,7 @@ float ctfp_mul3_f1(float, float);
 float ctfp_div1_f1(float, float);
 float ctfp_div2_f1(float, float);
 float ctfp_div3_f1(float, float);
+float ctfp_sqrt1_f1(float);
 double ctfp_add1_d1(double, double);
 double ctfp_add2_d1(double, double);
 double ctfp_add3_d1(double, double);
@@ -35,15 +37,14 @@ double ctfp_div3_d1(double, double);
 
 #define chk(cond) if(!(cond)) { fprintf(stderr, "failed '%s'\n", #cond); }
 
-void getout_f1(float f)
+static inline bool isnanpos(double v)
 {
-	uint32_t u;
-	memcpy(&u, &f, 4);
-	printf("%.2e %08x\n", f, u);
+	return isnan(v) && !signbit(v);
 }
 
-void getout_d1(double d)
+static inline bool isnanneg(double v)
 {
+	return isnan(v) && signbit(v);
 }
 
 int main(int argc, char **argv)
@@ -51,10 +52,10 @@ int main(int argc, char **argv)
 	//fesetround(FE_TOWARDZERO);
 
 	if(0) {
-	float f = ctfp_div1_f1(1.0f, -1.0f);
+	float f = ctfp_sqrt1_f1(1.4e-40f);
 	uint32_t u;
 	memcpy(&u, &f, 4);
-	printf("%.2e %08x  (vs %.2e)\n", f, u, 1.3f / 2.4f);
+	printf("%.2e %08x  (vs %.2e)\n", f, u, 1.2e-38 / 1.4f);
 	exit(1);
 	}
 
@@ -105,8 +106,18 @@ int main(int argc, char **argv)
 	chk(ctfp_div3_f1(1.0f, 1.0f) == 1.0f);
 	chk(ctfp_div3_f1(1.0f, FLT_MAX / 8.0f) == (1.0f / (FLT_MAX / 8.0f)));
 	chk(ctfp_div3_f1(FLT_MIN, 0.0f) == INFINITY);
+	chk(ctfp_div3_f1(1.2e-38, 1.4f) == 0.0f);
+	chk(ctfp_div3_f1(1.4f, 1.2e-20f) == (1.4f / 1.2e-20f));
 	chk(isnan(ctfp_div3_f1(0.0f, 0.0f)));
 	chk(isnan(ctfp_div3_f1((float)INFINITY, (float)INFINITY)));
+
+	chk(ctfp_sqrt1_f1(0.0f) == sqrtf(0.0f));
+	chk(ctfp_sqrt1_f1(1.4f) == sqrtf(1.4f));
+	chk(ctfp_sqrt1_f1(INFINITY) == sqrtf(INFINITY));
+	chk(isnanneg(ctfp_sqrt1_f1(-INFINITY)));
+	chk(isnanpos(ctfp_sqrt1_f1(NAN)));
+	chk(isnanneg(ctfp_sqrt1_f1(-NAN)));
+	chk(isnanneg(ctfp_sqrt1_f1(-1.0f)));
 
 	return 0;
 

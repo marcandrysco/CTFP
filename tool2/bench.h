@@ -7,45 +7,34 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 
 
 /**
- * Benchmark enumerator.
- *   @bench_base: Base test.
- *   @bench_adnnn: Add double normal*normal=normal.
- *   @bench_adsss: Add double subnormal*subnormal=subnormal.
- *   @bench_mdnnn: Multiply normal*normal=normal.
- *   @bench_mdsns: Multiply subnormal*normal=subnormal.
- *   @bench_mdssz: Multiply double subnormal*subnormal=zero.
- *   @bench_mdnii: Multiply double normal*inf=inf.
- *   @bench_ddnnn: Divide double normal/normal=normal.
- *   @bench_ddsns: Divide double subnormal/normal=subnormal.
- *   @bench_ddznz: Divide double zero/normal=zero.
- *   @bench_dsnnn: Divide single normal/normal=normal.
- *   @bench_dssns: Divide single subnormal/normal=subnormal.
- *   @bench_dsznz: Divide single zero/normal=zero.
- *   @bench_dsnni: Divide single normal/normal=infinity.
- *   @bench_n: The number of benchmarks.
+ * Operation enumerator.
+ *   @base_v: Base measurement.
+ *   @add_v: Addition.
+ *   @sub_v: Subtraction.
+ *   @mul_v: Multiplication.
+ *   @div_v: Division.
+ *   @sqrt_v: Square root.
  */
-enum bench_e {
-	bench_base,
-	bench_adnnn,
-	bench_adsss,
-	bench_mdnnn,
-	bench_mdsns,
-	bench_mdssz,
-	bench_mdnii,
-	bench_ddnnn,
-	bench_ddsns,
-	bench_ddznz,
-	bench_dsnnn,
-	bench_ds111,
-	bench_dssns,
-	bench_dsznz,
-	bench_dsnni,
-	bench_dsiix,
-	bench_n
+enum op_e {
+	base_v,
+	add_v,
+	sub_v,
+	mul_v,
+	div_v,
+	sqrt_v,
+	op_n
 };
+
+/*
+ * external declarations
+ */
+extern volatile double sink, src1, src2;
+extern volatile float sinkf, src1f, src2f;
+
 
 /**
  * Benchmark function.
@@ -56,9 +45,9 @@ typedef uint32_t (*bench_f)(void);
 /*
  * benchmark declarations
  */
-extern bench_f run_ref[bench_n];
-extern bench_f run_ctfp1[bench_n];
-extern bench_f run_ctfp3[bench_n];
+extern bench_f run_ref[op_n];
+extern bench_f run_ctfp1[op_n];
+extern bench_f run_ctfp3[op_n];
 
 
 /**
@@ -70,7 +59,7 @@ static inline uint32_t perf_begin(void)
 	uint32_t eax, edx;
 
 	asm volatile(
-		"rdtscp\n"
+		"rdtsc\n"
 		"mov %%eax, %0\n"
 		"mov %%edx, %1\n"
 		: "=r"(eax), "=r"(edx)
@@ -90,7 +79,7 @@ static inline uint32_t perf_end(void)
 	uint32_t eax, edx;
 
 	asm volatile(
-		"rdtscp\n"
+		"rdtsc\n"
 		"mov %%eax, %0\n"
 		"mov %%edx, %1\n"
 		: "=r" (eax), "=r"(edx)
@@ -101,10 +90,46 @@ static inline uint32_t perf_end(void)
 	return eax;
 }
 
-/*
- * benchmark declarations
+/**
+ * Xor two doubles together.
+ *   @left: The left double.
+ *   @right: The right double.
+ *   &returns: The xored version.
  */
-const char *bench_name(enum bench_e bench);
-enum bench_e bench_cmp(enum bench_e bench);
+static inline double m_xor_d(double left, double right)
+{
+	double out;
+	uint64_t v1, v2, v3;
+
+	memcpy(&v1, &left, 8);
+	memcpy(&v2, &right, 8);
+
+	v3 = v1 ^ v2;
+
+	memcpy(&out, &v3, 8);
+
+	return out;
+}
+
+/**
+ * Xor two floats together.
+ *   @left: The left float.
+ *   @right: The right float.
+ *   &returns: The xored version.
+ */
+static inline float m_xor_f(float left, float right)
+{
+	float out;
+	uint32_t v1, v2, v3;
+
+	memcpy(&v1, &left, 4);
+	memcpy(&v2, &right, 4);
+
+	v3 = v1 ^ v2;
+
+	memcpy(&out, &v3, 4);
+
+	return out;
+}
 
 #endif

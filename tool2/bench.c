@@ -1,20 +1,22 @@
 #define _GNU_SOURCE
+#include <assert.h>
 #include <errno.h>
+#include <stdbool.h>
 #include <sched.h>
 #include <string.h>
 #include <sys/resource.h>
 #include <unistd.h>
-
-
-void getout_f1(float f)
-{
-}
-
-void getout_d1(double d)
-{
-}
+#include <math.h>
+#include <sched.h>
+#include <float.h>
 
 #include "bench.h"
+#define CNT (400000)
+#define NVAL (12)
+
+
+volatile double sink, src1, src2;
+volatile float sinkf, src1f, src2f;
 
 
 static int cmpnum(const void *p1, const void *p2)
@@ -29,153 +31,340 @@ static int cmpnum(const void *p1, const void *p2)
 		return 0;
 }
 
-struct bench_t {
-	uint32_t *run[bench_n];
-	double ave[bench_n], var[bench_n];
+static float average(uint32_t *run)
+{
+	unsigned int i;
+	uint32_t sum = 0;
+
+	qsort(run, CNT, sizeof(uint32_t), cmpnum);
+
+	for(i = CNT / 4; i < (CNT - CNT / 4); i++)
+		sum += run[i];
+
+	return sum / (float)(CNT / 2);
+}
+
+/*
+ * local variables
+ */
+static float in_flt[NVAL] = {
+	1.4f, 1.0f, 2.0f, 256.0f, 512.0f, 1.2e-18, 1.2e-20, 1.2e-38, 1.2e-40, INFINITY, NAN, 0.0f
 };
 
+static bench_f *run_all[3] = { run_ref, run_ctfp1, run_ctfp3 };
+const char *run_name[3] = { "ref", "ctfp1", "ctfp2" };
+
+
+/**
+ * Run a single benchmark.
+ *   @ver: The version (0 is reference).
+ *   @op: The operations.
+ *   @n: The number of iterations.
+ *   &returns: The average time length.
+ */
+float run_bench(uint8_t ver, uint8_t op, unsigned int n, ...)
+{
+	float sum;
+	uint32_t *run;
+	unsigned int i;
+	va_list args;
+
+	assert((ver < 3) && (op < op_n));
+
+	va_start(args, n);
+	src1f = src1 = va_arg(args, double);
+	src2f = src2 = va_arg(args, double);
+	va_end(args);
+
+	run = malloc(n * sizeof(uint32_t));
+
+	for(i = 0; i < n; i++)
+		run[i] = run_all[ver][op]();
+
+	sum = 0.0f;
+	qsort(run, n, sizeof(uint32_t), cmpnum);
+
+	for(i = n / 4; i < (n - n / 4); i++)
+		sum += run[i];
+
+	free(run);
+
+	return sum / (float)(n / 2);
+}
+
+
+/**
+ * Report a test of ratios.
+ *   @name: The test name.
+ *   @ratio: The ratio compared to the reference.
+ */
+void report_ratio(const char *name, float ratio)
+{
+	printf("%s %s %.2f\n", name, ((ratio > 1.1) || (ratio < 0.9)) ? "Y" : "N", ratio);
+}
+
+void report_time(float run, float ref)
+{
+	printf("%.3f ", run / ref);
+}
+
+
+/**
+ * Main entry point.
+ *   @argc: The number of arguments.
+ *   @argv: The argument array.
+ *   &returns: The exit status.
+ */
 int main(int argc, char **argv)
 {
-	unsigned int cnt = 50000; //100000;
+	int ret;
+	bool bad;
+	uint32_t *run;
+	float base, ref, ave;
+	unsigned int i, n, x, y;
+
+	//setvbuf(stdout, NULL, _IOLBF, BUFSIZ);
+	setbuf(stdout, NULL);
+
+	struct sched_param param;
 
 	cpu_set_t set;
 	CPU_ZERO(&set);
 	CPU_SET(0, &set);
 
-	int ret = sched_setaffinity(0, sizeof(set), &set);
+	ret = setpriority(PRIO_PROCESS, getpid(), -20);
+	if(ret != 0)
+		fprintf(stderr, "Unable to set nice. %s.\n", strerror(errno));
+
+	param.sched_priority = 99;
+	ret = sched_setscheduler(0, SCHED_FIFO, &param);
+	if(ret < 0)
+		fprintf(stderr, "Unable to set scheduler. %s.\n", strerror(errno));
+
+	ret = sched_setaffinity(0, sizeof(set), &set);
 	if(ret < 0)
 		fprintf(stderr, "Unable to set affinity. %s.\n", strerror(errno));
 
-	unsigned int i, n, sel;
-	struct bench_t ref, ctfp1, ctfp2;
+	{
+		sinkf = 0.2;
 
-	for(i = 0; i < bench_n; i++) {
-		ref.run[i] = malloc(cnt * sizeof(uint32_t));
-		ctfp1.run[i] = malloc(cnt * sizeof(uint32_t));
-		ctfp2.run[i] = malloc(cnt * sizeof(uint32_t));
+		for(i = 0; i < 10000000; i++)
+			sinkf = sqrt(0.1 - sinkf);
 	}
 
-		for(i = 0; i < bench_n; i++) {
-	for(n = 0; n < cnt; n++) {
-			sel = i;//(i + n) % bench_n;
-			ref.run[sel][n] = run_ref[sel]();
-			ctfp1.run[sel][n] = run_ctfp1[sel]();
-			ctfp2.run[sel][n] = run_ctfp3[sel]();
-		}
+	base = run_bench(0, base_v, 100000, 1.4, 2.2);
+	printf("base    %.4f\n", base);
+
+	if(0) {
+	ref = run_bench(0, add_v, 100000, 1.4, 2.2) - base;
+	report_ratio("add  flt sub ", (run_bench(0, add_v, 100000, 1.4, 2.3e-40) - base) / ref);
+	report_ratio("add  flt inf ", (run_bench(0, add_v, 100000, 1.4, INFINITY) - base) / ref);
+	report_ratio("add  flt zero", (run_bench(0, add_v, 100000, 1.4, 0.0) - base) / ref);
+
+	ref = run_bench(0, mul_v, 100000, 1.4, 2.2) - base;
+	report_ratio("mul  flt sub ", (run_bench(0, mul_v, 100000, 1.4, 2.3e-40) - base) / ref);
+	report_ratio("mul  flt inf ", (run_bench(0, mul_v, 100000, 1.4, INFINITY) - base) / ref);
+	report_ratio("mul  flt zero", (run_bench(0, mul_v, 100000, 1.4, 0.0) - base) / ref);
+
+	ref = run_bench(0, div_v, 100000, 1.4, 2.2) - base;
+	report_ratio("div  flt sub ", (run_bench(0, div_v, 100000, 1.4, 2.3e-40) - base) / ref);
+	report_ratio("div  flt inf ", (run_bench(0, div_v, 100000, 1.4, INFINITY) - base) / ref);
+	report_ratio("div  flt zero", (run_bench(0, div_v, 100000, 1.4, 0.0) - base) / ref);
+	report_ratio("div  flt pow2", (run_bench(0, div_v, 100000, 1.4, 128.0) - base) / ref);
+	report_ratio("div  flt pow4", (run_bench(0, div_v, 100000, 1.4, 256.0) - base) / ref);
+
+	ref = run_bench(0, sqrt_v, 100000, 1.4) - base;
+	report_ratio("sqrt flt sub ", (run_bench(0, sqrt_v, 100000, 2.3e-40) - base) / ref);
+	report_ratio("sqrt flt inf ", (run_bench(0, sqrt_v, 100000, INFINITY) - base) / ref);
+	report_ratio("sqrt flt zero", (run_bench(0, sqrt_v, 100000, 0.0) - base) / ref);
+	report_ratio("sqrt flt pow2", (run_bench(0, sqrt_v, 100000, 128.0) - base) / ref);
+	report_ratio("sqrt flt pow4", (run_bench(0, sqrt_v, 100000, 256.0) - base) / ref);
 	}
 
-	for(i = 0; i < bench_n; i++) {
-		qsort(ref.run[i], cnt, sizeof(uint32_t), cmpnum);
-		qsort(ctfp1.run[i], cnt, sizeof(uint32_t), cmpnum);
-		qsort(ctfp2.run[i], cnt, sizeof(uint32_t), cmpnum);
+	printf("\n");
 
-		ref.ave[i] = 0.0;
-		ctfp1.ave[i] = 0.0;
-		ctfp2.ave[i] = 0.0;
+	for(n = 0; n < 3; n++) {
+		printf("div %s\n", run_name[n]);
 
-		for(n = cnt / 4; n < (cnt - cnt / 4); n++) {
-			ref.ave[i] += ref.run[i][n];
-			ctfp1.ave[i] += ctfp1.run[i][n];
-			ctfp2.ave[i] += ctfp2.run[i][n];
+		ref = run_bench(n, div_v, 100000, 1.4) - base;
+		for(x = 0; x < NVAL; x++) {
+			for(y = 0; y < NVAL; y++)
+				report_time(run_bench(n, div_v, 100000, in_flt[x], in_flt[y]) - base, ref);
+
+			printf("\n");
 		}
 
-		ref.ave[i] /= (cnt / 2);
-		ctfp1.ave[i] /= (cnt / 2);
-		ctfp2.ave[i] /= (cnt / 2);
-
-		enum bench_e cmp = bench_cmp(i);
-		printf("%s  ", bench_name(i));
-		printf("%6.3f (%8.3f)  ", (ref.ave[i] - ref.ave[0]) / (ref.ave[cmp] - ref.ave[0]), ref.ave[i]);
-		printf("%6.3f (%8.3f)  ", (ctfp1.ave[i] - ctfp1.ave[0]) / (ctfp1.ave[cmp] - ctfp1.ave[0]), ctfp1.ave[i]);
-		printf("%6.3f (%8.3f)  ", (ctfp2.ave[i] - ctfp2.ave[0]) / (ctfp2.ave[cmp] - ctfp2.ave[0]), ctfp2.ave[i]);
 		printf("\n");
 	}
 
-	for(i = 0; i < bench_n; i++) {
-		free(ref.run[i]);
-		free(ctfp1.run[i]);
+	for(n = 0; n < 3; n++) {
+		printf("sqrt %s\n", run_name[n]);
+
+		ref = run_bench(n, sqrt_v, 100000, 1.4) - base;
+		for(x = 0; x < NVAL; x++)
+			report_time(run_bench(n, sqrt_v, 100000, in_flt[x]) - base, ref);
+
+		printf("\n\n");
 	}
 
 	return 0;
-}
 
-volatile double src0, src1, dest0;
+	run = malloc(CNT * sizeof(uint32_t));
 
-void foo()
-{
-	double a, b, c;
+	if(0) {
+		src1f = in_flt[0];
+		src2f = in_flt[0];
+		for(i = 0; i < CNT; i++)
+			run[i] = run_ctfp3[div_v]();
+		ave = average(run);
+		printf("%.3f  %.2e %.2e\n", ave, src1f, src2f);
 
-	src0 = 1.2;
-	src1 = 2.3;
+		src1f = in_flt[0];
+		src2f = in_flt[6];
+		for(i = 0; i < CNT; i++)
+			run[i] = run_ctfp3[div_v]();
+		ave = average(run);
+		printf("%.3f  %.2e %.2e\n", ave, src1f, src2f);
 
-	a = src0;
-	b = src1;
-
-	asm volatile("" :: "x"(a), "x"(b), "x"(c));
-	c = a * b;
-	asm volatile("" :: "x"(a), "x"(b), "x"(c));
-
-	dest0 = c;
-}
-
-
-/**
- * Retrieve the benchmark name.
- *   @bench: The benchmark.
- *   &returns: The name.
- */
-const char *bench_name(enum bench_e bench)
-{
-	switch(bench) {
-	case bench_base: return "base         ";
-	case bench_adnnn: return "add dbl n+n=n";
-	case bench_adsss: return "add dbl s+s=s";
-	case bench_mdnnn: return "mul dbl n*n=n";
-	case bench_mdsns: return "mul dbl s*n=s";
-	case bench_mdssz: return "mul dbl s*s=z";
-	case bench_mdnii: return "mul dbl n*i=i";
-	case bench_ddnnn: return "div dbl n/n=n";
-	case bench_ddsns: return "div dbl s/n=s";
-	case bench_ddznz: return "div dbl 0/n=0";
-	case bench_dsnnn: return "div flt n/n=n";
-	case bench_ds111: return "div flt 1/1=1";
-	case bench_dssns: return "div flt s/n=s";
-	case bench_dsznz: return "div flt 0/n=0";
-	case bench_dsnni: return "div flt n/n=i";
-	case bench_dsiix: return "div flt i/i=X";
-	case bench_n: break;
+		exit(0);
 	}
 
-	fprintf(stderr, "Invalid benchmark.");
-	abort();
-}
+	for(i = 0; i < CNT; i++)
+		run[i] = run_ref[base_v]();
 
-/**
- * Retrieve the related benchmark for comparison.
- *   @bench: The benchmark.
- *   &retuns: The base benchmark.
- */
-enum bench_e bench_cmp(enum bench_e bench)
-{
-	switch(bench) {
-	case bench_base: return bench_base;
-	case bench_adnnn: return bench_adnnn;
-	case bench_adsss: return bench_adnnn;
-	case bench_mdnnn: return bench_mdnnn;
-	case bench_mdsns: return bench_mdnnn;
-	case bench_mdssz: return bench_mdnnn;
-	case bench_mdnii: return bench_mdnnn;
-	case bench_ddnnn: return bench_ddnnn;
-	case bench_ddsns: return bench_ddnnn;
-	case bench_ddznz: return bench_ddnnn;
-	case bench_dsnnn: return bench_dsnnn;
-	case bench_ds111: return bench_dsnnn;
-	case bench_dssns: return bench_dsnnn;
-	case bench_dsznz: return bench_dsnnn;
-	case bench_dsnni: return bench_dsnnn;
-	case bench_dsiix: return bench_dsnnn;
-	case bench_n: break;
+	base = average(run);
+
+	printf("base    %.4f\n", base);
+
+	src1f = 1.4;
+	src2f = 2.3;
+
+	for(n = 0; n < 3; n++) {
+		for(i = 0; i < CNT; i++)
+			run[i] = run_all[n][add_v]();
+
+		ave = average(run) - base;
+		if(n == 0)
+			ref = ave;
+
+		printf("add %-5s  %.3f  %.3f\n", run_name[n], ave, ave / ref);
 	}
 
-	__builtin_unreachable();
+	for(n = 0; n < 3; n++) {
+		for(i = 0; i < CNT; i++)
+			run[i] = run_all[n][mul_v]();
+
+		ave = average(run) - base;
+		if(n == 0)
+			ref = ave;
+
+		printf("mul %-5s  %.3f  %.3f\n", run_name[n], ave, ave / ref);
+	}
+
+	for(n = 0; n < 3; n++) {
+		for(i = 0; i < CNT; i++)
+			run[i] = run_all[n][div_v]();
+
+		ave = average(run) - base;
+		if(n == 0)
+			ref = ave;
+
+		printf("div %-5s  %.3f  %.3f\n", run_name[n], ave, ave / ref);
+	}
+
+	for(n = 0; n < 3; n++) {
+		for(i = 0; i < CNT; i++)
+			run[i] = run_all[n][sqrt_v]();
+
+		ave = average(run) - base;
+		if(n == 0)
+			ref = ave;
+
+		printf("sqrt %-5s  %.3f  %.3f\n", run_name[n], ave, ave / ref);
+	}
+
+	for(n = 0; n < 3; n++) {
+		printf("add %s\n", run_name[n]);
+		for(x = 0; x < NVAL; x++) {
+			for(y = 0; y < NVAL; y++) {
+				src1f = in_flt[x]; src2f = in_flt[y];
+
+				for(i = 0; i < CNT; i++)
+					run[i] = run_all[n][add_v]();
+
+				ave = average(run) - base;
+				if((x == 0) && (y == 0))
+					ref = ave;
+
+				bad = fabsf((ave - ref) / ref) > 0.05;
+				printf("\x1b[%dm%6.3f  \x1b[0m", bad ? 7 : 0, ave / ref);
+			}
+			
+			printf("\n");
+		}
+	}
+
+	for(n = 0; n < 3; n++) {
+		printf("mul %s\n", run_name[n]);
+		for(x = 0; x < NVAL; x++) {
+			for(y = 0; y < NVAL; y++) {
+				src1f = in_flt[x]; src2f = in_flt[y];
+
+				for(i = 0; i < CNT; i++)
+					run[i] = run_all[n][mul_v]();
+
+				ave = average(run) - base;
+				if((x == 0) && (y == 0))
+					ref = ave;
+
+				bad = fabsf((ave - ref) / ref) > 0.05;
+				printf("\x1b[%dm%6.3f  \x1b[0m", bad ? 7 : 0, ave / ref);
+			}
+			
+			printf("\n");
+		}
+	}
+
+	for(n = 0; n < 3; n++) {
+		printf("div %s\n", run_name[n]);
+		for(x = 0; x < NVAL; x++) {
+			for(y = 0; y < NVAL; y++) {
+				src1f = in_flt[x]; src2f = in_flt[y];
+
+				for(i = 0; i < CNT; i++)
+					run[i] = run_all[n][div_v]();
+
+				ave = average(run) - base;
+				if((x == 0) && (y == 0))
+					ref = ave;
+
+				bad = fabsf((ave - ref) / ref) > 0.05;
+				printf("\x1b[%dm%6.3f  \x1b[0m", bad ? 7 : 0, ave / ref);
+			}
+			
+			printf("\n");
+		}
+	}
+
+	for(n = 0; n < 3; n++) {
+		printf("sqrt %s\n", run_name[n]);
+		for(x = 0; x < NVAL; x++) {
+			src1f = in_flt[x];
+
+			for(i = 0; i < CNT; i++)
+				run[i] = run_all[n][sqrt_v]();
+
+			ave = average(run) - base;
+			if(x == 0)
+				ref = ave;
+
+			bad = fabsf((ave - ref) / ref) > 0.05;
+			printf("\x1b[%dm%6.3f  \x1b[0m", bad ? 7 : 0, ave / ref);
+		}
+		printf("\n");
+	}
+
+	free(run);
+
+	return 0;
 }

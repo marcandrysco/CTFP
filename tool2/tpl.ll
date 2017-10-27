@@ -469,7 +469,10 @@ define weak FP @ctfp_div3_NAME(FP %a, FP %b) {
 	%b2 = bitcast INT %b1 to FP
 	%b3 = fcmp olt FP %b2, NORM_MIN
 	%b4 = select BOOL %b3, FP VAL_ZERO, FP %b
-	%b5 = fmul FP %b4, MUL_OFF
+	%b6 = fcmp olt FP %b2, VAL_ONE
+	%b7 = select BOOL %b6, FP VAL_ONE, FP %b4
+
+	%b5 = fmul FP %b7, DIV_OFF
 
 	%t0 = tail call FP @ctfp_div_NAME(FP %a5, FP %b5)
 
@@ -477,7 +480,7 @@ define weak FP @ctfp_div3_NAME(FP %a, FP %b) {
 	%t2 = and INT %t1, ABS
 	%t3 = bitcast INT %t2 to FP
 
-	%m0 = fcmp uge FP %t3, ADD_CMP
+	%m0 = fcmp uge FP %t3, MUL_CMP
 	%m1 = select BOOL %m0, INT ONES, INT ZERO
 	%m2 = fcmp ueq FP %t3, VAL_ZERO
 	%m3 = select BOOL %m2, INT ONES, INT ZERO
@@ -500,14 +503,72 @@ define weak FP @ctfp_sqrt0_NAME(FP %a) {
 }
 
 define weak FP @ctfp_sqrt1_NAME(FP %a) {
+	; common constants
+	%one = bitcast FP VAL_ONE to INT
+	%inf = bitcast FP VAL_INF to INT
+	%nan = bitcast FP VAL_NAN to INT
+	%dummy = bitcast FP VAL_DUMMY to INT
+
+	; flush subnormals to zero
 	%a0 = bitcast FP %a to INT
 	%a1 = and INT %a0, ABS
 	%a2 = bitcast INT %a1 to FP
 	%a3 = fcmp olt FP %a2, NORM_MIN
 	%a4 = select BOOL %a3, FP VAL_ZERO, FP %a
+	%a5 = bitcast FP %a4 to INT
 
-	%r = tail call FP @llvm.sqrtVEC(FP %a4)
-	ret FP %r
+	; compute the sign bit
+	%s1 = xor INT ABS, ONES
+	%s2 = and INT %a0, %s1
+
+	; check for zero
+	%t1 = fcmp oeq FP %a4, VAL_ZERO
+	%m1 = select BOOL %t1, INT ONES, INT ZERO
+	%m1n = xor INT %m1, ONES
+	%c1 = and INT %m1n, %a5
+	%d1 = and INT %m1, %dummy
+	%a6 = or INT %c1, %d1
+
+	; check for inf
+	%t2 = fcmp oeq FP %a4, VAL_INF
+	%m2 = select BOOL %t2, INT ONES, INT ZERO
+	%m2n = xor INT %m2, ONES
+	%c2 = and INT %m2n, %a6
+	%d2 = and INT %m2, %dummy
+	%a7 = or INT %c2, %d2
+
+	; check for nan
+	%t3 = fcmp ult FP %a4, VAL_ZERO
+	%m3 = select BOOL %t3, INT ONES, INT ZERO
+	%m3n = xor INT %m3, ONES
+	%c3 = and INT %m3n, %a7
+	%d3 = and INT %m3, %dummy
+	%a8 = or INT %c3, %d3
+
+	; compute root
+	%r0 = bitcast INT %a8 to FP
+	%r1 = tail call FP @llvm.sqrtVEC(FP %r0)
+	%r2 = bitcast FP %r1 to INT
+
+	; replace zero
+	%v1 = and INT %r2, %m1n
+	%v1n = and INT ZERO, %m1
+	%r3 = or INT %v1, %v1n
+
+	; replace infinity
+	%v2 = and INT %r3, %m2n
+	%v2n = and INT %inf, %m2
+	%r4 = or INT %v2, %v2n
+
+	; replace nan
+	%v3 = and INT %r4, %m3n
+	%v3n = and INT %nan, %m3
+	%r5 = or INT %v3, %v3n
+
+	; add in sign bit
+	%r6 = or INT %r5, %s2
+	%r7 = bitcast INT %r6 to FP
+	ret FP %r7
 }
 
 declare FP @llvm.sqrtVEC(FP %a)

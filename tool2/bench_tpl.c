@@ -5,42 +5,6 @@
 #include <string.h>
 
 
-/*
- * sources and sinks
- */
-volatile double sink, src1, src2;
-volatile float sinkf, src1f, src2f;
-
-static inline double m_xor_d(double left, double right)
-{
-	double out;
-	uint64_t v1, v2, v3;
-
-	memcpy(&v1, &left, 8);
-	memcpy(&v2, &right, 8);
-
-	v3 = v1 ^ v2;
-
-	memcpy(&out, &v3, 8);
-
-	return out;
-}
-
-static inline float m_xor_f(float left, float right)
-{
-	float out;
-	uint32_t v1, v2, v3;
-
-	memcpy(&v1, &left, 4);
-	memcpy(&v2, &right, 4);
-
-	v3 = v1 ^ v2;
-
-	memcpy(&out, &v3, 4);
-
-	return out;
-}
-
 #define DO_32(thing)  thing thing thing thing  thing thing thing thing  thing thing thing thing  thing thing thing thing \
                       thing thing thing thing  thing thing thing thing  thing thing thing thing  thing thing thing thing
 
@@ -72,20 +36,36 @@ __attribute__((noinline)) static uint32_t base(void)
 	return end - begin;
 }
 
-uint32_t f32_add(uint32_t, uint32_t);
-
-static inline float f32_add_i(float f1, float f2)
+/**
+ * Add floats.
+ *   &returns: The execution time.
+ */
+__attribute__((noinline)) static uint32_t add_flt(void)
 {
-	float f3;
-	uint32_t u1, u2, u3;
+	uint32_t idx;
+	double in1, in2, out, res;
+	uint32_t begin, end;
 
-	memcpy(&u1, &f1, 4);
-	memcpy(&u2, &f2, 4);
-	f3 = f32_add(u1, u2);
-	memcpy(&f3, &u3, 4);
+	in1 = src1;
+	in2 = src2;
+	res = src1 + src2;
 
-	return f3;
+	asm volatile("" :: "x"(in1), "x"(in2), "x"(out), "x"(res));
+	begin = perf_begin();
+
+	DO_32(
+		out = in1 + in2;
+		in1 = m_xor_d(m_xor_d(out, res), in1);
+	)
+
+	end = perf_end();
+	asm volatile("" :: "x"(in1), "x"(in2), "x"(out), "x"(res));
+
+	sink = out;
+
+	return end - begin;
 }
+
 /**
  * Add doubles.
  *   &returns: The execution time.
@@ -117,12 +97,41 @@ __attribute__((noinline)) static uint32_t add_dbl(void)
 }
 
 /**
- * Multiply doubles.
+ * Multiply floats.
+ *   &returns: The execution time.
+ */
+__attribute__((noinline)) static uint32_t mul_flt(void)
+{
+	float in1, in2, out, res;
+	uint32_t begin, end;
+
+	in1 = src1f;
+	in2 = src2f;
+	res = src1f * src2f;
+
+	asm volatile("" :: "x"(in1), "x"(in2), "x"(out));
+	begin = perf_begin();
+
+	DO_32(
+		out = in1 * in2;
+		in1 = m_xor_f(m_xor_f(out, res), in1);
+	)
+
+	end = perf_end();
+	asm volatile("" :: "x"(in1), "x"(in2), "x"(out));
+
+	sinkf = out;
+
+	return end - begin;
+}
+
+/**
+ * Multiply floats.
  *   &returns: The execution time.
  */
 __attribute__((noinline)) static uint32_t mul_dbl(void)
 {
-	double in1, in2, out, res;
+	float in1, in2, out, res;
 	uint32_t begin, end;
 
 	in1 = src1;
@@ -134,35 +143,6 @@ __attribute__((noinline)) static uint32_t mul_dbl(void)
 
 	DO_32(
 		out = in1 * in2;
-		in1 = m_xor_d(m_xor_d(out, res), in1);
-	)
-
-	end = perf_end();
-	asm volatile("" :: "x"(in1), "x"(in2), "x"(out));
-
-	sink = out;
-
-	return end - begin;
-}
-
-/**
- * Divide doubles.
- *   &returns: The execution time.
- */
-__attribute__((noinline)) static uint32_t div_dbl(void)
-{
-	double in1, in2, out, res;
-	uint32_t begin, end;
-
-	in1 = src1;
-	in2 = src2;
-	res = src1 / src2;
-
-	asm volatile("" :: "x"(in1), "x"(in2), "x"(out));
-	begin = perf_begin();
-
-	DO_32(
-		out = in1 / in2;
 		in1 = m_xor_d(m_xor_d(out, res), in1);
 	)
 
@@ -203,177 +183,97 @@ __attribute__((noinline)) static uint32_t div_flt(void)
 	return end - begin;
 }
 
-
 /**
- * Add double normal*normal=normal benchmark.
+ * Divide doubles.
  *   &returns: The execution time.
  */
-static uint32_t adnnn(void)
+__attribute__((noinline)) static uint32_t div_dbl(void)
 {
-	src1 = 1.6; src2 = 2.3;
+	double in1, in2, out, res;
+	uint32_t begin, end;
 
-	return add_dbl();
-}
+	in1 = src1;
+	in2 = src2;
+	res = src1 / src2;
 
-/**
- * Add double subnormal*subnormal=subnormal benchmark.
- *   &returns: The execution time.
- */
-static uint32_t adsss(void)
-{
-	src1 = 1.6e-312; src2 = 2.3e-314;
+	asm volatile("" :: "x"(in1), "x"(in2), "x"(out));
+	begin = perf_begin();
 
-	return add_dbl();
-}
+	DO_32(
+		out = in1 / in2;
+		in1 = m_xor_d(m_xor_d(out, res), in1);
+	)
 
+	end = perf_end();
+	asm volatile("" :: "x"(in1), "x"(in2), "x"(out));
 
-/**
- * Multiply double normal*normal=normal double benchmark.
- *   &returns: The execution time.
- */
-static uint32_t mul_dnnn(void)
-{
-	src1 = 1.6; src2 = 2.3;
+	sink = out;
 
-	return mul_dbl();
+	return end - begin;
 }
 
 /**
- * Multiply double subnormal*normal=subnormal double benchmark.
+ * Square root floats.
  *   &returns: The execution time.
  */
-static uint32_t mdsns(void)
+__attribute__((noinline)) static uint32_t sqrt_flt(void)
 {
-	src1 = 1.6e-312; src2 = 2.3;
+	float in1, out, res;
+	uint32_t begin, end;
 
-	return mul_dbl();
-}
+	in1 = src1f;
+	res = sqrtf(src1f);
 
-static uint32_t mdssz(void)
-{
-	src1 = 1.6e-312; src2 = 2.3e-312;
+	asm volatile("" :: "x"(in1), "x"(out));
+	begin = perf_begin();
 
-	return mul_dbl();
+	DO_32(
+		out = sqrtf(in1);
+		in1 = m_xor_f(m_xor_f(out, res), in1);
+	)
+
+	end = perf_end();
+	asm volatile("" :: "x"(in1), "x"(out));
+
+	sinkf = out;
+
+	return end - begin;
 }
 
 /**
- * Multiply double normal*inf=inf double benchmark.
+ * Square root doubles.
  *   &returns: The execution time.
  */
-static uint32_t mdnii(void)
+__attribute__((noinline)) static uint32_t sqrt_dbl(void)
 {
-	src1 = 1.6; src2 = INFINITY;
+	double in1, out, res;
+	uint32_t begin, end;
 
-	return mul_dbl();
-}
+	in1 = src1f;
+	res = sqrt(src1f);
 
-/**
- * Divide double normal/normal=normal benchmark.
- *   &returns: The execution time.
- */
-static uint32_t ddnnn(void)
-{
-	src1 = 1.6; src2 = 2.4;
+	asm volatile("" :: "x"(in1), "x"(out));
+	begin = perf_begin();
 
-	return div_dbl();
-}
+	DO_32(
+		out = sqrt(in1);
+		in1 = m_xor_d(m_xor_d(out, res), in1);
+	)
 
-/**
- * Divide double subnormal/normal=subnormal benchmark.
- *   &returns: The execution time.
- */
-static uint32_t ddsns(void)
-{
-	src1 = 1.6e-312; src2 = 2.4;
+	end = perf_end();
+	asm volatile("" :: "x"(in1), "x"(out));
 
-	return div_dbl();
-}
+	sinkf = out;
 
-/**
- * Divide double zero/normal=zero benchmark.
- *   &returns: The execution time.
- */
-static uint32_t ddznz(void)
-{
-	src1 = 0.0; src2 = 2.4;
-
-	return div_dbl();
+	return end - begin;
 }
 
 
-/**
- * Divide single normal/normal=normal benchmark.
- *   &returns: The execution time.
- */
-static uint32_t dsnnn(void)
-{
-	src1f = 1.6; src2f = 2.4;
-
-	return div_flt();
-}
-
-/**
- * Divide ones.
- *   &returns: The execution time.
- */
-static uint32_t ds111(void)
-{
-	src1f = 0.25; src2f = 256.0;
-
-	return div_flt();
-}
-
-/**
- * Divide single subnormal/normal=subnormal benchmark.
- *   &returns: The execution time.
- */
-static uint32_t dssns(void)
-{
-	src1f = 1.6e-42; src2f = 2.4;
-
-	return div_flt();
-}
-
-/**
- * Divide single zero/normal=zero benchmark.
- *   &returns: The execution time.
- */
-static uint32_t dsznz(void)
-{
-	src1f = 0.0; src2f = 2.4;
-
-	return div_flt();
-}
-
-static uint32_t dsnni(void)
-{
-	src1f = FLT_MAX * 0.73; src2f = 0.1;
-
-	return div_flt();
-}
-
-static uint32_t dsiix(void)
-{
-	src1f = INFINITY; src2f = INFINITY;
-
-	return div_flt();
-}
-
-bench_f BENCH[bench_n] = {
+bench_f BENCH[op_n] = {
 	base,
-	adnnn,
-	adsss,
-	mul_dnnn,
-	mdsns,
-	mdssz,
-	mdnii,
-	ddnnn,
-	ddsns,
-	ddznz,
-	dsnnn,
-	ds111,
-	dssns,
-	dsznz,
-	dsnni,
-	dsiix
+	add_flt,
+	NULL,
+	mul_flt,
+	div_flt,
+	sqrt_flt
 };

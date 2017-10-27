@@ -1,7 +1,11 @@
+#CPU=ivybridge
+#CPU=skylake
+CPU=barcelona
+
 all: ctfp.o ctfp.ll ctfp.bc ctfp-llvm.so # ctfp-math-1.so ctfp-math-3.so
 
 ctfp.o: ctfp.bc Makefile
-	llc -O3 -mcpu=broadwell ctfp.bc -o ctfp.o -filetype=obj
+	llc -O3 -mcpu=$(CPU) ctfp.bc -o ctfp.o -filetype=obj
 	objdump -d ctfp.o -M intel > ctfp.s
 
 ctfp.bc: ctfp.ll Makefile
@@ -20,7 +24,7 @@ ctfp-llvm.so: llvm.cpp Makefile ctfp.bc llvm.hpp.gch
 test: ctfp-test ctfp-bench ctfp-count
 
 ctfp-test: test.c ctfp.bc Makefile
-	clang test.c ctfp.bc -o ctfp-test -O2 -lm -mcpu=broadwell -std=gnu11
+	clang test.c ctfp.bc -o ctfp-test -O2 -lm -mcpu=$(CPU) -std=gnu11
 
 ctfp-math-1.so: $(MATH) Makefile ctfp-llvm.so math/libm.h
 	CTFP_VER=1 CTFP_DIR=. clang -shared -O2 -Wall -march=native -fpic $(MATH) -o $@ -fplugin=./ctfp-llvm.so -nostdlib
@@ -33,16 +37,16 @@ ctfp-bench: bench.o bench_ref.o bench_ctfp1.o bench_ctfp3.o
 	clang $^ -o $@ -lm
 
 bench.o: bench.c bench.h Makefile
-	clang -c -g -O2 $< -o $@
+	clang -c -g -O2 $< -o $@ -Wall -Werror
 
 bench_ref.o: bench_tpl.c bench.h Makefile
-	clang -D BENCH=run_ref -O2 -g -O2 -c $< -o $@ -march=native -fno-fast-math
+	clang -D BENCH=run_ref -O2 -g -O2 -c $< -o $@ -march=$(CPU) -fno-fast-math
 
 bench_ctfp1.o: bench_tpl.c ctfp-llvm.so bench.h Makefile
-	CTFP_VER=1 CTFP_DIR=. clang -D BENCH=run_ctfp1 -fplugin=./ctfp-llvm.so -O2 -g -O2 -c $< -o $@ -march=native -fno-fast-math
+	CTFP_VER=1 CTFP_DIR=. clang -D BENCH=run_ctfp1 -fplugin=./ctfp-llvm.so -O2 -g -O2 -c $< -o $@ -march=$(CPU) -fno-fast-math
 
 bench_ctfp3.o: bench_tpl.c ctfp-llvm.so bench.h Makefile
-	CTFP_VER=3 CTFP_DIR=. clang -D BENCH=run_ctfp3 -fplugin=./ctfp-llvm.so -O2 -g -O2 -c $< -o $@ -march=native -fno-fast-math
+	CTFP_VER=3 CTFP_DIR=. clang -D BENCH=run_ctfp3 -fplugin=./ctfp-llvm.so -O2 -g -O2 -c $< -o $@ -march=$(CPU) -fno-fast-math
 
 
 ctfp-count: ctfp.s Makefile
