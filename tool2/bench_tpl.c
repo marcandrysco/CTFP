@@ -275,5 +275,10 @@ bench_f BENCH[op_n] = {
 	NULL,
 	mul_flt,
 	div_flt,
-	sqrt_flt
+	sqrt_flt,
+	add_dbl,
+	NULL,
+	mul_dbl,
+	div_dbl,
+	sqrt_dbl
 };

@@ -27,6 +27,8 @@ FLT_MUL_OFF = format(tofloat(math.sqrt(1.0 / FLT_MIN)), ".17e")
 FLT_MUL_CMP = format(tofloat(1.0), ".17e")
 FLT_DIV_OFF = format(math.sqrt(FLT_MIN), ".17e")
 FLT_SIG_BITS = str(0x007FFFFF)
+FLT_POW4_BITS = str(0x00FFFFFF)
+FLT_ODDEXP_BITS = str(0x00800000)
 
 DBL_MIN = 2.22507385850720138e-308
 DBL_MAX = 1.79769313486231571e+308
@@ -45,7 +47,8 @@ DBL_MUL_OFF = format(math.sqrt(1.0 / DBL_MIN), ".17e")
 DBL_MUL_CMP = format(1.0, ".17e")
 DBL_DIV_OFF = format(math.sqrt(DBL_MIN), ".17e")
 DBL_SIG_BITS = str(0x000FFFFFFFFFFFFF)
-DBL_EXP_BITS = str(0x000FFFFFFFFFFFFF)
+DBL_POW4_BITS = str(0x001FFFFFFFFFFFFF)
+DBL_ODDEXP_BITS = str(0x0010000000000000)
 
 tpl = infile.read();
 
@@ -85,6 +88,8 @@ for width in [ 1, 2, 4, 8, 16, 32 ]:
 	text = text.replace("DIVMAX", mkconst(FLT_DIVMAX, "float", width))
 	text = text.replace("ABS", mkconst(FLT_ABS, "i32", width))
 	text = text.replace("SIG_BITS", mkconst(FLT_SIG_BITS, "i32", width))
+	text = text.replace("POW4_BITS", mkconst(FLT_POW4_BITS, "i32", width))
+	text = text.replace("ODDEXP_BITS", mkconst(FLT_ODDEXP_BITS, "i32", width))
 	text = text.replace("VAL_DUMMY", mkconst("1.5", "float", width))
 
 	text = text.replace("ZERO", mkconst("0", "i32", width))
@@ -118,6 +123,8 @@ for width in [ 1, 2, 4, 8, 16 ]:
 	text = text.replace("DIVMAX", mkconst(DBL_DIVMAX, "double", width))
 	text = text.replace("ABS", mkconst(DBL_ABS, "i64", width))
 	text = text.replace("SIG_BITS", mkconst(DBL_SIG_BITS, "i64", width))
+	text = text.replace("POW4_BITS", mkconst(DBL_POW4_BITS, "i64", width))
+	text = text.replace("ODDEXP_BITS", mkconst(DBL_ODDEXP_BITS, "i64", width))
 	text = text.replace("VAL_DUMMY", mkconst("1.5", "double", width))
 
 	text = text.replace("ZERO", mkconst("0", "i64", width))

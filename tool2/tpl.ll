@@ -545,8 +545,16 @@ define weak FP @ctfp_sqrt1_NAME(FP %a) {
 	%d3 = and INT %m3, %dummy
 	%a8 = or INT %c3, %d3
 
+	; check for power of four
+	%f1 = and INT %a8, POW4_BITS
+	%f2 = icmp eq INT %f1, ODDEXP_BITS
+	%f3 = select BOOL %f2, INT ONES, INT ZERO
+	%f4 = and INT SIG_BITS, %f3
+	%f5 = xor INT %f4, ONES
+	%a9 = or INT %a8, %f4
+
 	; compute root
-	%r0 = bitcast INT %a8 to FP
+	%r0 = bitcast INT %a9 to FP
 	%r1 = tail call FP @llvm.sqrtVEC(FP %r0)
 	%r2 = bitcast FP %r1 to INT
 
@@ -567,8 +575,9 @@ define weak FP @ctfp_sqrt1_NAME(FP %a) {
 
 	; add in sign bit
 	%r6 = or INT %r5, %s2
-	%r7 = bitcast INT %r6 to FP
-	ret FP %r7
+	%r7 = and INT %r6, %f5
+	%r8 = bitcast INT %r7 to FP
+	ret FP %r8
 }
 
 declare FP @llvm.sqrtVEC(FP %a)

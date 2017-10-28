@@ -26,6 +26,11 @@ enum op_e {
 	mul_v,
 	div_v,
 	sqrt_v,
+	add_dbl_v,
+	sub_dbl_v,
+	mul_dbl_v,
+	div_dbl_v,
+	sqrt_dbl_v,
 	op_n
 };
 
@@ -48,6 +53,7 @@ typedef uint32_t (*bench_f)(void);
 extern bench_f run_ref[op_n];
 extern bench_f run_ctfp1[op_n];
 extern bench_f run_ctfp3[op_n];
+extern bench_f run_escort[op_n];
 
 
 /**

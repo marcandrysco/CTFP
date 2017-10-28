@@ -52,7 +52,7 @@ int main(int argc, char **argv)
 	//fesetround(FE_TOWARDZERO);
 
 	if(0) {
-	float f = ctfp_sqrt1_f1(1.4e-40f);
+	float f = ctfp_sqrt1_f1(256.0f);
 	uint32_t u;
 	memcpy(&u, &f, 4);
 	printf("%.2e %08x  (vs %.2e)\n", f, u, 1.2e-38 / 1.4f);
@@ -113,6 +113,8 @@ int main(int argc, char **argv)
 
 	chk(ctfp_sqrt1_f1(0.0f) == sqrtf(0.0f));
 	chk(ctfp_sqrt1_f1(1.4f) == sqrtf(1.4f));
+	chk(ctfp_sqrt1_f1(256.0f) == sqrtf(256.0f));
+	chk(ctfp_sqrt1_f1(512.0f) == sqrtf(512.0f));
 	chk(ctfp_sqrt1_f1(INFINITY) == sqrtf(INFINITY));
 	chk(isnanneg(ctfp_sqrt1_f1(-INFINITY)));
 	chk(isnanpos(ctfp_sqrt1_f1(NAN)));
