@@ -1,6 +1,6 @@
 #CPU=ivybridge
-#CPU=skylake
-CPU=barcelona
+CPU=skylake
+#CPU=barcelona
 
 all: ctfp.o ctfp.ll ctfp.bc ctfp-llvm.so # ctfp-math-1.so ctfp-math-3.so
 
@@ -33,7 +33,7 @@ ctfp-math-3.so: $(MATH) Makefile ctfp-llvm.so math/libm.h
 	CTFP_VER=3 CTFP_DIR=. clang -shared -O2 -Wall -march=native -fpic $(MATH) -o $@ -fplugin=./ctfp-llvm.so -nostdlib
 
 
-ctfp-bench: bench.o bench_ref.o bench_ctfp1.o bench_ctfp3.o bench_escort.o bench_test.o
+ctfp-bench: bench.o bench_ref.o bench_ctfp1.o bench_ctfp3.o bench_escort.o
 	clang $^ -o $@ -lm
 
 bench.o: bench.c bench.h Makefile
@@ -43,10 +43,10 @@ bench_ref.o: bench_tpl.c bench.h Makefile
 	clang -D BENCH=run_ref -O2 -g -O2 -c $< -o $@ -march=$(CPU) -fno-fast-math
 
 bench_ctfp1.o: bench_tpl.c ctfp-llvm.so bench.h Makefile
-	CTFP_VER=1 CTFP_DIR=. clang -D BENCH=run_ctfp1 -fplugin=./ctfp-llvm.so -O2 -g -O2 -c $< -o $@ -march=$(CPU) -fno-fast-math
+	CTFP_VER=1 CTFP_DIR=. clang -D BENCH=run_ctfp1 -fplugin=./ctfp-llvm.so -O3 -g -c $< -o $@ -march=$(CPU) -fno-fast-math
 
 bench_ctfp3.o: bench_tpl.c ctfp-llvm.so bench.h Makefile
-	CTFP_VER=3 CTFP_DIR=. clang -D BENCH=run_ctfp3 -fplugin=./ctfp-llvm.so -O2 -g -O2 -c $< -o $@ -march=$(CPU) -fno-fast-math
+	CTFP_VER=3 CTFP_DIR=. clang -D BENCH=run_ctfp3 -fplugin=./ctfp-llvm.so -O3 -g -c $< -o $@ -march=$(CPU) -fno-fast-math
 
 bench_escort.o: bench_escort.c bench.h Makefile
 	clang -O2 -g -O2 -c $< -o $@ -march=$(CPU) -fno-fast-math

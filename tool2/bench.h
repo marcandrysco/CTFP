@@ -138,4 +138,7 @@ static inline float m_xor_f(float left, float right)
 	return out;
 }
 
+#define DO_32(thing)  thing thing thing thing  thing thing thing thing  thing thing thing thing  thing thing thing thing \
+                      thing thing thing thing  thing thing thing thing  thing thing thing thing  thing thing thing thing
+
 #endif

@@ -48,7 +48,10 @@ static float average(uint32_t *run)
  * local variables
  */
 static float in_flt[NVAL] = {
-	1.4f, 1.0f, 2.0f, 256.0f, 512.0f, 1.2e-18, 1.2e-20, 1.2e-38, 1.2e-40, INFINITY, NAN, 0.0f
+	1.4f, 1.0f, 2.0f, 256.0f, 512.0f, 1.2e-18f, 1.2e-20f, 1.2e-38f, 1.2e-40f, INFINITY, NAN, 0.0f
+};
+static float in_dbl[NVAL] = {
+	1.4, 1.0, 2.0, 256.0, 512.0, 1.2e-18, 1.2e-20, 1.2e-307, 1.2e-320, INFINITY, NAN, 0.0
 };
 
 static bench_f *run_all[4] = { run_ref, run_ctfp1, run_ctfp3, run_escort };
@@ -100,7 +103,7 @@ float run_bench(uint8_t ver, uint8_t op, unsigned int n, ...)
  */
 void report_ratio(const char *name, float ratio)
 {
-	printf("%s %s %.2f\n", name, ((ratio > 1.05) || (ratio < 0.95)) ? "Y" : "N", ratio);
+	printf("%s %s %.3f\n", name, ((ratio > 1.05) || (ratio < 0.95)) ? "Y" : "N", ratio);
 }
 
 /**
@@ -176,51 +179,61 @@ int main(int argc, char **argv)
 	//report_perf("escort div ", (run_bench(3, div_dbl_v, CNT, 1.4, NAN) - base), ref);
 	//printf("\n");
 
-	if(0) {
+	if(1) {
+		/*
 	ref = run_bench(0, add_v, CNT, 1.4, 2.2) - base;
-	report_perf("ctfp1  add ", (run_bench(1, add_v, CNT, 1.4, 2.3e-40) - base), ref);
-	report_perf("ctfp2  add ", (run_bench(2, add_v, CNT, 1.4, 2.3e-40) - base), ref);
-	report_perf("escort add ", (run_bench(3, add_v, CNT, 1.4, 2.3e-40) - base), ref);
+	report_perf("ctfp1  add  ", (run_bench(1, add_v, CNT, 1.4, 2.3e-40) - base), ref);
+	report_perf("ctfp2  add  ", (run_bench(2, add_v, CNT, 1.4, 2.3e-40) - base), ref);
+	//report_perf("escort add ", (run_bench(3, add_v, CNT, 1.4, 2.3e-40) - base), ref);
+	report_perf("sub    add  ", (run_bench(0, add_v, CNT, 1.4, 2.3e-40) - base), ref);
 
 	ref = run_bench(0, mul_v, CNT, 1.4, 2.2) - base;
-	report_perf("ctfp1  mul ", (run_bench(1, mul_v, CNT, 1.4, 2.3e-40) - base), ref);
-	report_perf("ctfp2  mul ", (run_bench(2, mul_v, CNT, 1.4, 2.3e-40) - base), ref);
-	report_perf("escort mul ", (run_bench(3, mul_v, CNT, 1.4, 2.3e-40) - base), ref);
+	report_perf("ctfp1  mul  ", (run_bench(1, mul_v, CNT, 1.4, 2.3e-40) - base), ref);
+	report_perf("ctfp2  mul  ", (run_bench(2, mul_v, CNT, 1.4, 2.3e-40) - base), ref);
+	//report_perf("escort mul ", (run_bench(3, mul_v, CNT, 1.4, 2.3e-40) - base), ref);
+	report_perf("sub    mul  ", (run_bench(0, mul_v, CNT, 1.4, 2.3e-40) - base), ref);
 
 	ref = run_bench(0, div_v, CNT, 1.4, 2.2) - base;
-	report_perf("ctfp1  div ", (run_bench(1, div_v, CNT, 1.4, 2.3e-40) - base), ref);
-	report_perf("ctfp2  div ", (run_bench(2, div_v, CNT, 1.4, 2.3e-40) - base), ref);
-	report_perf("escort div ", (run_bench(3, div_v, CNT, 1.4, 2.3e-40) - base), ref);
+	report_perf("ctfp1  div  ", (run_bench(1, div_v, CNT, 1.4, 2.3e-40) - base), ref);
+	report_perf("ctfp2  div  ", (run_bench(2, div_v, CNT, 1.4, 2.3e-40) - base), ref);
+	//report_perf("escort div ", (run_bench(3, div_v, CNT, 1.4, 2.3e-40) - base), ref);
+	report_perf("sub    div  ", (run_bench(0, div_v, CNT, 1.4, 2.3e-40) - base), ref);
 
 	ref = run_bench(0, sqrt_v, CNT, 1.4, 2.2) - base;
-	report_perf("ctfp1  sqrt ", (run_bench(1, sqrt_v, CNT, 1.4, 2.3e-40) - base), ref);
-	report_perf("ctfp2  sqrt ", (run_bench(2, sqrt_v, CNT, 1.4, 2.3e-40) - base), ref);
-	report_perf("escort sqrt ", (run_bench(3, sqrt_v, CNT, 1.4, 2.3e-40) - base), ref);
+	report_perf("ctfp1  sqrt ", (run_bench(1, sqrt_v, CNT, 2.3e-40) - base), ref);
+	report_perf("ctfp2  sqrt ", (run_bench(2, sqrt_v, CNT, 2.3e-40) - base), ref);
+	//report_perf("escort sqrt ", (run_bench(3, sqrt_v, CNT, 2.3e-40) - base), ref);
+	report_perf("sub    sqrt ", (run_bench(0, sqrt_v, CNT, 2.3e-40) - base), ref);
 
 	ref = run_bench(0, add_dbl_v, CNT, 1.4, 2.2) - base;
-	report_perf("ctfp1  add ", (run_bench(1, add_dbl_v, CNT, 1.4, 2.3e-40) - base), ref);
-	report_perf("ctfp2  add ", (run_bench(2, add_dbl_v, CNT, 1.4, 2.3e-40) - base), ref);
-	report_perf("escort add ", (run_bench(3, add_dbl_v, CNT, 1.4, 2.3e-40) - base), ref);
+	report_perf("ctfp1  add  ", (run_bench(1, add_dbl_v, CNT, 1.4, 2.3e-320) - base), ref);
+	report_perf("ctfp2  add  ", (run_bench(2, add_dbl_v, CNT, 1.4, 2.3e-320) - base), ref);
+	//report_perf("escort add ", (run_bench(3, add_dbl_v, CNT, 1.4, 2.3e-320) - base), ref);
+	report_perf("sub    add  ", (run_bench(0, add_dbl_v, CNT, 1.4, 2.3e-320) - base), ref);
 
 	ref = run_bench(0, mul_dbl_v, CNT, 1.4, 2.2) - base;
-	report_perf("ctfp1  mul ", (run_bench(1, mul_dbl_v, CNT, 1.4, 2.3e-40) - base), ref);
-	report_perf("ctfp2  mul ", (run_bench(2, mul_dbl_v, CNT, 1.4, 2.3e-40) - base), ref);
-	report_perf("escort mul ", (run_bench(3, mul_dbl_v, CNT, 1.4, 2.3e-40) - base), ref);
+	report_perf("ctfp1  mul  ", (run_bench(1, mul_dbl_v, CNT, 1.4, 2.3e-320) - base), ref);
+	report_perf("ctfp2  mul  ", (run_bench(2, mul_dbl_v, CNT, 1.4, 2.3e-320) - base), ref);
+	//report_perf("escort mul ", (run_bench(3, mul_dbl_v, CNT, 1.4, 2.3e-320) - base), ref);
+	report_perf("sub    mul  ", (run_bench(0, mul_dbl_v, CNT, 1.4, 2.3e-320) - base), ref);
 
 	ref = run_bench(0, div_dbl_v, CNT, 1.4, 2.2) - base;
-	report_perf("ctfp1  div ", (run_bench(1, div_dbl_v, CNT, 1.4, 2.3e-40) - base), ref);
-	report_perf("ctfp2  div ", (run_bench(2, div_dbl_v, CNT, 1.4, 2.3e-40) - base), ref);
-	report_perf("escort div ", (run_bench(3, div_dbl_v, CNT, 1.4, 2.3e-40) - base), ref);
+	report_perf("ctfp1  div  ", (run_bench(1, div_dbl_v, CNT, 1.4, 2.3e-320) - base), ref);
+	report_perf("ctfp2  div  ", (run_bench(2, div_dbl_v, CNT, 1.4, 2.3e-320) - base), ref);
+	//report_perf("escort div ", (run_bench(3, div_dbl_v, CNT, 1.4, 2.3e-320) - base), ref);
+	report_perf("sub    div  ", (run_bench(0, div_dbl_v, CNT, 1.4, 2.3e-320) - base), ref);
+	*/
 
 	ref = run_bench(0, sqrt_dbl_v, CNT, 1.4, 2.2) - base;
-	report_perf("ctfp1  sqrt ", (run_bench(1, sqrt_dbl_v, CNT, 1.4, 2.3e-40) - base), ref);
-	report_perf("ctfp2  sqrt ", (run_bench(2, sqrt_dbl_v, CNT, 1.4, 2.3e-40) - base), ref);
-	report_perf("escort sqrt ", (run_bench(3, sqrt_dbl_v, CNT, 1.4, 2.3e-40) - base), ref);
+	report_perf("ctfp1  sqrt ", (run_bench(1, sqrt_dbl_v, CNT, 2.3e-320) - base), ref);
+	report_perf("ctfp2  sqrt ", (run_bench(2, sqrt_dbl_v, CNT, 2.3e-320) - base), ref);
+	//report_perf("escort sqrt ", (run_bench(3, sqrt_dbl_v, CNT, 2.3e-320) - base), ref);
+	report_perf("sub    sqrt ", (run_bench(0, sqrt_dbl_v, CNT, 2.3e-320) - base), ref);
 
 	return 0;
 	}
 
-	if(1) {
+	if(0) {
 	ref = run_bench(0, add_v, CNT, 1.4, 2.2) - base;
 	report_ratio("add  flt sub ", (run_bench(0, add_v, CNT, 1.4, 2.3e-40) - base) / ref);
 	report_ratio("add  flt inf ", (run_bench(0, add_v, CNT, 1.4, INFINITY) - base) / ref);
@@ -274,7 +287,7 @@ int main(int argc, char **argv)
 	return 0;
 	}
 
-	if(0) {
+	if(0)
 	for(n = 0; n < 3; n++) {
 		printf("div flt %s\n", run_name[n]);
 
@@ -289,6 +302,7 @@ int main(int argc, char **argv)
 		printf("\n");
 	}
 
+	if(0)
 	for(n = 0; n < 3; n++) {
 		printf("sqrt flt %s\n", run_name[n]);
 
@@ -302,16 +316,15 @@ int main(int argc, char **argv)
 	for(n = 0; n < 3; n++) {
 		printf("div dbl %s\n", run_name[n]);
 
-		ref = run_bench(n, div_v, CNT, 1.4) - base;
+		ref = run_bench(n, div_dbl_v, CNT, 1.4) - base;
 		for(x = 0; x < NVAL; x++) {
 			for(y = 0; y < NVAL; y++)
-				report_time(run_bench(n, div_dbl_v, CNT, in_flt[x], in_flt[y]) - base, ref);
+				report_time(run_bench(n, div_dbl_v, CNT, in_dbl[x], in_dbl[y]) - base, ref);
 
 			printf("\n");
 		}
 
 		printf("\n");
-	}
 	}
 
 	for(n = 0; n < 3; n++) {
@@ -319,7 +332,7 @@ int main(int argc, char **argv)
 
 		ref = run_bench(n, sqrt_dbl_v, CNT, 1.4) - base;
 		for(x = 0; x < NVAL; x++)
-			report_time(run_bench(n, sqrt_dbl_v, CNT, in_flt[x]) - base, ref);
+			report_time(run_bench(n, sqrt_dbl_v, CNT, in_dbl[x]) - base, ref);
 
 		printf("\n\n");
 	}

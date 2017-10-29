@@ -6,15 +6,13 @@ define weak FP @ctfp_add0_NAME(FP %a, FP %b) {
 }
 
 define weak FP @ctfp_add1_NAME(FP %a, FP %b) {
-	%a0 = bitcast FP %a to INT
-	%a1 = and INT %a0, ABS
-	%a2 = bitcast INT %a1 to FP
+	%a2 = call FP @llvm.fabsVEC(FP %a)
+	%a1 = bitcast FP %a2 to INT
 	%a3 = fcmp olt FP %a2, ADDMIN
 	%a4 = select BOOL %a3, FP VAL_ZERO, FP %a
 
-	%b0 = bitcast FP %b to INT
-	%b1 = and INT %b0, ABS
-	%b2 = bitcast INT %b1 to FP
+	%b2 = call FP @llvm.fabsVEC(FP %b)
+	%b1 = bitcast FP %b2 to INT
 	%b3 = fcmp olt FP %b2, ADDMIN
 	%b4 = select BOOL %b3, FP VAL_ZERO, FP %b
 
@@ -23,16 +21,14 @@ define weak FP @ctfp_add1_NAME(FP %a, FP %b) {
 }
 
 define weak FP @ctfp_add2_NAME(FP %a, FP %b) {
-	%a0 = bitcast FP %a to INT
-	%a1 = and INT %a0, ABS
-	%a2 = bitcast INT %a1 to FP
+	%a2 = call FP @llvm.fabsVEC(FP %a)
+	%a1 = bitcast FP %a2 to INT
 	%a3 = fcmp olt FP %a2, NORM_MIN
 	%a4 = select BOOL %a3, FP VAL_ZERO, FP %a
 	%a5 = fmul FP %a4, ADD_OFF
 
-	%b0 = bitcast FP %b to INT
-	%b1 = and INT %b0, ABS
-	%b2 = bitcast INT %b1 to FP
+	%b2 = call FP @llvm.fabsVEC(FP %b)
+	%b1 = bitcast FP %b2 to INT
 	%b3 = fcmp olt FP %b2, NORM_MIN
 	%b4 = select BOOL %b3, FP VAL_ZERO, FP %b
 	%b5 = fmul FP %b4, ADD_OFF
@@ -59,16 +55,14 @@ define weak FP @ctfp_add2_NAME(FP %a, FP %b) {
 }
 
 define weak FP @ctfp_add3_NAME(FP %a, FP %b) {
-	%a0 = bitcast FP %a to INT
-	%a1 = and INT %a0, ABS
-	%a2 = bitcast INT %a1 to FP
+	%a2 = call FP @llvm.fabsVEC(FP %a)
+	%a1 = bitcast FP %a2 to INT
 	%a3 = fcmp olt FP %a2, NORM_MIN
 	%a4 = select BOOL %a3, FP VAL_ZERO, FP %a
 	%a5 = fmul FP %a4, ADD_OFF
 
-	%b0 = bitcast FP %b to INT
-	%b1 = and INT %b0, ABS
-	%b2 = bitcast INT %b1 to FP
+	%b2 = call FP @llvm.fabsVEC(FP %b)
+	%b1 = bitcast FP %b2 to INT
 	%b3 = fcmp olt FP %b2, NORM_MIN
 	%b4 = select BOOL %b3, FP VAL_ZERO, FP %b
 	%b5 = fmul FP %b4, ADD_OFF
@@ -105,15 +99,13 @@ define weak FP @ctfp_sub0_NAME(FP %a, FP %b) {
 }
 
 define weak FP @ctfp_sub1_NAME(FP %a, FP %b) {
-	%a0 = bitcast FP %a to INT
-	%a1 = and INT %a0, ABS
-	%a2 = bitcast INT %a1 to FP
+	%a2 = call FP @llvm.fabsVEC(FP %a)
+	%a1 = bitcast FP %a2 to INT
 	%a3 = fcmp olt FP %a2, ADDMIN
 	%a4 = select BOOL %a3, FP VAL_ZERO, FP %a
 
-	%b0 = bitcast FP %b to INT
-	%b1 = and INT %b0, ABS
-	%b2 = bitcast INT %b1 to FP
+	%b2 = call FP @llvm.fabsVEC(FP %b)
+	%b1 = bitcast FP %b2 to INT
 	%b3 = fcmp olt FP %b2, ADDMIN
 	%b4 = select BOOL %b3, FP VAL_ZERO, FP %b
 
@@ -158,16 +150,14 @@ define weak FP @ctfp_sub2_NAME(FP %a, FP %b) {
 }
 
 define weak FP @ctfp_sub3_NAME(FP %a, FP %b) {
-	%a0 = bitcast FP %a to INT
-	%a1 = and INT %a0, ABS
-	%a2 = bitcast INT %a1 to FP
+	%a2 = call FP @llvm.fabsVEC(FP %a)
+	%a1 = bitcast FP %a2 to INT
 	%a3 = fcmp olt FP %a2, NORM_MIN
 	%a4 = select BOOL %a3, FP VAL_ZERO, FP %a
 	%a5 = fmul FP %a4, ADD_OFF
 
-	%b0 = bitcast FP %b to INT
-	%b1 = and INT %b0, ABS
-	%b2 = bitcast INT %b1 to FP
+	%b2 = call FP @llvm.fabsVEC(FP %b)
+	%b1 = bitcast FP %b2 to INT
 	%b3 = fcmp olt FP %b2, NORM_MIN
 	%b4 = select BOOL %b3, FP VAL_ZERO, FP %b
 	%b5 = fmul FP %b4, ADD_OFF
@@ -204,15 +194,13 @@ define weak FP @ctfp_mul0_NAME(FP %a, FP %b) {
 }
 
 define weak FP @ctfp_mul1_NAME(FP %a, FP %b) {
-	%a0 = bitcast FP %a to INT
-	%a1 = and INT %a0, ABS
-	%a2 = bitcast INT %a1 to FP
+	%a2 = call FP @llvm.fabsVEC(FP %a)
+	%a1 = bitcast FP %a2 to INT
 	%a3 = fcmp olt FP %a2, MULMIN
 	%a4 = select BOOL %a3, FP VAL_ZERO, FP %a
 
-	%b0 = bitcast FP %b to INT
-	%b1 = and INT %b0, ABS
-	%b2 = bitcast INT %b1 to FP
+	%b2 = call FP @llvm.fabsVEC(FP %b)
+	%b1 = bitcast FP %b2 to INT
 	%b3 = fcmp olt FP %b2, MULMIN
 	%b4 = select BOOL %b3, FP VAL_ZERO, FP %b
 
@@ -255,25 +243,21 @@ define weak FP @ctfp_mul3_NAME(FP %a, FP %b) {
 }
 
 define weak FP @ctfp_mul2_NAME(FP %a, FP %b) {
-	%a0 = bitcast FP %a to INT
-	%a1 = and INT %a0, ABS
-	%a2 = bitcast INT %a1 to FP
+	%a2 = call FP @llvm.fabsVEC(FP %a)
+	%a1 = bitcast FP %a2 to INT
 	%a3 = fcmp olt FP %a2, NORM_MIN
 	%a4 = select BOOL %a3, FP VAL_ZERO, FP %a
 	%a5 = fmul FP %a4, MUL_OFF
 
-	%b0 = bitcast FP %b to INT
-	%b1 = and INT %b0, ABS
-	%b2 = bitcast INT %b1 to FP
+	%b2 = call FP @llvm.fabsVEC(FP %b)
+	%b1 = bitcast FP %b2 to INT
 	%b3 = fcmp olt FP %b2, NORM_MIN
 	%b4 = select BOOL %b3, FP VAL_ZERO, FP %b
 	%b5 = fmul FP %b4, MUL_OFF
 
 	%t0 = fmul FP %a5, %b5
 
-	%t1 = bitcast FP %t0 to INT
-	%t2 = and INT %t1, ABS
-	%t3 = bitcast INT %t2 to FP
+	%t3 = call FP @llvm.fabsVEC(FP %t0)
 
 	%m0 = fcmp uge FP %t3, MUL_CMP
 	%m1 = select BOOL %m0, INT ONES, INT ZERO
@@ -300,15 +284,13 @@ define weak FP @ctfp_div_NAME(FP %a, FP %b) #0 {
 	%nan = bitcast FP VAL_NAN to INT
 	%dummy = bitcast FP VAL_DUMMY to INT
 
-	; discard values outside the range on input A
+	; compute absolute values
 	%a0 = bitcast FP %a to INT
-	%a1 = and INT %a0, ABS
-	%a2 = bitcast INT %a1 to FP
-
-	; discard values outside the range on input B
+	%a2 = call FP @llvm.fabsVEC(FP %a)
+	%a1 = bitcast FP %a2 to INT
 	%b0 = bitcast FP %b to INT
-	%b1 = and INT %b0, ABS
-	%b2 = bitcast INT %b1 to FP
+	%b2 = call FP @llvm.fabsVEC(FP %b)
+	%b1 = bitcast FP %b2 to INT
 
 	; compute the sign bit
 	%s0 = xor INT %a0, %b0
@@ -434,18 +416,16 @@ define weak FP @ctfp_div_NAME(FP %a, FP %b) #0 {
 
 define weak FP @ctfp_div1_NAME(FP %a, FP %b) {
 	; discard values outside the range on input A
-	%a0 = bitcast FP %a to INT
-	%a1 = and INT %a0, ABS
-	%a2 = bitcast INT %a1 to FP
+	%a2 = call FP @llvm.fabsVEC(FP %a)
+	%a1 = bitcast FP %a2 to INT
 	%a3 = fcmp olt FP %a2, MULMIN
 	%a4 = select BOOL %a3, FP VAL_ZERO, FP %a
 	%a5 = fcmp ogt FP %a2, DIVMAX
 	%a6 = select BOOL %a5, FP VAL_INF, FP %a4
 
 	; discard values outside the range on input B
-	%b0 = bitcast FP %b to INT
-	%b1 = and INT %b0, ABS
-	%b2 = bitcast INT %b1 to FP
+	%b2 = call FP @llvm.fabsVEC(FP %b)
+	%b1 = bitcast FP %b2 to INT
 	%b3 = fcmp olt FP %b2, MULMIN
 	%b4 = select BOOL %b3, FP VAL_ZERO, FP %b
 	%b5 = fcmp ogt FP %b2, DIVMAX
@@ -456,16 +436,14 @@ define weak FP @ctfp_div1_NAME(FP %a, FP %b) {
 }
 
 define weak FP @ctfp_div3_NAME(FP %a, FP %b) {
-	%a0 = bitcast FP %a to INT
-	%a1 = and INT %a0, ABS
-	%a2 = bitcast INT %a1 to FP
+	%a2 = call FP @llvm.fabsVEC(FP %a)
+	%a1 = bitcast FP %a2 to INT
 	%a3 = fcmp olt FP %a2, NORM_MIN
 	%a4 = select BOOL %a3, FP VAL_ZERO, FP %a
 	%a5 = fmul FP %a4, MUL_OFF
 
-	%b0 = bitcast FP %b to INT
-	%b1 = and INT %b0, ABS
-	%b2 = bitcast INT %b1 to FP
+	%b2 = call FP @llvm.fabsVEC(FP %b)
+	%b1 = bitcast FP %b2 to INT
 	%b3 = fcmp olt FP %b2, NORM_MIN
 	%b4 = select BOOL %b3, FP VAL_ZERO, FP %b
 	%b6 = fcmp olt FP %b2, VAL_ONE
@@ -475,9 +453,7 @@ define weak FP @ctfp_div3_NAME(FP %a, FP %b) {
 
 	%t0 = tail call FP @ctfp_div_NAME(FP %a5, FP %b5)
 
-	%t1 = bitcast FP %t0 to INT
-	%t2 = and INT %t1, ABS
-	%t3 = bitcast INT %t2 to FP
+	%t3 = call FP @llvm.fabsVEC(FP %t0)
 
 	%m0 = fcmp uge FP %t3, MUL_CMP
 	%m1 = select BOOL %m0, INT ONES, INT ZERO
@@ -580,4 +556,6 @@ define weak FP @ctfp_sqrt1_NAME(FP %a) {
 }
 
 declare FP @llvm.sqrtVEC(FP %a)
+declare FP @llvm.fabsVEC(FP %a)
+
 attributes #0 = { alwaysinline }

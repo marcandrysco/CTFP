@@ -66,8 +66,13 @@ int main(int argc, char **argv)
 	chk(ctfp_add3_f1(FLT_MIN / 2, FLT_MIN / 2) == 0.0f);
 	chk(ctfp_add3_f1(-2.5521187660275187e+38f, 1.0133342915435717e+32f) == (-2.5521187660275187e+38f + 1.0133342915435717e+32f));
 
+	chk(ctfp_add1_f1(FLT_MIN, 8388608.0f * FLT_MIN) == (8388608.0f * FLT_MIN));
+	chk(ctfp_add1_f1(FLT_MIN, -8388608.0f * FLT_MIN) == (-8388608.0f * FLT_MIN));
+
 	chk(ctfp_add3_d1(1.1, 0.6) == (1.1 + 0.6));
+	chk(ctfp_sub3_d1(1.1, 0.6) == (1.1 - 0.6));
 	chk(ctfp_add3_d1(DBL_MIN, DBL_MIN) == (DBL_MIN + DBL_MIN));
+	chk(ctfp_add1_d1(DBL_MIN, DBL_MIN) == 0.0);
 	chk(ctfp_add3_d1(DBL_MIN, 0.0) == DBL_MIN);
 	chk(ctfp_add3_d1(0.0, DBL_MIN) == DBL_MIN);
 	chk(ctfp_add3_d1(2.2250738585072013e-308, 0.0) == 2.2250738585072013e-308);

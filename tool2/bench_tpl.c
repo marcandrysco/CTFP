@@ -5,33 +5,31 @@
 #include <string.h>
 
 
-#define DO_32(thing)  thing thing thing thing  thing thing thing thing  thing thing thing thing  thing thing thing thing \
-                      thing thing thing thing  thing thing thing thing  thing thing thing thing  thing thing thing thing
-
-
 /**
  * Base benchmark of a fenced store.
  *   &returns: The execution time.
  */
 __attribute__((noinline)) static uint32_t base(void)
 {
-	double in, out, res;
+	double in1, in2, out, res;
 	uint32_t begin, end;
 
 	src1 = 0.0;
-	in = src1;
+	in1 = src1;
+	in2 = src2;
 	res = src1;
 
-	asm volatile("" :: "x"(in), "x"(out));
+	asm volatile("" :: "x"(in1), "x"(in2), "x"(out));
 	begin = perf_begin();
 
 	DO_32(
-		out = in;
-		in = m_xor_d(m_xor_d(out, res), in);
+		out = in1;
+		in1 = m_xor_d(m_xor_d(out, res), in1);
+		in2 = m_xor_d(m_xor_d(out, res), in2);
 	)
 
 	end = perf_end();
-	asm volatile("" :: "x"(in), "x"(out));
+	asm volatile("" :: "x"(in1), "x"(in2), "x"(out));
 
 	return end - begin;
 }
@@ -56,6 +54,7 @@ __attribute__((noinline)) static uint32_t add_flt(void)
 	DO_32(
 		out = in1 + in2;
 		in1 = m_xor_d(m_xor_d(out, res), in1);
+		in2 = m_xor_d(m_xor_d(out, res), in2);
 	)
 
 	end = perf_end();
@@ -86,6 +85,7 @@ __attribute__((noinline)) static uint32_t add_dbl(void)
 	DO_32(
 		out = in1 + in2;
 		in1 = m_xor_d(m_xor_d(out, res), in1);
+		in2 = m_xor_d(m_xor_d(out, res), in2);
 	)
 
 	end = perf_end();
@@ -249,8 +249,8 @@ __attribute__((noinline)) static uint32_t sqrt_dbl(void)
 	double in1, out, res;
 	uint32_t begin, end;
 
-	in1 = src1f;
-	res = sqrt(src1f);
+	in1 = src1;
+	res = sqrt(src1);
 
 	asm volatile("" :: "x"(in1), "x"(out));
 	begin = perf_begin();
@@ -263,7 +263,7 @@ __attribute__((noinline)) static uint32_t sqrt_dbl(void)
 	end = perf_end();
 	asm volatile("" :: "x"(in1), "x"(out));
 
-	sinkf = out;
+	sink = out;
 
 	return end - begin;
 }
