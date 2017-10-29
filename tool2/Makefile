@@ -1,6 +1,6 @@
 #CPU=ivybridge
-CPU=skylake
-#CPU=barcelona
+#CPU=skylake
+CPU=barcelona
 
 all: ctfp.o ctfp.ll ctfp.bc ctfp-llvm.so # ctfp-math-1.so ctfp-math-3.so
 

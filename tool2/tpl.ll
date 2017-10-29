@@ -236,7 +236,6 @@ define weak FP @ctfp_mul3_NAME(FP %a, FP %b) {
 	%b5 = fmul FP %b4, MUL_OFF
 
 	%t0 = fmul FP %a5, %b5
-
 	%t1 = bitcast FP %t0 to INT
 	%t2 = and INT %t1, ABS
 	%t3 = bitcast INT %t2 to FP

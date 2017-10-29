@@ -52,10 +52,11 @@ int main(int argc, char **argv)
 	//fesetround(FE_TOWARDZERO);
 
 	if(0) {
-	float f = ctfp_sqrt1_f1(256.0f);
+		printf("FLT_MIN: %.17e\n", FLT_MIN);
+	float f = ctfp_mul3_f1(3.1541636478430075e-27f, 3.7268018532321534e-12f);
 	uint32_t u;
 	memcpy(&u, &f, 4);
-	printf("%.2e %08x  (vs %.2e)\n", f, u, 1.2e-38 / 1.4f);
+	printf("%.16e %08x  (vs %.17e)\n", f, u, 3.1541636478430075e-27f * 3.7268018532321534e-12f);
 	exit(1);
 	}
 
@@ -76,8 +77,10 @@ int main(int argc, char **argv)
 	chk(ctfp_mul1_f1(1.1f, 0.6f) == (1.1f * 0.6f));
 	chk(ctfp_mul1_f1(FLT_MIN, 1.0f) == 0.0f);
 	chk(ctfp_mul2_f1(FLT_MIN, 1.0f) == FLT_MIN);
-	chk(ctfp_mul2_f1(FLT_MIN, 0.5f) == 0.0);
-	chk(ctfp_mul2_f1(2.0f * FLT_MIN, 0.5f) == FLT_MIN);
+	chk(ctfp_mul3_f1(FLT_MIN, 0.5f) == 0.0);
+	chk(ctfp_mul3_f1(2.0f * FLT_MIN, 0.5f) == FLT_MIN);
+
+	chk(ctfp_mul3_f1(3.1541636478430075e-27f, 3.7268018532321534e-12f) == (3.1541636478430075e-27f * 3.7268018532321534e-12f));
 
 	chk(ctfp_add1_d1(1.1, 0.6) == (1.1 + 0.6));
 	chk(ctfp_add3_d1(1.1, 0.6) == (1.1 + 0.6));

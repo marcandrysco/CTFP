@@ -131,7 +131,7 @@ __attribute__((noinline)) static uint32_t mul_flt(void)
  */
 __attribute__((noinline)) static uint32_t mul_dbl(void)
 {
-	float in1, in2, out, res;
+	double in1, in2, out, res;
 	uint32_t begin, end;
 
 	in1 = src1;
