@@ -2,7 +2,7 @@
 CPU=skylake
 #CPU=barcelona
 
-all: ctfp.o ctfp.ll ctfp.bc ctfp-llvm.so # ctfp-math-1.so ctfp-math-3.so
+all: ctfp.o ctfp.ll ctfp.bc ctfp-llvm.so ctfp-math-1.so ctfp-math-3.so
 
 ctfp.o: ctfp.bc Makefile
 	llc -O3 -mcpu=$(CPU) ctfp.bc -o ctfp.o -filetype=obj

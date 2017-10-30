@@ -51,6 +51,9 @@ int main(int argc, char **argv)
 {
 	//fesetround(FE_TOWARDZERO);
 
+	printf("%f\n", sqrtf(-0.0));
+	return 1;
+
 	if(0) {
 		printf("FLT_MIN: %.17e\n", FLT_MIN);
 	float f = ctfp_mul3_f1(3.1541636478430075e-27f, 3.7268018532321534e-12f);

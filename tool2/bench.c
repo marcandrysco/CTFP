@@ -179,8 +179,7 @@ int main(int argc, char **argv)
 	//report_perf("escort div ", (run_bench(3, div_dbl_v, CNT, 1.4, NAN) - base), ref);
 	//printf("\n");
 
-	if(1) {
-		/*
+	if(0) {
 	ref = run_bench(0, add_v, CNT, 1.4, 2.2) - base;
 	report_perf("ctfp1  add  ", (run_bench(1, add_v, CNT, 1.4, 2.3e-40) - base), ref);
 	report_perf("ctfp2  add  ", (run_bench(2, add_v, CNT, 1.4, 2.3e-40) - base), ref);
@@ -222,7 +221,6 @@ int main(int argc, char **argv)
 	report_perf("ctfp2  div  ", (run_bench(2, div_dbl_v, CNT, 1.4, 2.3e-320) - base), ref);
 	//report_perf("escort div ", (run_bench(3, div_dbl_v, CNT, 1.4, 2.3e-320) - base), ref);
 	report_perf("sub    div  ", (run_bench(0, div_dbl_v, CNT, 1.4, 2.3e-320) - base), ref);
-	*/
 
 	ref = run_bench(0, sqrt_dbl_v, CNT, 1.4, 2.2) - base;
 	report_perf("ctfp1  sqrt ", (run_bench(1, sqrt_dbl_v, CNT, 2.3e-320) - base), ref);
@@ -233,7 +231,7 @@ int main(int argc, char **argv)
 	return 0;
 	}
 
-	if(0) {
+	if(1) {
 	ref = run_bench(0, add_v, CNT, 1.4, 2.2) - base;
 	report_ratio("add  flt sub ", (run_bench(0, add_v, CNT, 1.4, 2.3e-40) - base) / ref);
 	report_ratio("add  flt inf ", (run_bench(0, add_v, CNT, 1.4, INFINITY) - base) / ref);
@@ -257,6 +255,7 @@ int main(int argc, char **argv)
 	report_ratio("sqrt flt zero", (run_bench(0, sqrt_v, CNT, 0.0) - base) / ref);
 	report_ratio("sqrt flt pow2", (run_bench(0, sqrt_v, CNT, 128.0) - base) / ref);
 	report_ratio("sqrt flt pow4", (run_bench(0, sqrt_v, CNT, 256.0) - base) / ref);
+	report_ratio("sqrt flt neg ", (run_bench(0, sqrt_v, CNT, -1.2) - base) / ref);
 
 	ref = run_bench(0, add_dbl_v, CNT, 1.4, 2.2) - base;
 	report_ratio("add  dbl sub ", (run_bench(0, add_dbl_v, CNT, 1.4, 2.3e-310) - base) / ref);
@@ -281,6 +280,7 @@ int main(int argc, char **argv)
 	report_ratio("sqrt dbl zero", (run_bench(0, sqrt_dbl_v, CNT, 0.0) - base) / ref);
 	report_ratio("sqrt dbl pow2", (run_bench(0, sqrt_dbl_v, CNT, 128.0) - base) / ref);
 	report_ratio("sqrt dbl pow4", (run_bench(0, sqrt_dbl_v, CNT, 256.0) - base) / ref);
+	report_ratio("sqrt dbl neg ", (run_bench(0, sqrt_dbl_v, CNT, -1.2) - base) / ref);
 
 	printf("\n");
 
