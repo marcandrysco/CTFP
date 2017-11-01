@@ -15,7 +15,6 @@ float ctfp_sub1_f1(float, float);
 float ctfp_sub2_f1(float, float);
 float ctfp_sub3_f1(float, float);
 float ctfp_mul1_f1(float, float);
-float ctfp_mul2_f1(float, float);
 float ctfp_mul3_f1(float, float);
 float ctfp_div1_f1(float, float);
 float ctfp_div2_f1(float, float);
@@ -28,7 +27,6 @@ double ctfp_sub1_d1(double, double);
 double ctfp_sub2_d1(double, double);
 double ctfp_sub3_d1(double, double);
 double ctfp_mul1_d1(double, double);
-double ctfp_mul2_d1(double, double);
 double ctfp_mul3_d1(double, double);
 double ctfp_div1_d1(double, double);
 double ctfp_div2_d1(double, double);
@@ -47,19 +45,36 @@ static inline bool isnanneg(double v)
 	return isnan(v) && signbit(v);
 }
 
+
+/**
+ * Check if two floating point numbers are equivalent.
+ *   @a: The first number.
+ *   @b: The seonc number.
+ *   &returns: True if equivalent, false otherwise.
+ */
+bool isequal(double a, double b)
+{
+	if(isnan(a) && isnan(b))
+		return true;
+	else if((a == 0.0f) && (b == 0.0f))
+		return signbit(a) == signbit(b);
+	else
+		return a == b;
+}
+
+
+#define ARRLEN(arr) (sizeof((arr)) / sizeof(*(arr)))
+
+
 int main(int argc, char **argv)
 {
 	//fesetround(FE_TOWARDZERO);
 
-	printf("%f\n", sqrtf(-0.0));
-	return 1;
-
 	if(0) {
-		printf("FLT_MIN: %.17e\n", FLT_MIN);
-	float f = ctfp_mul3_f1(3.1541636478430075e-27f, 3.7268018532321534e-12f);
+	float f = ctfp_div1_f1(0.0, 0.0);
 	uint32_t u;
 	memcpy(&u, &f, 4);
-	printf("%.16e %08x  (vs %.17e)\n", f, u, 3.1541636478430075e-27f * 3.7268018532321534e-12f);
+	printf("%.16e %08x  (vs %.17e)\n", f, u, 0.0 / 0.0);
 	exit(1);
 	}
 
@@ -84,7 +99,6 @@ int main(int argc, char **argv)
 
 	chk(ctfp_mul1_f1(1.1f, 0.6f) == (1.1f * 0.6f));
 	chk(ctfp_mul1_f1(FLT_MIN, 1.0f) == 0.0f);
-	chk(ctfp_mul2_f1(FLT_MIN, 1.0f) == FLT_MIN);
 	chk(ctfp_mul3_f1(FLT_MIN, 0.5f) == 0.0);
 	chk(ctfp_mul3_f1(2.0f * FLT_MIN, 0.5f) == FLT_MIN);
 
@@ -131,6 +145,30 @@ int main(int argc, char **argv)
 	chk(isnanpos(ctfp_sqrt1_f1(NAN)));
 	chk(isnanneg(ctfp_sqrt1_f1(-NAN)));
 	chk(isnanneg(ctfp_sqrt1_f1(-1.0f)));
+
+	unsigned int i, j;
+	volatile float flts[] = { 0.0f, -0.0f, 1.0f, -1.0f, 2.3f, -2.3f, INFINITY, -INFINITY };
+
+	for(i = 0; i < ARRLEN(flts); i++) {
+		for(j = 0; j < ARRLEN(flts); j++) {
+			if(!isequal(ctfp_add1_f1(flts[i], flts[j]), flts[i] + flts[j]))
+				fprintf(stderr, "ctfp1_add1_f1(%g,%g)\n", flts[i], flts[j]);
+			if(!isequal(ctfp_mul1_f1(flts[i], flts[j]), flts[i] * flts[j]))
+				fprintf(stderr, "ctfp1_mul1_f1(%g,%g)\n", flts[i], flts[j]);
+			if(!isequal(ctfp_div1_f1(flts[i], flts[j]), flts[i] / flts[j]))
+				fprintf(stderr, "ctfp1_div1_f1(%g,%g)\n", flts[i], flts[j]);
+
+			if(!isequal(ctfp_add3_f1(flts[i], flts[j]), flts[i] + flts[j]))
+				fprintf(stderr, "ctfp1_add3_f1(%g,%g)\n", flts[i], flts[j]);
+			if(!isequal(ctfp_mul3_f1(flts[i], flts[j]), flts[i] * flts[j]))
+				fprintf(stderr, "ctfp1_mul3_f1(%g,%g)\n", flts[i], flts[j]);
+			if(!isequal(ctfp_div3_f1(flts[i], flts[j]), flts[i] / flts[j]))
+				fprintf(stderr, "ctfp1_div3_f1(%g,%g)\n", flts[i], flts[j]);
+		}
+
+		if(!isequal(ctfp_sqrt1_f1(flts[i]), sqrtf(flts[i])))
+			fprintf(stderr, "ctfp1_sqrt1_f1(%g)\n", flts[i]);
+	}
 
 	return 0;
 

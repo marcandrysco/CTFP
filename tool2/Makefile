@@ -24,7 +24,7 @@ ctfp-llvm.so: llvm.cpp Makefile ctfp.bc llvm.hpp.gch
 test: ctfp-test ctfp-bench ctfp-count
 
 ctfp-test: test.c ctfp.bc Makefile
-	clang test.c ctfp.bc -o ctfp-test -O2 -lm -mcpu=$(CPU) -std=gnu11
+	clang test.c ctfp.bc -o ctfp-test -g -ffp-contract=off -lm -mcpu=$(CPU) -std=gnu11
 
 ctfp-math-1.so: $(MATH) Makefile ctfp-llvm.so math/libm.h
 	CTFP_VER=1 CTFP_DIR=. clang -shared -O2 -Wall -march=native -fpic $(MATH) -o $@ -fplugin=./ctfp-llvm.so -nostdlib
@@ -49,10 +49,7 @@ bench_ctfp3.o: bench_tpl.c ctfp-llvm.so bench.h Makefile
 	CTFP_VER=3 CTFP_DIR=. clang -D BENCH=run_ctfp3 -fplugin=./ctfp-llvm.so -O3 -g -c $< -o $@ -march=$(CPU) -fno-fast-math
 
 bench_escort.o: bench_escort.c bench.h Makefile
-	clang -O2 -g -O2 -c $< -o $@ -march=$(CPU) -fno-fast-math
-
-bench_test.o: bench_test.c bench.h Makefile
-	clang -O2 -g -O2 -c $< -o $@ -march=$(CPU) -fno-fast-math
+	clang -g -O2 -c $< -o $@ -march=$(CPU) -fno-fast-math
 
 
 ctfp-count: ctfp.s Makefile
