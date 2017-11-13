@@ -188,10 +188,9 @@ define weak FP @ctfp_mul3_NAME(FP %a, FP %b) {
 	%b1 = bitcast FP %b2 to INT
 	%b3 = fcmp olt FP %b2, NORM_MIN
 	%b4 = select BOOL %b3, FP VAL_ZERO, FP %b
-	%b5 = fmul FP %b4, MUL_OFF
 	%b6 = call FP @llvm.copysignVEC(FP %b4, FP %b)
 
-	%t0 = fmul FP %a5, %b5
+	%t0 = fmul FP %a5, %b4
 	%t3 = call FP @llvm.fabsVEC(FP %t0)
 
 	%m0 = fcmp uge FP %t3, MUL_CMP
@@ -389,9 +388,7 @@ define weak FP @ctfp_div3_NAME(FP %a, FP %b) {
 	%b6 = fcmp olt FP %b2, VAL_ONE
 	%b7 = select BOOL %b6, FP VAL_ONE, FP %b4
 
-	%b5 = fmul FP %b7, DIV_OFF
-
-	%t0 = tail call FP @ctfp_div_NAME(FP %a5, FP %b5)
+	%t0 = tail call FP @ctfp_div_NAME(FP %a5, FP %b7)
 
 	%t3 = call FP @llvm.fabsVEC(FP %t0)
 

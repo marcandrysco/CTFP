@@ -70,8 +70,41 @@ int main(int argc, char **argv)
 {
 	//fesetround(FE_TOWARDZERO);
 
+	/*
+	unsigned int cnt;
+	for(float f = 0.25; f <= 0.5; f = nextafterf(f, INFINITY)) {
+		float r0 = (float)FLT_MIN / f;
+		float r1 = nextafter(r1, INFINITY);
+		float r2 = nextafter(r1, -INFINITY);
+
+		if(f * r0 >= FLT_MIN) {
+			if(ctfp_mul3_f1(f, r0) != (f * r0))
+				cnt++;
+				//printf("fail: %.8e * %.8e\n", f, r0), exit(1);
+		}
+
+		if(f * r1 >= FLT_MIN) {
+			if(ctfp_mul3_f1(f, r1) != (f * r1))
+				cnt++;
+				//printf("fail: %.8e * %.8e\n", f, r0), exit(1);
+		}
+
+		if(f * r2 >= FLT_MIN) {
+			if(ctfp_mul3_f1(f, r2) != (f * r2))
+				cnt++;
+				//printf("fail: %.8e * %.8e\n", f, r0), exit(1);
+		}
+	}
+	printf("cnt: %d of %d (%.5f)\n", cnt, 2 << 24, (double)(cnt) / (2 << 24));
+	printf("tot: %d\n", cnt * 126);
+	return 0;
+	*/
+
 	if(0) {
-	float f = ctfp_div1_f1(0.0, 0.0);
+	//chk(ctfp_mul3_f1(3.1541636478430075e-27f, 3.7268018532321534e-12f) == (3.1541636478430075e-27f * 3.7268018532321534e-12f));
+	//chk(ctfp_mul3_f1(5.87608427642357e-20f, 2.0004720757150539e-19) == 0.0f);
+	//float f = ctfp_mul3_f1(3.1541636478430075e-27f, 3.7268018532321534e-12f);
+	float f = ctfp_mul3_f1(5.87608427642357e-20f, 2.0004720757150539e-19);
 	uint32_t u;
 	memcpy(&u, &f, 4);
 	printf("%.16e %08x  (vs %.17e)\n", f, u, 0.0 / 0.0);
@@ -103,6 +136,7 @@ int main(int argc, char **argv)
 	chk(ctfp_mul3_f1(2.0f * FLT_MIN, 0.5f) == FLT_MIN);
 
 	chk(ctfp_mul3_f1(3.1541636478430075e-27f, 3.7268018532321534e-12f) == (3.1541636478430075e-27f * 3.7268018532321534e-12f));
+	chk(ctfp_mul3_f1(5.87608427642357e-20f, 2.0004720757150539e-19) == 0.0f);
 
 	chk(ctfp_add1_d1(1.1, 0.6) == (1.1 + 0.6));
 	chk(ctfp_add3_d1(1.1, 0.6) == (1.1 + 0.6));
@@ -147,7 +181,7 @@ int main(int argc, char **argv)
 	chk(isnanneg(ctfp_sqrt1_f1(-1.0f)));
 
 	unsigned int i, j;
-	volatile float flts[] = { 0.0f, -0.0f, 1.0f, -1.0f, 2.3f, -2.3f, INFINITY, -INFINITY };
+	volatile float flts[] = { 0.0f, -0.0f, 1.0f, -1.0f, 2.3f, -2.3f, 1e-10, -1e-10, INFINITY, -INFINITY, NAN };
 
 	for(i = 0; i < ARRLEN(flts); i++) {
 		for(j = 0; j < ARRLEN(flts); j++) {

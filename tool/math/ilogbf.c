@@ -5,7 +5,7 @@
 
 int ctfp_ilogbf(float x)
 {
-	#pragma STDC FENV_ACCESS ON
+	//#pragma STDC FENV_ACCESS ON
 	union {float f; uint32_t i;} u = {x};
 	uint32_t i = u.i;
 	int e = i>>23 & 0xff;

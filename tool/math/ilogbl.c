@@ -11,7 +11,7 @@ int ctfp_ilogbl(long double x)
 #elif LDBL_MANT_DIG == 64 && LDBL_MAX_EXP == 16384
 int ctfp_ilogbl(long double x)
 {
-	#pragma STDC FENV_ACCESS ON
+	//#pragma STDC FENV_ACCESS ON
 	union ldshape u = {x};
 	uint64_t m = u.i.m;
 	int e = u.i.se & 0x7fff;
@@ -34,7 +34,7 @@ int ctfp_ilogbl(long double x)
 #elif LDBL_MANT_DIG == 113 && LDBL_MAX_EXP == 16384
 int ctfp_ilogbl(long double x)
 {
-	#pragma STDC FENV_ACCESS ON
+	//#pragma STDC FENV_ACCESS ON
 	union ldshape u = {x};
 	int e = u.i.se & 0x7fff;
 

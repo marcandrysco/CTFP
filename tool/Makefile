@@ -1,3 +1,72 @@
+CPU=ivybridge
+#CPU=skylake
+#CPU=barcelona
+
+all: ctfp.o ctfp.ll ctfp.bc ctfp-llvm.so # ctfp-math-1.so ctfp-math-3.so
+
+ctfp.o: ctfp.bc Makefile
+	llc -O3 -mcpu=$(CPU) ctfp.bc -o ctfp.o -filetype=obj
+	objdump -d ctfp.o -M intel > ctfp.s
+
+ctfp.bc: ctfp.ll Makefile
+	opt ctfp.ll -always-inline -o ctfp.bc
+
+ctfp.ll: gen.py tpl.ll Makefile
+	./gen.py
+
+llvm.hpp.gch: llvm.hpp Makefile
+	clang++ -O2 -Wall -march=native -fpic $< -o $@ -std=gnu++11
+
+ctfp-llvm.so: llvm.cpp Makefile ctfp.bc llvm.hpp.gch
+	clang++ -include llvm.hpp -shared -O2 -Wall -march=native -fpic $< -o $@ -std=gnu++11
+
+
+test: ctfp-test ctfp-bench ctfp-count
+
+ctfp-test: test.c ctfp.bc Makefile
+	clang test.c ctfp.bc -o ctfp-test -g -ffp-contract=off -lm -mcpu=$(CPU) -std=gnu11
+
+ctfp-math-1.so: $(MATH) Makefile ctfp-llvm.so math/libm.h
+	CTFP_VER=1 CTFP_DIR=. clang -shared -O2 -Wall -march=native -fpic $(MATH) -o $@ -fplugin=./ctfp-llvm.so -nostdlib
+
+ctfp-math-3.so: $(MATH) Makefile ctfp-llvm.so math/libm.h
+	CTFP_VER=3 CTFP_DIR=. clang -shared -O2 -Wall -march=native -fpic $(MATH) -o $@ -fplugin=./ctfp-llvm.so -nostdlib
+
+
+ctfp-bench: bench.o bench_ref.o bench_ctfp1.o bench_ctfp3.o bench_escort.o
+	clang $^ -o $@ -lm
+
+bench.o: bench.c bench.h Makefile
+	clang -c -g -O2 $< -o $@ -Wall -Werror
+
+bench_ref.o: bench_tpl.c bench.h Makefile
+	clang -D BENCH=run_ref -O2 -g -O2 -c $< -o $@ -march=$(CPU) -fno-fast-math
+
+bench_ctfp1.o: bench_tpl.c ctfp-llvm.so bench.h Makefile
+	CTFP_VER=1 CTFP_DIR=. clang -D BENCH=run_ctfp1 -fplugin=./ctfp-llvm.so -O3 -g -c $< -o $@ -march=$(CPU) -fno-fast-math
+
+bench_ctfp3.o: bench_tpl.c ctfp-llvm.so bench.h Makefile
+	CTFP_VER=3 CTFP_DIR=. clang -D BENCH=run_ctfp3 -fplugin=./ctfp-llvm.so -O3 -g -c $< -o $@ -march=$(CPU) -fno-fast-math
+
+bench_escort.o: bench_escort.c bench.h Makefile
+	clang -g -O2 -c $< -o $@ -march=$(CPU) -fno-fast-math
+
+
+ctfp-count: ctfp.s Makefile
+	cat $< | sed -n 's/^\s*[0-9a-f]*:\s*\([0-9a-f][0-9a-f] \)*\s*\([a-z]*\)\s.*/\2/p' | sort | uniq -c > $@
+
+
+run: all test
+	./ctfp-test
+	@#./ctfp-bench
+	@#./ctfp-test
+	@#clang -shared -O2 -Wall -march=native -fpic math/exp.c -o /dev/null -fplugin=./ctfp-llvm.so -nostdlib
+	@#opt test.ll -load=./ctfp-llvm.so -ctfp -S -o=/dev/null
+
+
+.PHONY: all test run
+
+
 MATH = \
 	math/acos.c \
 	math/acosf.c \
@@ -209,13 +278,3 @@ MATH = \
 	math/truncf.c \
 	math/truncl.c \
 
-all: ctfp.bc ctfp-llvm.so ctfp-math.so
-
-ctfp.bc: ctfp.c Makefile
-	clang -c -O2 $< -o $@ -emit-llvm
-
-ctfp-llvm.so: llvm.cpp Makefile ctfp.bc
-	clang -shared -O2 -Wall -march=native -fpic $< -o $@ -std=gnu++11
-
-ctfp-math.so: $(MATH) Makefile ctfp-llvm.so math/libm.h
-	clang -shared -O2 -Wall -march=native -fpic $(MATH) -o $@ -fplugin=./ctfp-llvm.so -nostdlib

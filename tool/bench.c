@@ -11,7 +11,7 @@
 #include <float.h>
 
 #include "bench.h"
-#define CNT (1000000)
+#define CNT (100000)
 #define NVAL (12)
 
 

@@ -20,7 +20,7 @@ raises inexact (with tonearest or upward rounding mode)
 */
 long long ctfp_llrintl(long double x)
 {
-	#pragma STDC FENV_ACCESS ON
+	//#pragma STDC FENV_ACCESS ON
 	int e;
 
 	e = fetestexcept(FE_INEXACT);
