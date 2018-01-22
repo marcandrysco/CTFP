@@ -52,7 +52,7 @@ typedef uint32_t (*bench_f)(void);
  */
 extern bench_f run_ref[op_n];
 extern bench_f run_ctfp1[op_n];
-extern bench_f run_ctfp3[op_n];
+extern bench_f run_ctfp2[op_n];
 extern bench_f run_escort[op_n];
 
 

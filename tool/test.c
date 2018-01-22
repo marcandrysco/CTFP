@@ -10,27 +10,21 @@
 
 float ctfp_add1_f1(float, float);
 float ctfp_add2_f1(float, float);
-float ctfp_add3_f1(float, float);
 float ctfp_sub1_f1(float, float);
 float ctfp_sub2_f1(float, float);
-float ctfp_sub3_f1(float, float);
 float ctfp_mul1_f1(float, float);
-float ctfp_mul3_f1(float, float);
+float ctfp_mul2_f1(float, float);
 float ctfp_div1_f1(float, float);
 float ctfp_div2_f1(float, float);
-float ctfp_div3_f1(float, float);
 float ctfp_sqrt1_f1(float);
 double ctfp_add1_d1(double, double);
 double ctfp_add2_d1(double, double);
-double ctfp_add3_d1(double, double);
 double ctfp_sub1_d1(double, double);
 double ctfp_sub2_d1(double, double);
-double ctfp_sub3_d1(double, double);
 double ctfp_mul1_d1(double, double);
-double ctfp_mul3_d1(double, double);
+double ctfp_mul2_d1(double, double);
 double ctfp_div1_d1(double, double);
 double ctfp_div2_d1(double, double);
-double ctfp_div3_d1(double, double);
 
 
 #define chk(cond) if(!(cond)) { fprintf(stderr, "failed '%s'\n", #cond); }
@@ -78,19 +72,19 @@ int main(int argc, char **argv)
 		float r2 = nextafter(r1, -INFINITY);
 
 		if(f * r0 >= FLT_MIN) {
-			if(ctfp_mul3_f1(f, r0) != (f * r0))
+			if(ctfp_mul2_f1(f, r0) != (f * r0))
 				cnt++;
 				//printf("fail: %.8e * %.8e\n", f, r0), exit(1);
 		}
 
 		if(f * r1 >= FLT_MIN) {
-			if(ctfp_mul3_f1(f, r1) != (f * r1))
+			if(ctfp_mul2_f1(f, r1) != (f * r1))
 				cnt++;
 				//printf("fail: %.8e * %.8e\n", f, r0), exit(1);
 		}
 
 		if(f * r2 >= FLT_MIN) {
-			if(ctfp_mul3_f1(f, r2) != (f * r2))
+			if(ctfp_mul2_f1(f, r2) != (f * r2))
 				cnt++;
 				//printf("fail: %.8e * %.8e\n", f, r0), exit(1);
 		}
@@ -101,10 +95,10 @@ int main(int argc, char **argv)
 	*/
 
 	if(0) {
-	//chk(ctfp_mul3_f1(3.1541636478430075e-27f, 3.7268018532321534e-12f) == (3.1541636478430075e-27f * 3.7268018532321534e-12f));
-	//chk(ctfp_mul3_f1(5.87608427642357e-20f, 2.0004720757150539e-19) == 0.0f);
-	//float f = ctfp_mul3_f1(3.1541636478430075e-27f, 3.7268018532321534e-12f);
-	float f = ctfp_mul3_f1(5.87608427642357e-20f, 2.0004720757150539e-19);
+	//chk(ctfp_mul2_f1(3.1541636478430075e-27f, 3.7268018532321534e-12f) == (3.1541636478430075e-27f * 3.7268018532321534e-12f));
+	//chk(ctfp_mul2_f1(5.87608427642357e-20f, 2.0004720757150539e-19) == 0.0f);
+	//float f = ctfp_mul2_f1(3.1541636478430075e-27f, 3.7268018532321534e-12f);
+	float f = ctfp_mul2_f1(5.87608427642357e-20f, 2.0004720757150539e-19);
 	uint32_t u;
 	memcpy(&u, &f, 4);
 	printf("%.16e %08x  (vs %.17e)\n", f, u, 0.0 / 0.0);
@@ -113,35 +107,38 @@ int main(int argc, char **argv)
 
 	chk(ctfp_add1_f1(1.1f, 0.6f) == (1.1f + 0.6f));
 	chk(ctfp_add1_f1(FLT_MIN, FLT_MIN) == 0.0f);
-	chk(ctfp_add3_f1(FLT_MIN, FLT_MIN) == (FLT_MIN + FLT_MIN));
-	chk(ctfp_add3_f1(FLT_MIN / 2, FLT_MIN / 2) == 0.0f);
-	chk(ctfp_add3_f1(-2.5521187660275187e+38f, 1.0133342915435717e+32f) == (-2.5521187660275187e+38f + 1.0133342915435717e+32f));
+	chk(ctfp_add2_f1(FLT_MIN, FLT_MIN) == (FLT_MIN + FLT_MIN));
+	chk(ctfp_add2_f1(FLT_MIN / 2, FLT_MIN / 2) == 0.0f);
+	chk(ctfp_add2_f1(-2.5521187660275187e+38f, 1.0133342915435717e+32f) == (-2.5521187660275187e+38f + 1.0133342915435717e+32f));
+	chk(ctfp_add2_f1(FLT_MIN, -FLT_MIN - FLT_MIN / 2.0f) == 0.0);
 
 	chk(ctfp_add1_f1(FLT_MIN, 8388608.0f * FLT_MIN) == (8388608.0f * FLT_MIN));
 	chk(ctfp_add1_f1(FLT_MIN, -8388608.0f * FLT_MIN) == (-8388608.0f * FLT_MIN));
 
-	chk(ctfp_add3_d1(1.1, 0.6) == (1.1 + 0.6));
-	chk(ctfp_sub3_d1(1.1, 0.6) == (1.1 - 0.6));
-	chk(ctfp_add3_d1(DBL_MIN, DBL_MIN) == (DBL_MIN + DBL_MIN));
+	chk(ctfp_add2_d1(1.1, 0.6) == (1.1 + 0.6));
+	chk(ctfp_sub2_d1(1.1, 0.6) == (1.1 - 0.6));
+	chk(ctfp_add2_d1(DBL_MIN, DBL_MIN) == (DBL_MIN + DBL_MIN));
 	chk(ctfp_add1_d1(DBL_MIN, DBL_MIN) == 0.0);
-	chk(ctfp_add3_d1(DBL_MIN, 0.0) == DBL_MIN);
-	chk(ctfp_add3_d1(0.0, DBL_MIN) == DBL_MIN);
-	chk(ctfp_add3_d1(2.2250738585072013e-308, 0.0) == 2.2250738585072013e-308);
+	chk(ctfp_add2_d1(DBL_MIN, 0.0) == DBL_MIN);
+	chk(ctfp_add2_d1(0.0, DBL_MIN) == DBL_MIN);
+	chk(ctfp_add2_d1(2.2250738585072013e-308, 0.0) == 2.2250738585072013e-308);
 
 	chk(ctfp_sub2_f1(FLT_MIN, nextafter(FLT_MIN, INFINITY)) == 0.0f);
 
 	chk(ctfp_mul1_f1(1.1f, 0.6f) == (1.1f * 0.6f));
 	chk(ctfp_mul1_f1(FLT_MIN, 1.0f) == 0.0f);
-	chk(ctfp_mul3_f1(FLT_MIN, 0.5f) == 0.0);
-	chk(ctfp_mul3_f1(2.0f * FLT_MIN, 0.5f) == FLT_MIN);
+	chk(ctfp_mul2_f1(FLT_MIN, 0.5f) == 0.0);
+	chk(ctfp_mul2_f1(2.0f * FLT_MIN, 0.5f) == FLT_MIN);
+	chk(ctfp_mul2_f1(sqrt(FLT_MIN), sqrt(FLT_MIN)) == FLT_MIN);
+	chk(ctfp_mul2_f1(sqrt(FLT_MIN / 2.0f), sqrt(FLT_MIN)) == 0.0);
 
-	chk(ctfp_mul3_f1(3.1541636478430075e-27f, 3.7268018532321534e-12f) == (3.1541636478430075e-27f * 3.7268018532321534e-12f));
-	chk(ctfp_mul3_f1(5.87608427642357e-20f, 2.0004720757150539e-19) == 0.0f);
+	//chk(ctfp_mul2_f1(3.1541636478430075e-27f, 3.7268018532321534e-12f) == (3.1541636478430075e-27f * 3.7268018532321534e-12f));
+	//chk(ctfp_mul2_f1(5.87608427642357e-20f, 2.0004720757150539e-19) == 0.0f);
 
 	chk(ctfp_add1_d1(1.1, 0.6) == (1.1 + 0.6));
-	chk(ctfp_add3_d1(1.1, 0.6) == (1.1 + 0.6));
+	chk(ctfp_add2_d1(1.1, 0.6) == (1.1 + 0.6));
 	chk(ctfp_add1_d1(2.350988701644575e-38, 2.350988701644575e-38) == (2.350988701644575e-38 + 2.350988701644575e-38));
-	chk(ctfp_add3_d1(2.350988701644575e-38, 2.350988701644575e-38) == (2.350988701644575e-38 + 2.350988701644575e-38));
+	chk(ctfp_add2_d1(2.350988701644575e-38, 2.350988701644575e-38) == (2.350988701644575e-38 + 2.350988701644575e-38));
 
 	chk(isnan(ctfp_div1_f1((float)NAN, 2.2f)));
 	chk(isnan(ctfp_div1_f1(3.8f, (float)NAN)));
@@ -154,21 +151,21 @@ int main(int argc, char **argv)
 	chk(ctfp_div1_f1(1.0f, -1.0f) == -1.0f);
 	chk(ctfp_div1_f1(1.0f, FLT_MAX / 8.0f) == 0.0f);
 
-	chk(isnan(ctfp_div3_f1((float)NAN, 2.2f)));
-	chk(isnan(ctfp_div3_f1(3.8f, (float)NAN)));
-	chk(ctfp_div3_f1(1.0f, (float)INFINITY) == (1.0f / (float)INFINITY));
-	chk(ctfp_div3_f1((float)INFINITY, 1.0f) == ((float)INFINITY / 1.0f));
-	chk(ctfp_div3_f1(2.0f, 256.0f) == (2.0f / 256.0f));
-	chk(ctfp_div3_f1(1.7f, 32.0f) == (1.7f / 32.0f));
-	chk(ctfp_div3_f1(1.3f, 3.8f) == (1.3f / 3.8f));
-	chk(ctfp_div3_f1(FLT_MAX * 0.3f, 0.1f) == INFINITY);
-	chk(ctfp_div3_f1(1.0f, 1.0f) == 1.0f);
-	chk(ctfp_div3_f1(1.0f, FLT_MAX / 8.0f) == (1.0f / (FLT_MAX / 8.0f)));
-	chk(ctfp_div3_f1(FLT_MIN, 0.0f) == INFINITY);
-	chk(ctfp_div3_f1(1.2e-38, 1.4f) == 0.0f);
-	chk(ctfp_div3_f1(1.4f, 1.2e-20f) == (1.4f / 1.2e-20f));
-	chk(isnan(ctfp_div3_f1(0.0f, 0.0f)));
-	chk(isnan(ctfp_div3_f1((float)INFINITY, (float)INFINITY)));
+	chk(isnan(ctfp_div2_f1((float)NAN, 2.2f)));
+	chk(isnan(ctfp_div2_f1(3.8f, (float)NAN)));
+	chk(ctfp_div2_f1(1.0f, (float)INFINITY) == (1.0f / (float)INFINITY));
+	chk(ctfp_div2_f1((float)INFINITY, 1.0f) == ((float)INFINITY / 1.0f));
+	chk(ctfp_div2_f1(2.0f, 256.0f) == (2.0f / 256.0f));
+	chk(ctfp_div2_f1(1.7f, 32.0f) == (1.7f / 32.0f));
+	chk(ctfp_div2_f1(1.3f, 3.8f) == (1.3f / 3.8f));
+	chk(ctfp_div2_f1(FLT_MAX * 0.3f, 0.1f) == INFINITY);
+	chk(ctfp_div2_f1(1.0f, 1.0f) == 1.0f);
+	chk(ctfp_div2_f1(1.0f, FLT_MAX / 8.0f) == (1.0f / (FLT_MAX / 8.0f)));
+	chk(ctfp_div2_f1(FLT_MIN, 0.0f) == INFINITY);
+	chk(ctfp_div2_f1(1.2e-38, 1.4f) == 0.0f);
+	chk(ctfp_div2_f1(1.4f, 1.2e-20f) == (1.4f / 1.2e-20f));
+	chk(isnan(ctfp_div2_f1(0.0f, 0.0f)));
+	chk(isnan(ctfp_div2_f1((float)INFINITY, (float)INFINITY)));
 
 	chk(ctfp_sqrt1_f1(0.0f) == sqrtf(0.0f));
 	chk(ctfp_sqrt1_f1(1.4f) == sqrtf(1.4f));
@@ -192,12 +189,12 @@ int main(int argc, char **argv)
 			if(!isequal(ctfp_div1_f1(flts[i], flts[j]), flts[i] / flts[j]))
 				fprintf(stderr, "ctfp1_div1_f1(%g,%g)\n", flts[i], flts[j]);
 
-			if(!isequal(ctfp_add3_f1(flts[i], flts[j]), flts[i] + flts[j]))
-				fprintf(stderr, "ctfp1_add3_f1(%g,%g)\n", flts[i], flts[j]);
-			if(!isequal(ctfp_mul3_f1(flts[i], flts[j]), flts[i] * flts[j]))
-				fprintf(stderr, "ctfp1_mul3_f1(%g,%g)\n", flts[i], flts[j]);
-			if(!isequal(ctfp_div3_f1(flts[i], flts[j]), flts[i] / flts[j]))
-				fprintf(stderr, "ctfp1_div3_f1(%g,%g)\n", flts[i], flts[j]);
+			if(!isequal(ctfp_add2_f1(flts[i], flts[j]), flts[i] + flts[j]))
+				fprintf(stderr, "ctfp1_add2_f1(%g,%g)\n", flts[i], flts[j]);
+			if(!isequal(ctfp_mul2_f1(flts[i], flts[j]), flts[i] * flts[j]))
+				fprintf(stderr, "ctfp1_mul2_f1(%g,%g)\n", flts[i], flts[j]);
+			if(!isequal(ctfp_div2_f1(flts[i], flts[j]), flts[i] / flts[j]))
+				fprintf(stderr, "ctfp1_div2_f1(%g,%g)\n", flts[i], flts[j]);
 		}
 
 		if(!isequal(ctfp_sqrt1_f1(flts[i]), sqrtf(flts[i])))

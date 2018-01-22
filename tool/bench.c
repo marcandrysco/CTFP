@@ -11,7 +11,7 @@
 #include <float.h>
 
 #include "bench.h"
-#define CNT (100000)
+#define CNT (1000000)
 #define NVAL (12)
 
 
@@ -48,13 +48,13 @@ static float average(uint32_t *run)
  * local variables
  */
 static float in_flt[NVAL] = {
-	1.4f, 1.0f, 2.0f, 256.0f, 512.0f, 1.2e-18f, 1.2e-20f, 1.2e-38f, 1.2e-40f, INFINITY, NAN, 0.0f
+	1.4f, 1.0f, 2.0f, 256.0f, 512.0f, 1.2e-18f, 1.2e-20f, 1.2e-37f, 1.2e-40f, INFINITY, NAN, 0.0f
 };
 static float in_dbl[NVAL] = {
 	1.4, 1.0, 2.0, 256.0, 512.0, 1.2e-18, 1.2e-20, 1.2e-307, 1.2e-320, INFINITY, NAN, 0.0
 };
 
-static bench_f *run_all[4] = { run_ref, run_ctfp1, run_ctfp3, run_escort };
+static bench_f *run_all[4] = { run_ref, run_ctfp1, run_ctfp2, run_escort };
 const char *run_name[4] = { "ref", "ctfp1", "ctfp2", "escort" };
 
 
@@ -179,7 +179,7 @@ int main(int argc, char **argv)
 	//report_perf("escort div ", (run_bench(3, div_dbl_v, CNT, 1.4, NAN) - base), ref);
 	//printf("\n");
 
-	if(1) {
+	if(0) {
 	ref = run_bench(0, add_v, CNT, 1.4, 2.2) - base;
 	report_perf("ctfp1  add  ", (run_bench(1, add_v, CNT, 1.4, 2.3e-40) - base), ref);
 	report_perf("ctfp2  add  ", (run_bench(2, add_v, CNT, 1.4, 2.3e-40) - base), ref);
@@ -229,6 +229,20 @@ int main(int argc, char **argv)
 	report_perf("sub    sqrt ", (run_bench(0, sqrt_dbl_v, CNT, 2.3e-320) - base), ref);
 
 	return 0;
+	}
+	
+	for(n = 0; n < 3; n++) {
+		printf("div flt %s\n", run_name[n]);
+
+		ref = run_bench(n, div_v, CNT, 1.4, 1.4) - base;
+		for(x = 0; x < NVAL; x++) {
+			for(y = 0; y < NVAL; y++)
+				report_time(run_bench(n, div_v, CNT, in_flt[y], in_flt[x]) - base, ref);
+
+			printf("\n");
+		}
+
+		printf("\n");
 	}
 
 	if(1) {
@@ -345,14 +359,14 @@ int main(int argc, char **argv)
 		src1f = in_flt[0];
 		src2f = in_flt[0];
 		for(i = 0; i < CNT; i++)
-			run[i] = run_ctfp3[div_v]();
+			run[i] = run_ctfp2[div_v]();
 		ave = average(run);
 		printf("%.3f  %.2e %.2e\n", ave, src1f, src2f);
 
 		src1f = in_flt[0];
 		src2f = in_flt[6];
 		for(i = 0; i < CNT; i++)
-			run[i] = run_ctfp3[div_v]();
+			run[i] = run_ctfp2[div_v]();
 		ave = average(run);
 		printf("%.3f  %.2e %.2e\n", ave, src1f, src2f);
 
