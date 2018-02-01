@@ -1,14 +1,73 @@
 ; misc NAME
 
-define weak FP @underflow_NAME(FP %a, FP %l) {
-	%a1 = call FP @llvm.fabsVEC(FP %a)
-	%a2 = fcmp olt FP %a1, %l
-	%a3 = select BOOL %a2, FP VAL_ZERO, FP %a
-	%a4 = call FP @llvm.copysignVEC(FP %a3, FP %a)
-	ret FP %a4
+define weak FP @or_NAME(FP %a, FP %b) #0 {
+	%a1 = bitcast FP %a to INT
+	%b1 = bitcast FP %b to INT
+	%r1 = or INT %a1, %b1
+	%r2 = bitcast INT %r1 to FP
+	ret FP %r2
 }
+; def or(a, b):
+;   return a | b
 
-define weak FP @mask_NAME(BOOL %c, FP %a, FP %b) {
+define weak FP @and_NAME(FP %a, FP %b) #0 {
+	%a1 = bitcast FP %a to INT
+	%b1 = bitcast FP %b to INT
+	%r1 = and INT %a1, %b1
+	%r2 = bitcast INT %r1 to FP
+	ret FP %r2
+}
+; def and(a, b):
+;   return a & b
+
+define weak FP @xor_NAME(FP %a, FP %b) #0 {
+	%a1 = bitcast FP %a to INT
+	%b1 = bitcast FP %b to INT
+	%r1 = xor INT %a1, %b1
+	%r2 = bitcast INT %r1 to FP
+	ret FP %r2
+}
+; def and(a, b):
+;   return a ^ b
+
+define weak FP @not_NAME(FP %a) #0 {
+	%a1 = bitcast FP %a to INT
+	%a2 = xor INT %a1, ONES
+	%a3 = bitcast INT %a2 to FP
+	ret FP %a3
+}
+; def not(a):
+;   return ~a
+
+define weak FP @isnan_NAME(FP %a) #0 {
+	%c = fcmp une FP %a, %a
+	%i = select BOOL %c, INT ONES, INT ZERO
+	%f = bitcast INT %i to FP
+	ret FP %f
+}
+; def isnan(a):
+;   return a != a
+
+define weak FP @eq_NAME(FP %a, FP %b) #0 {
+	%c = fcmp oeq FP %a, %b
+	%i = select BOOL %c, INT ONES, INT ZERO
+	%f = bitcast INT %i to FP
+	ret FP %f
+}
+; def eq(a, b):
+;   return (a == b) ? ONES : ZEROS
+
+define weak FP @mask_NAME(FP %m, FP %a, FP %b) #0 {
+	%n = call FP @not_NAME(FP %m)
+	%a1 = call FP @and_NAME(FP %m, FP %a)
+	%b1 = call FP @and_NAME(FP %n, FP %b)
+	%r = call FP @or_NAME(FP %a1, FP %b1)
+	ret FP %r
+}
+; def mask(m, a, b)
+;   return (m & a) | (~m & b)
+
+define weak FP @cond_NAME(BOOL %c, FP %a, FP %b) #0 {
 	%m1 = select BOOL %c, INT ONES, INT ZERO
 	%m2 = xor INT %m1, ONES
 
@@ -22,8 +81,30 @@ define weak FP @mask_NAME(BOOL %c, FP %a, FP %b) {
 	%r2 = bitcast INT %r1 to FP
 	ret FP %r2
 }
+; def cond(c, a, b)
+;   return if c then a else b
 
-define weak BOOL @tryadd_NAME(FP %a, FP %b) {
+define weak FP @underflow_NAME(FP %a, FP %l) #0 {
+	%a1 = call FP @llvm.fabsVEC(FP %a)
+	%a2 = fcmp olt FP %a1, %l
+	%a3 = select BOOL %a2, FP VAL_ZERO, FP %a
+	%a4 = call FP @llvm.copysignVEC(FP %a3, FP %a)
+	ret FP %a4
+}
+; def underflow(a, l):
+;   return if a < l then 0 else a
+
+define weak FP @overflow_NAME(FP %a, FP %l) #0 {
+	%a1 = call FP @llvm.fabsVEC(FP %a)
+	%a2 = fcmp olt FP %a1, %l
+	%a3 = select BOOL %a2, FP VAL_ZERO, FP %a
+	%a4 = call FP @llvm.copysignVEC(FP %a3, FP %a)
+	ret FP %a4
+}
+; def underflow(a, l):
+;   return if a > l then INFINITY else a
+
+define weak BOOL @tryadd_NAME(FP %a, FP %b) #0 {
 	%a1 = fmul FP %a, ADD_OFF
 	%b1 = fmul FP %b, ADD_OFF
 
@@ -34,8 +115,11 @@ define weak BOOL @tryadd_NAME(FP %a, FP %b) {
 	%t5 = or BOOL %t3, %t4
 	ret BOOL %t5
 }
+; def tryadd(a, b):
+;   t := fabs((a * ADD_OFF) + (b * ADD_OFF))
+;   return (t == 0.0) || (t >= ADD_CMP)
 
-define weak BOOL @trymul_NAME(FP %a, FP %b) {
+define weak BOOL @trymul_NAME(FP %a, FP %b) #0 {
 	%a2 = fmul FP %a, MUL_OFF
 
 	%t1 = fmul FP %a2, %b
@@ -44,6 +128,181 @@ define weak BOOL @trymul_NAME(FP %a, FP %b) {
 	%t4 = fcmp ueq FP %t2, VAL_ZERO
 	%t5 = or BOOL %t3, %t4
 	ret BOOL %t5
+}
+; def trymul(a, b):
+;   t := fabs((a * MUL_OFF) * b)
+;   return (t == 0.0) || (t >= MUL_CMP)
+
+define weak BOOL @trymul_fma_NAME(FP %a, FP %b) #0 {
+	%a2 = fmul FP %a, MUL_OFF
+
+	;%t1 = fmul FP %a2, %b
+	%t1 = call FP @llvm.fmaVEC(FP %a2, FP %b, FP FMA_ADD)
+	%t2 = call FP @llvm.fabsVEC(FP %t1)
+	%t3 = fcmp uge FP %t2, MUL_CMP
+	%t4 = fcmp ueq FP %t2, VAL_ZERO
+	%t5 = or BOOL %t3, %t4
+	ret BOOL %t5
+}
+; def trymul_fma(a, b):
+;   t := fabs(fma((a * MUL_OFF), b, FMA_ADD))
+;   return (t == 0.0) || (t >= MUL_CMP)
+
+define weak BOOL @trydiv_NAME(FP %a, FP %b) #0 {
+	%a2 = fmul FP %a, MUL_OFF
+
+	%t1 = tail call FP @ctfp_div_NAME(FP %a2, FP %b)
+	%t2 = call FP @llvm.fabsVEC(FP %t1)
+	%t3 = fcmp uge FP %t2, MUL_CMP
+	%t4 = fcmp ueq FP %t2, VAL_ZERO
+	%t5 = or BOOL %t3, %t4
+	ret BOOL %t5
+}
+; def trydiv(a, b):
+;   t := fabs((a * MUL_OFF) / b)
+;   return (t == 0.0) || (t >= MUL_CMP)
+
+define weak FP @getexp_NAME(FP %a) #0 {
+	%t1 = bitcast FP %a to INT
+	%t2 = and INT %t1, EXP_BITS
+	%t3 = bitcast INT %t2 to FP
+	ret FP %t3
+}
+; def getexp(a):
+;   return a & EXP_BITS
+
+define weak FP @getsig_NAME(FP %a) #0 {
+	%t1 = bitcast FP %a to INT
+	%t2 = and INT %t1, SIG_BITS
+	%t3 = bitcast FP VAL_ONE to INT
+	%t4 = or INT %t2, %t3
+	%t5 = bitcast INT %t4 to FP
+	ret FP %t5
+}
+; def getsig(a):
+;   return (a & SIG_BITS) | 1.0
+
+define weak {FP, FP, FP} @initdummy_NAME(FP %v) #0 {
+	%d1 = insertvalue {FP, FP, FP} undef, FP %v, 0
+	%d2 = insertvalue {FP, FP, FP} %d1, FP VAL_ZERO, 1
+	%d3 = insertvalue {FP, FP, FP} %d2, FP VAL_ZERO, 2
+	ret {FP, FP, FP} %d3
+}
+; def initdummy(v):
+;   return (v, 0, 0)
+
+define weak {FP, FP, FP} @setdummy_NAME(FP %m, FP %r, {FP, FP, FP} %d) #0 {
+	%dv = extractvalue {FP, FP, FP} %d, 0
+	%dm = extractvalue {FP, FP, FP} %d, 1
+	%dr = extractvalue {FP, FP, FP} %d, 2
+
+	%d2v = call FP @mask_NAME(FP %m, FP VAL_DUMMY, FP %dv)
+	%d2m = call FP @or_NAME(FP %m, FP %dm)
+	%d2r = call FP @mask_NAME(FP %m, FP %r, FP %dr)
+
+	%d1 = insertvalue {FP, FP, FP} undef, FP %d2v, 0
+	%d2 = insertvalue {FP, FP, FP} %d1, FP %d2m, 1
+	%d3 = insertvalue {FP, FP, FP} %d2, FP %d2r, 2
+
+	ret {FP, FP, FP} %d3
+}
+; def setdummy(m, r, (dv, dm, dr)):
+;   return (mask(m, 1.5, dv), m | dm, mask(m, r, dr))
+
+define weak {FP, FP, FP} @ifdummy_NAME(FP %c, {FP, FP, FP} %d) #0 {
+	%v = extractvalue {FP, FP, FP} %d, 0
+	%m = call FP @eq_NAME(FP %c, FP %v)
+	%r = call {FP, FP, FP} @setdummy_NAME(FP %m, FP %c, {FP, FP, FP} %d)
+	ret {FP, FP, FP} %r
+}
+; def ifdummy(c, (dv, dm, dr)):
+;   return setdummy((c == dv), c, d)
+
+define weak FP @applydummy_NAME(FP %v, {FP, FP, FP} %d) #0 {
+	%dm = extractvalue {FP, FP, FP} %d, 1
+	%dr = extractvalue {FP, FP, FP} %d, 2
+	%r = call FP @mask_NAME(FP %dm, FP %dr, FP %v)
+	ret FP %r
+}
+; def applydummy(v, (dv, dm, dr)):
+;   return mask(dm, dr, v)
+
+define weak FP @divbyparts_NAME(FP %a, FP %b) #0 {
+	%e = call FP @getexp_NAME(FP %b)
+	%s1 = call FP @getsig_NAME(FP %b)
+
+	%i1 = fdiv FP %a, %e
+	;%i1 = call FP @chkdiv_NAME(FP %a, FP %e, INT ONE)
+
+	%m1 = call FP @eq_NAME(FP %s1, FP VAL_ONE)
+	%s2 = call FP @mask_NAME(FP %m1, FP VAL_DUMMY, FP %s1)
+
+	%m2 = call FP @eq_NAME(FP %i1, FP VAL_INF)
+	%m3 = call FP @eq_NAME(FP %i1, FP VAL_ZERO)
+	%m4 = call FP @or_NAME(FP %m2, FP %m3)
+	%i2 = call FP @mask_NAME(FP %m4, FP VAL_DUMMY, FP %i1)
+
+	%t2 = fdiv FP %i2, %s2
+	;%t2 = call FP @chkdiv_NAME(FP %i2, FP %s2, INT ZERO)
+
+	%t3 = call FP @mask_NAME(FP %m1, FP %i1, FP %t2)
+	%t4 = call FP @mask_NAME(FP %m2, FP VAL_INF, FP %t3)
+	%t5 = call FP @mask_NAME(FP %m3, FP VAL_ZERO, FP %t4)
+
+	ret FP %t5
+}
+; def divbyparts(a, b):
+;   i1 := a / getexp(b)
+;   i2 := if ((i2 == Inf) || (i2 == 0.0)) then 1.5 else i1
+;   s1 := getsig(b)
+;   s2 := if (s1 == 1.0) then 1.5 else s1
+;   r1 := i2 / s2
+;   r2 := if (s1 == 1.0) then i2 else r1
+;   r3 := if (i2 == Inf) then Inf else r2
+;   r4 := if (i2 == 0.0) then 0.0 else r3
+;   return r4
+
+			declare void @dump_NAME(FP %v)
+
+define weak FP @divdummy_NAME(FP %a, FP %b) #0 {
+	%a0 = call FP @llvm.fabsVEC(FP %a)
+	%b0 = call FP @llvm.fabsVEC(FP %b)
+
+	%an = call FP @isnan_NAME(FP %a0)
+	%bn = call FP @isnan_NAME(FP %b0)
+
+	%ai = call FP @eq_NAME(FP %a0, FP VAL_INF)
+	%bi = call FP @eq_NAME(FP %b0, FP VAL_INF)
+
+	%az = call FP @eq_NAME(FP %a0, FP VAL_ZERO)
+	%bz = call FP @eq_NAME(FP %b0, FP VAL_ZERO)
+
+	%mn1 = call FP @and_NAME(FP %az, FP %bz)
+	%mn2 = call FP @and_NAME(FP %ai, FP %bi)
+	%mn3 = call FP @or_NAME(FP %an, FP %bn)
+	%mn4 = call FP @or_NAME(FP %mn1, FP %mn2)
+	%mn = call FP @or_NAME(FP %mn3, FP %mn4)
+
+	%mi = call FP @or_NAME(FP %ai, FP %bz)
+
+	%mz = call FP @or_NAME(FP %az, FP %bi)
+
+	%m1 = call FP @or_NAME(FP %mi, FP %mz)
+	%m2 = call FP @or_NAME(FP %m1, FP %mn)
+
+	%a1 = call FP @mask_NAME(FP %m2, FP VAL_DUMMY, FP %a0)
+	%b1 = call FP @mask_NAME(FP %m2, FP VAL_DUMMY, FP %b0)
+
+	%r1 = call FP @divbyparts_NAME(FP %a1, FP %b1)
+
+	%r2 = call FP @mask_NAME(FP %mz, FP VAL_ZERO, FP %r1)
+	%r3 = call FP @mask_NAME(FP %mi, FP VAL_INF, FP %r2)
+	%r4 = call FP @mask_NAME(FP %mn, FP VAL_NAN, FP %r3)
+
+	%sgn = call FP @xor_NAME(FP %a, FP %b)
+	%r5 = call FP @llvm.copysignVEC(FP %r4, FP %sgn)
+
+	ret FP %r5
 }
 
 ; add NAME
@@ -67,10 +326,10 @@ define weak FP @ctfp_add2_NAME(FP %a, FP %b) {
 
 	%t1 = call BOOL @tryadd_NAME(FP %a1, FP %b1)
 
-	%a2 = call FP @mask_NAME(BOOL %t1, FP %a1, FP VAL_ZERO)
+	%a2 = call FP @cond_NAME(BOOL %t1, FP %a1, FP VAL_ZERO)
 	%a3 = call FP @llvm.copysignVEC(FP %a2, FP %a)
 
-	%b2 = call FP @mask_NAME(BOOL %t1, FP %b1, FP VAL_ZERO)
+	%b2 = call FP @cond_NAME(BOOL %t1, FP %b1, FP VAL_ZERO)
 	%b3 = call FP @llvm.copysignVEC(FP %b2, FP %b)
 
 	%r = fadd FP %a3, %b3
@@ -181,10 +440,26 @@ define weak FP @ctfp_mul2_NAME(FP %a, FP %b) {
 
 	%t1 = call BOOL @trymul_NAME(FP %a1, FP %b1)
 
-	%a2 = call FP @mask_NAME(BOOL %t1, FP %a1, FP VAL_ZERO)
+	%a2 = call FP @cond_NAME(BOOL %t1, FP %a1, FP VAL_ZERO)
 	%a3 = call FP @llvm.copysignVEC(FP %a2, FP %a)
 
-	%b2 = call FP @mask_NAME(BOOL %t1, FP %b1, FP VAL_ZERO)
+	%b2 = call FP @cond_NAME(BOOL %t1, FP %b1, FP VAL_ZERO)
+	%b3 = call FP @llvm.copysignVEC(FP %b2, FP %b)
+
+	%r = fmul FP %a3, %b3
+	ret FP %r
+}
+
+define weak FP @ctfp_mul2_fma_NAME(FP %a, FP %b) {
+	%a1 = call FP @underflow_NAME(FP %a, FP NORM_MIN)
+	%b1 = call FP @underflow_NAME(FP %b, FP NORM_MIN)
+
+	%t1 = call BOOL @trymul_fma_NAME(FP %a1, FP %b1)
+
+	%a2 = call FP @cond_NAME(BOOL %t1, FP %a1, FP VAL_ZERO)
+	%a3 = call FP @llvm.copysignVEC(FP %a2, FP %a)
+
+	%b2 = call FP @cond_NAME(BOOL %t1, FP %b1, FP VAL_ZERO)
 	%b3 = call FP @llvm.copysignVEC(FP %b2, FP %b)
 
 	%r = fmul FP %a3, %b3
@@ -384,7 +659,7 @@ define weak FP @ctfp_div1_NAME(FP %a, FP %b) {
 	%b6 = select BOOL %b5, FP VAL_INF, FP %b4
 	%b7 = call FP @llvm.copysignVEC(FP %b6, FP %b)
 
-	%r = tail call FP @ctfp_div_NAME(FP %a7, FP %b7)
+	%r = tail call FP @divdummy_NAME(FP %a7, FP %b7)
 	ret FP %r
 }
 
@@ -402,7 +677,7 @@ define weak FP @ctfp_div2_NAME(FP %a, FP %b) {
 	%b6 = fcmp olt FP %b2, VAL_ONE
 	%b7 = select BOOL %b6, FP VAL_ONE, FP %b4
 
-	%t0 = tail call FP @ctfp_div_NAME(FP %a5, FP %b7)
+	%t0 = tail call FP @divdummy_NAME(FP %a5, FP %b7)
 
 	%t3 = call FP @llvm.fabsVEC(FP %t0)
 
@@ -419,7 +694,7 @@ define weak FP @ctfp_div2_NAME(FP %a, FP %b) {
 	%a9 = call FP @llvm.copysignVEC(FP %a8, FP %a)
 	%b8 = call FP @llvm.copysignVEC(FP %b4, FP %b)
 
-	%r = tail call FP @ctfp_div_NAME(FP %a9, FP %b8)
+	%r = tail call FP @divdummy_NAME(FP %a9, FP %b8)
 	ret FP %r
 }
 
@@ -512,5 +787,8 @@ define weak FP @ctfp_sqrt1_NAME(FP %a) {
 declare FP @llvm.sqrtVEC(FP %a)
 declare FP @llvm.fabsVEC(FP %a)
 declare FP @llvm.copysignVEC(FP %a, FP %b)
+declare FP @llvm.fmaVEC(FP %a, FP %b, FP %c)
+
+declare FP @chkdiv_NAME(FP %a, FP %b, INT %c)
 
 attributes #0 = { alwaysinline }

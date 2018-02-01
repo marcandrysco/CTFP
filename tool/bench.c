@@ -179,7 +179,7 @@ int main(int argc, char **argv)
 	//report_perf("escort div ", (run_bench(3, div_dbl_v, CNT, 1.4, NAN) - base), ref);
 	//printf("\n");
 
-	if(0) {
+	if(1) {
 	ref = run_bench(0, add_v, CNT, 1.4, 2.2) - base;
 	report_perf("ctfp1  add  ", (run_bench(1, add_v, CNT, 1.4, 2.3e-40) - base), ref);
 	report_perf("ctfp2  add  ", (run_bench(2, add_v, CNT, 1.4, 2.3e-40) - base), ref);

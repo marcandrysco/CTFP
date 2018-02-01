@@ -8,12 +8,97 @@
 #include <stdlib.h>
 
 
+/**
+ * Verify a float division is safe.
+ *   @a: The first operand.
+ *   @b: The second operand.
+ *   @pow2: Set to true for powers of two, false otherwise.
+ *   &returns: The division.
+ */
+float chkdiv_f1(float a, float b, int pow2)
+{
+	int e;
+
+	if(a == 0.0f)
+		printf("chkdiv(float) a = 0.0\n");
+	else if(a == INFINITY)
+		printf("chkdiv(float) a = inf\n");
+	else if(isnanf(a))
+		printf("chkdiv(float) a = nan\n");
+
+	if(b == 0.0f)
+		printf("chkdiv(float) b = 0.0\n");
+	else if(b == INFINITY)
+		printf("chkdiv(float) b = inf\n");
+	else if(isnanf(b))
+		printf("chkdiv(float) b = nan\n");
+	else if(pow2 && (frexpf(fabsf(b), &e) != 0.5f))
+		printf("chkdiv(float) b = !pow2\n");
+	else if(!pow2 && (frexpf(fabsf(b), &e) == 0.5f))
+		printf("chkdiv(float) b = pow2\n");
+
+	return a / b;
+}
+
+void dump_f1(float v)
+{
+	printf("dump: %g\n", v);
+}
+void dump_d1(double v)
+{
+	printf("dump: %g\n", v);
+}
+/**
+ * Verify a float division is safe.
+ *   @a: The first operand.
+ *   @b: The second operand.
+ *   @pow2: Set to true for powers of two, false otherwise.
+ *   &returns: The division.
+ */
+double chkdiv_d1(double a, double b, int pow2)
+{
+	int e;
+
+	if(a == 0.0)
+		printf("chkdiv(double) a = 0.0\n");
+	else if(a == INFINITY)
+		printf("chkdiv(double) a = inf\n");
+	else if(isnan(a))
+		printf("chkdiv(double) a = nan\n");
+
+	if(b == INFINITY)
+		printf("chkdiv(double) b = 0.0\n");
+	else if(b == INFINITY)
+		printf("chkdiv(double) b = inf\n");
+	else if(isnan(b))
+		printf("chkdiv(double) b = nan\n");
+	else if(pow2 && (frexp(fabs(b), &e) != 0.5))
+		printf("chkdiv(double) b = !pow2\n");
+	else if(!pow2 && (frexp(fabs(b), &e) == 0.5))
+		printf("chkdiv(double) b = pow2\n");
+
+	return a / b;
+}
+
+float getexp_f1(float);
+float getexp_d1(double);
+
+float getsig_f1(float);
+float getsig_d1(double);
+
+float divbyparts_f1(float, float);
+float divbyparts_d1(double, double);
+
+float divdummy_f1(float, float);
+float divdummy_d1(double, double);
+
 float ctfp_add1_f1(float, float);
 float ctfp_add2_f1(float, float);
 float ctfp_sub1_f1(float, float);
 float ctfp_sub2_f1(float, float);
 float ctfp_mul1_f1(float, float);
 float ctfp_mul2_f1(float, float);
+float ctfp_mul2_fma_f1(float, float);
 float ctfp_div1_f1(float, float);
 float ctfp_div2_f1(float, float);
 float ctfp_sqrt1_f1(float);
@@ -103,6 +188,35 @@ int main(int argc, char **argv)
 	memcpy(&u, &f, 4);
 	printf("%.16e %08x  (vs %.17e)\n", f, u, 0.0 / 0.0);
 	exit(1);
+	}
+
+	if(0) {
+		float a, b;
+
+		a = 1.3; b = 3.4;
+		printf("got: %g (expected: %g)\n", divdummy_f1(a, b), a / b);
+
+		a = 1.3; b = 2.0;
+		printf("got: %g (expected: %g)\n", divdummy_f1(a, b), a / b);
+
+		a = FLT_MIN; b = FLT_MAX;
+		printf("got: %g (expected: %g)\n", divdummy_f1(a, b), a / b);
+
+		a = FLT_MAX; b = FLT_MIN;
+		printf("got: %g (expected: %g)\n", divdummy_f1(a, b), a / b);
+
+		return 0;
+	}
+
+	if(0) {
+		float a, b;
+
+		a = 3.8f;
+		b = NAN;
+
+		printf("got: %g (expected: %g)\n", divdummy_f1(a, b), a / b);
+
+		return 0;
 	}
 
 	chk(ctfp_add1_f1(1.1f, 0.6f) == (1.1f + 0.6f));
@@ -199,6 +313,26 @@ int main(int argc, char **argv)
 
 		if(!isequal(ctfp_sqrt1_f1(flts[i]), sqrtf(flts[i])))
 			fprintf(stderr, "ctfp1_sqrt1_f1(%g)\n", flts[i]);
+	}
+
+	//if(!isequal(ctfp_mul2_f1(7.47473284e-38, 1.57262385e-01), FLT_MIN))
+		//fprintf(stderr, "ctfp1_add1_f1(%g,%g)\n", 7.47473284e-38, 1.57262385e-01);
+
+	//return 0;
+
+	float v;
+
+	for(v = 0.125f; v <= 0.25f; v = nextafterf(v, INFINITY)) {
+		float r, t;
+		
+		t = FLT_MIN / v;
+
+		r = t * v;
+		if(r < FLT_MIN)
+			r = 0.0f;
+
+		if(r != ctfp_mul2_fma_f1(t, v))
+			printf("ctfp_mul2_f1(%.8e,%.8e) = %.8e vs %.8e\n", t, v, ctfp_mul2_f1(t, v), r);
 	}
 
 	return 0;
