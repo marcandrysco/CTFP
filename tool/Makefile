@@ -21,7 +21,7 @@ ctfp-llvm.so: llvm.cpp Makefile ctfp.bc llvm.hpp.gch
 	clang++ -include llvm.hpp -shared -O2 -Wall -march=native -fpic $< -o $@ -std=gnu++11
 
 
-test: ctfp-test ctfp-bench ctfp-count
+test: ctfp-test
 
 ctfp-test: test.c ctfp.bc Makefile
 	clang test.c ctfp.bc -o ctfp-test -g -ffp-contract=off -lm -mcpu=$(CPU) -std=gnu11
@@ -56,6 +56,9 @@ ctfp-count: ctfp.s Makefile
 	cat $< | sed -n 's/^\s*[0-9a-f]*:\s*\([0-9a-f][0-9a-f] \)*\s*\([a-z]*\)\s.*/\2/p' | sort | uniq -c > $@
 
 
+bench: ctfp-bench ctfp-count
+
+
 run: all test
 	./ctfp-test
 	@#./ctfp-bench
@@ -64,7 +67,7 @@ run: all test
 	@#opt test.ll -load=./ctfp-llvm.so -ctfp -S -o=/dev/null
 
 
-.PHONY: all test run
+.PHONY: all test run bench
 
 
 MATH = \

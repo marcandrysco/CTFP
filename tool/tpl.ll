@@ -48,6 +48,24 @@ define weak FP @isnan_NAME(FP %a) #0 {
 ; def isnan(a):
 ;   return a != a
 
+define weak FP @isneg_NAME(FP %a) #0 {
+	%c = fcmp ult FP %a, VAL_ZERO
+	%i = select BOOL %c, INT ONES, INT ZERO
+	%f = bitcast INT %i to FP
+	ret FP %f
+}
+; def isneg(a):
+;   return (a < 0.0) || (a != a)
+
+define weak FP @ispow4_NAME(FP %a) #0 {
+	%i = bitcast FP %a to INT
+	%b = and INT %i, POW4_BITS
+	%c = icmp eq INT %b, ODDEXP_BITS
+	%m = select BOOL %c, INT ONES, INT ZERO
+	%f = bitcast INT %m to FP
+	ret FP %f
+}
+
 define weak FP @eq_NAME(FP %a, FP %b) #0 {
 	%c = fcmp oeq FP %a, %b
 	%i = select BOOL %c, INT ONES, INT ZERO
@@ -701,12 +719,54 @@ define weak FP @ctfp_div2_NAME(FP %a, FP %b) {
 
 ; sqrt NAME
 
+define weak FP @blindsqrt_NAME(FP %a) {
+	%m2 = bitcast INT ONE to FP
+	%m3 = call FP @ispow4_NAME(FP %a)
+	%m4 = call FP @and_NAME(FP %m2, FP %m3)
+	%m5 = call FP @not_NAME(FP %m4)
+
+	%a1 = call FP @or_NAME(FP %a, FP %m4)
+	%a2 = tail call FP @llvm.sqrtVEC(FP %a1)
+	;%a2 = tail call FP @chksqrt_NAME(FP %a1)
+	%a3 = call FP @and_NAME(FP %a2, FP %m5)
+
+	ret FP %a3
+}
+; def blindsqrt(a):
+;   t1 = if ispow4 then a | 1 else a
+;   t2 = sqrt t1
+;   t3 = if ispow4 then t2 & ~1 else t2
+;   return t3
+
 define weak FP @ctfp_sqrt0_NAME(FP %a) {
 	%r = tail call FP @llvm.sqrtVEC(FP %a)
 	ret FP %r
 }
 
 define weak FP @ctfp_sqrt1_NAME(FP %a) {
+	%a1 = call FP @underflow_NAME(FP %a, FP NORM_MIN)
+
+	%n = call FP @isneg_NAME(FP %a1)
+	%i = call FP @eq_NAME(FP %a1, FP VAL_INF)
+	%z = call FP @eq_NAME(FP %a1, FP VAL_ZERO)
+
+	%m1 = call FP @or_NAME(FP %n, FP %i)
+	%m2 = call FP @or_NAME(FP %m1, FP %z)
+
+	%a3 = call FP @mask_NAME(FP %m2, FP VAL_DUMMY, FP %a1)
+
+	%r1 = call FP @blindsqrt_NAME(FP %a3)
+
+	%r2 = call FP @mask_NAME(FP %z, FP VAL_ZERO, FP %r1)
+	%r3 = call FP @mask_NAME(FP %n, FP VAL_NAN, FP %r2)
+	%r4 = call FP @mask_NAME(FP %i, FP VAL_INF, FP %r3)
+	
+	%r5 = call FP @llvm.copysignVEC(FP %r4, FP %a)
+
+	ret FP %r5
+}
+
+define weak FP @ctfp_sqrt9_NAME(FP %a) {
 	; common constants
 	%one = bitcast FP VAL_ONE to INT
 	%inf = bitcast FP VAL_INF to INT
@@ -790,5 +850,6 @@ declare FP @llvm.copysignVEC(FP %a, FP %b)
 declare FP @llvm.fmaVEC(FP %a, FP %b, FP %c)
 
 declare FP @chkdiv_NAME(FP %a, FP %b, INT %c)
+declare FP @chksqrt_NAME(FP %a)
 
 attributes #0 = { alwaysinline }

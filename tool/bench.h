@@ -22,10 +22,14 @@
 enum op_e {
 	base_v,
 	add_v,
+	add_f4_v,
 	sub_v,
 	mul_v,
+	mul_f4_v,
 	div_v,
+	div_f4_v,
 	sqrt_v,
+	sqrt_f4_v,
 	add_dbl_v,
 	sub_dbl_v,
 	mul_dbl_v,
@@ -134,6 +138,25 @@ static inline float m_xor_f(float left, float right)
 	v3 = v1 ^ v2;
 
 	memcpy(&out, &v3, 4);
+
+	return out;
+}
+
+typedef float v2f __attribute__((vector_size(2*sizeof(float))));
+typedef float v4f __attribute__((vector_size(4*sizeof(float))));
+typedef uint32_t v4i32 __attribute__((vector_size(4*sizeof(uint32_t))));
+
+static inline v4f m_xor_4f(v4f left, v4f right)
+{
+	v4f out;
+	v4i32 v1, v2, v3;
+
+	memcpy(&v1, &left, sizeof(v4f));
+	memcpy(&v2, &right, sizeof(v4f));
+
+	v3 = v1 ^ v2;
+
+	memcpy(&out, &v3, sizeof(v4f));
 
 	return out;
 }

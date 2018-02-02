@@ -7,6 +7,39 @@
 #include <math.h>
 #include <stdlib.h>
 
+typedef float v2f __attribute__((vector_size(2*sizeof(float))));
+typedef float v4f __attribute__((vector_size(4*sizeof(float))));
+
+typedef float v2d __attribute__((vector_size(2*sizeof(double))));
+typedef float v4d __attribute__((vector_size(4*sizeof(double))));
+
+
+void dump_f1(float v)
+{
+	printf("dump: %g\n", v);
+}
+void dump_f2(v2f v)
+{
+	printf("dump: %g,%g\n", v[0], v[1]);
+}
+void dump_f4(v4f v)
+{
+	printf("dump: %g,%g,%g,%g\n", v[0], v[1], v[2], v[3]);
+}
+void dump_d1(double v)
+{
+	printf("dump: %g\n", v);
+}
+void dump_d2(v2d v)
+{
+	printf("dump: %g %g\n", v[0], v[1]);
+}
+void dump_d4(v4d v)
+{
+	printf("dump: %g %g %g %g\n", v[0], v[1], v[2], v[3]);
+}
+
+
 
 /**
  * Verify a float division is safe.
@@ -25,6 +58,8 @@ float chkdiv_f1(float a, float b, int pow2)
 		printf("chkdiv(float) a = inf\n");
 	else if(isnanf(a))
 		printf("chkdiv(float) a = nan\n");
+	else if(fabsf(a) < FLT_MIN)
+		printf("chkdiv(float) a = subnorm\n");
 
 	if(b == 0.0f)
 		printf("chkdiv(float) b = 0.0\n");
@@ -36,18 +71,28 @@ float chkdiv_f1(float a, float b, int pow2)
 		printf("chkdiv(float) b = !pow2\n");
 	else if(!pow2 && (frexpf(fabsf(b), &e) == 0.5f))
 		printf("chkdiv(float) b = pow2\n");
+	else if(fabsf(b) < FLT_MIN)
+		printf("chkdiv(float) b = subnorm\n");
 
 	return a / b;
 }
+v2f chkdiv_f2(v2f a, v2f b, int pow2)
+{
+	a[0] = chkdiv_f1(a[0], b[0], pow2);
+	a[1] = chkdiv_f1(a[1], b[1], pow2);
 
-void dump_f1(float v)
-{
-	printf("dump: %g\n", v);
+	return a;
 }
-void dump_d1(double v)
+v4f chkdiv_f4(v4f a, v4f b, int pow2)
 {
-	printf("dump: %g\n", v);
+	a[0] = chkdiv_f1(a[0], b[0], pow2);
+	a[1] = chkdiv_f1(a[1], b[1], pow2);
+	a[2] = chkdiv_f1(a[2], b[2], pow2);
+	a[3] = chkdiv_f1(a[3], b[3], pow2);
+
+	return a;
 }
+
 /**
  * Verify a float division is safe.
  *   @a: The first operand.
@@ -65,6 +110,8 @@ double chkdiv_d1(double a, double b, int pow2)
 		printf("chkdiv(double) a = inf\n");
 	else if(isnan(a))
 		printf("chkdiv(double) a = nan\n");
+	else if(fabs(a) < DBL_MIN)
+		printf("chkdiv(double) a = subnorm\n");
 
 	if(b == INFINITY)
 		printf("chkdiv(double) b = 0.0\n");
@@ -76,8 +123,76 @@ double chkdiv_d1(double a, double b, int pow2)
 		printf("chkdiv(double) b = !pow2\n");
 	else if(!pow2 && (frexp(fabs(b), &e) == 0.5))
 		printf("chkdiv(double) b = pow2\n");
+	else if(fabs(b) < DBL_MIN)
+		printf("chkdiv(double) b = subnorm\n");
 
 	return a / b;
+}
+
+/**
+ * Verify a float division is safe.
+ *   @a: The first operand.
+ *   @b: The second operand.
+ *   @pow2: Set to true for powers of two, false otherwise.
+ *   &returns: The division.
+ */
+float chksqrt_f1(float a)
+{
+	int e;
+
+	if(a == INFINITY)
+		printf("chksqrt(float) a = 0.0\n");
+	else if(a == INFINITY)
+		printf("chksqrt(float) a = inf\n");
+	else if(isnan(a))
+		printf("chksqrt(float) a = nan\n");
+	else if((frexpf(fabsf(a), &e) == 0.5) && (((e & 0x1) == 0x1)))
+		printf("chksqrt(float) a = !pow2\n");
+	else if(fabsf(a) < FLT_MIN)
+		printf("chksqrt(float) a = subnorm\n");
+
+	return sqrtf(a);
+}
+v2f chksqrt_f2(v2f a)
+{
+	a[0] = chksqrt_f1(a[0]);
+	a[1] = chksqrt_f1(a[1]);
+
+	return a;
+}
+v4f chksqrt_f4(v4f a)
+{
+	a[0] = chksqrt_f1(a[0]);
+	a[1] = chksqrt_f1(a[1]);
+	a[2] = chksqrt_f1(a[2]);
+	a[3] = chksqrt_f1(a[3]);
+
+	return a;
+}
+
+/**
+ * Verify a double division is safe.
+ *   @a: The first operand.
+ *   @b: The second operand.
+ *   @pow2: Set to true for powers of two, false otherwise.
+ *   &returns: The division.
+ */
+double chksqrt_d1(double a)
+{
+	int e;
+
+	if(a == INFINITY)
+		printf("chksqrt(double) a = 0.0\n");
+	else if(a == INFINITY)
+		printf("chksqrt(double) a = inf\n");
+	else if(isnan(a))
+		printf("chksqrt(double) a = nan\n");
+	else if((frexp(fabs(a), &e) == 0.5) && (((e & 0x1) == 0x1)))
+		printf("chksqrt(double) a = !pow2\n");
+	else if(fabs(a) < DBL_MIN)
+		printf("chksqrt(double) a = subnorm\n");
+
+	return sqrt(a);
 }
 
 float getexp_f1(float);
@@ -209,6 +324,15 @@ int main(int argc, char **argv)
 	}
 
 	if(0) {
+		float a;
+
+		a = INFINITY;
+		printf("got: %g (expected: %g)\n", ctfp_sqrt1_f1(a), sqrtf(a));
+
+		return 0;
+	}
+
+	if(0) {
 		float a, b;
 
 		a = 3.8f;
@@ -286,10 +410,10 @@ int main(int argc, char **argv)
 	chk(ctfp_sqrt1_f1(256.0f) == sqrtf(256.0f));
 	chk(ctfp_sqrt1_f1(512.0f) == sqrtf(512.0f));
 	chk(ctfp_sqrt1_f1(INFINITY) == sqrtf(INFINITY));
-	chk(isnanneg(ctfp_sqrt1_f1(-INFINITY)));
-	chk(isnanpos(ctfp_sqrt1_f1(NAN)));
-	chk(isnanneg(ctfp_sqrt1_f1(-NAN)));
-	chk(isnanneg(ctfp_sqrt1_f1(-1.0f)));
+	chk(isnan(ctfp_sqrt1_f1(-INFINITY)));
+	chk(isnan(ctfp_sqrt1_f1(NAN)));
+	chk(isnan(ctfp_sqrt1_f1(-NAN)));
+	chk(isnan(ctfp_sqrt1_f1(-1.0f)));
 
 	unsigned int i, j;
 	volatile float flts[] = { 0.0f, -0.0f, 1.0f, -1.0f, 2.3f, -2.3f, 1e-10, -1e-10, INFINITY, -INFINITY, NAN };
@@ -312,7 +436,7 @@ int main(int argc, char **argv)
 		}
 
 		if(!isequal(ctfp_sqrt1_f1(flts[i]), sqrtf(flts[i])))
-			fprintf(stderr, "ctfp1_sqrt1_f1(%g)\n", flts[i]);
+			fprintf(stderr, "ctfp1_sqrt1_f1(%g) %g vs %g\n", flts[i], ctfp_sqrt1_f1(flts[i]), sqrtf(flts[i]));
 	}
 
 	//if(!isequal(ctfp_mul2_f1(7.47473284e-38, 1.57262385e-01), FLT_MIN))
