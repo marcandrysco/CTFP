@@ -180,7 +180,6 @@ int main(int argc, char **argv)
 	//printf("\n");
 
 	if(1) {
-		/*
 	ref = run_bench(0, add_f1_v, CNT, 1.4, 2.2) - base;
 	report_perf("ctfp1  add  ", (run_bench(1, add_f1_v, CNT, 1.4, 2.3e-40) - base), ref);
 	report_perf("ctfp1  add4 ", (run_bench(1, add_f4_v, CNT, 1.4, 2.3e-40) - base), ref);
@@ -204,9 +203,10 @@ int main(int argc, char **argv)
 
 	ref = run_bench(0, sqrt_f1_v, CNT, 1.4, 2.2) - base;
 	report_perf("ctfp1  sqrt ", (run_bench(1, sqrt_f1_v, CNT, 2.3e-40) - base), ref);
+	report_perf("ctfp1  sqrt4", (run_bench(1, sqrt_f4_v, CNT, 2.3e-40) - base), ref);
 	report_perf("ctfp2  sqrt ", (run_bench(2, sqrt_f1_v, CNT, 2.3e-40) - base), ref);
+	report_perf("ctfp2  sqrt4", (run_bench(2, sqrt_f4_v, CNT, 2.3e-40) - base), ref);
 	report_perf("snorm  sqrt ", (run_bench(0, sqrt_f1_v, CNT, 2.3e-40) - base), ref);
-	*/
 
 	ref = run_bench(0, add_d1_v, CNT, 1.4, 2.2) - base;
 	report_perf("ctfp1  add  ", (run_bench(1, add_d1_v, CNT, 1.4, 2.3e-320) - base), ref);
@@ -231,7 +231,9 @@ int main(int argc, char **argv)
 
 	ref = run_bench(0, sqrt_d1_v, CNT, 1.4, 2.2) - base;
 	report_perf("ctfp1  sqrt ", (run_bench(1, sqrt_d1_v, CNT, 2.3e-320) - base), ref);
+	report_perf("ctfp1  sqrt2", (run_bench(1, sqrt_d2_v, CNT, 2.3e-320) - base), ref);
 	report_perf("ctfp2  sqrt ", (run_bench(2, sqrt_d1_v, CNT, 2.3e-320) - base), ref);
+	report_perf("ctfp2  sqrt2", (run_bench(2, sqrt_d2_v, CNT, 2.3e-320) - base), ref);
 	report_perf("snorm  sqrt ", (run_bench(0, sqrt_d1_v, CNT, 2.3e-320) - base), ref);
 
 	//report_perf("escort add ", (run_bench(3, add_f1_v, CNT, 1.4, 2.3e-40) - base), ref);

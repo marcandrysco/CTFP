@@ -42,6 +42,7 @@ bench.o: bench.c bench.h Makefile
 
 bench_ref.o: bench_tpl.c ctfp-llvm.so bench.h Makefile
 	clang -D BENCH=run_ref -O2 -g -O2 -c $< -o $@ -march=$(CPU) -ffast-math
+	objdump -d bench_ref.o -M intel > bench_ref.s
 
 bench_ctfp1.o: bench_tpl.c ctfp-llvm.so bench.h Makefile
 	CTFP_VER=1 CTFP_DIR=. clang -D BENCH=run_ctfp1 -fplugin=./ctfp-llvm.so -O2 -g -c $< -o $@ -march=$(CPU) -ffast-math

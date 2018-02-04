@@ -509,13 +509,6 @@ __attribute__((noinline)) static uint32_t sqrt_flt(void)
 	return end - begin;
 }
 
-static inline v4f sqrt4f(v4f v)
-{
-	__m128 *i = (__m128 *)&v;
-	*i = _mm_sqrt_ps(*i);
-
-	return v;
-}
 /**
  * Square root 4-floats.
  *   &returns: The execution time.
@@ -533,19 +526,21 @@ __attribute__((noinline)) static uint32_t sqrt_flt4(void)
 	begin = perf_begin();
 	asm volatile("" :: "x"(in1), "x"(out));
 
+#define C ,
 	DO_32(
-		out = sqrt4f(in1);
+		out = (v4f){ sqrtf(in1[0]) C sqrtf(in1[1]) C sqrtf(in1[2]) C sqrtf(in1[3]) };
 		in1 = m_xor_4f(m_xor_4f(out, res), in1);
 	)
+#undef C
 
 	asm volatile("" :: "x"(in1), "x"(out));
 	end = perf_end();
 	asm volatile("" :: "x"(in1), "x"(out));
 
-	sink = out[0];
-	sink = out[1];
-	sink = out[2];
-	sink = out[3];
+	sinkf = out[0];
+	sinkf = out[1];
+	sinkf = out[2];
+	sinkf = out[3];
 
 	return end - begin;
 }
@@ -580,6 +575,40 @@ __attribute__((noinline)) static uint32_t sqrt_dbl(void)
 	return end - begin;
 }
 
+/**
+ * Square root 2-doubles.
+ *   &returns: The execution time.
+ */
+__attribute__((noinline)) static uint32_t sqrt_dbl2(void)
+{
+	uint32_t idx;
+	v2d in1, in2, out, res;
+	uint32_t begin, end;
+
+	in1[0] = in1[1] = src1;
+	res[0] = res[1] = sqrt(src1);
+
+	asm volatile("" :: "x"(in1), "x"(out));
+	begin = perf_begin();
+	asm volatile("" :: "x"(in1), "x"(out));
+
+#define C ,
+	DO_32(
+		out = (v4f){ sqrt(in1[0]) C sqrt(in1[1]) };
+		in1 = m_xor_2d(m_xor_2d(out, res), in1);
+	)
+#undef C
+
+	asm volatile("" :: "x"(in1), "x"(out));
+	end = perf_end();
+	asm volatile("" :: "x"(in1), "x"(out));
+
+	sink = out[0];
+	sink = out[1];
+
+	return end - begin;
+}
+
 bench_f BENCH[op_n] = {
 	base,
 	add_flt,  add_flt4,
@@ -589,5 +618,5 @@ bench_f BENCH[op_n] = {
 	add_dbl,  add_dbl2,
 	mul_dbl,  mul_dbl2,
 	div_dbl,  div_dbl2,
-	sqrt_dbl
+	sqrt_dbl, sqrt_dbl2
 };
