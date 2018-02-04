@@ -10,31 +10,20 @@
 #include <string.h>
 
 
-/**
- * Operation enumerator.
- *   @base_v: Base measurement.
- *   @add_v: Addition.
- *   @sub_v: Subtraction.
- *   @mul_v: Multiplication.
- *   @div_v: Division.
- *   @sqrt_v: Square root.
+/*
+ * operation enumerator.
  */
 enum op_e {
 	base_v,
-	add_v,
-	add_f4_v,
-	sub_v,
-	mul_v,
-	mul_f4_v,
-	div_v,
-	div_f4_v,
-	sqrt_v,
-	sqrt_f4_v,
-	add_dbl_v,
-	sub_dbl_v,
-	mul_dbl_v,
-	div_dbl_v,
-	sqrt_dbl_v,
+	add_f1_v,  add_f4_v,
+	mul_f1_v,  mul_f4_v,
+	div_f1_v,  div_f4_v,
+	sqrt_f1_v, sqrt_f4_v,
+
+	add_d1_v,  add_d2_v,
+	mul_d1_v,  mul_d2_v,
+	div_d1_v,  div_d2_v,
+	sqrt_d1_v, sqrt_d2_v,
 	op_n
 };
 
@@ -74,7 +63,7 @@ static inline uint32_t perf_begin(void)
 		"mov %%edx, %1\n"
 		: "=r"(eax), "=r"(edx)
 		:
-		: "%rax", "%rbx", "%rcx", "%rdx"
+		: "%rax", "%rbx", "%rcx", "%rdx", "memory"
 	);
 
 	return eax;
@@ -94,7 +83,7 @@ static inline uint32_t perf_end(void)
 		"mov %%edx, %1\n"
 		: "=r" (eax), "=r"(edx)
 		:
-		: "%rax", "%rbx", "%rcx", "%rdx"
+		: "%rax", "%rbx", "%rcx", "%rdx", "memory"
 	);
 
 	return eax;
@@ -157,6 +146,24 @@ static inline v4f m_xor_4f(v4f left, v4f right)
 	v3 = v1 ^ v2;
 
 	memcpy(&out, &v3, sizeof(v4f));
+
+	return out;
+}
+
+typedef float v2d __attribute__((vector_size(2*sizeof(double))));
+typedef uint32_t v2i64 __attribute__((vector_size(2*sizeof(uint64_t))));
+
+static inline v2d m_xor_2d(v2d left, v2d right)
+{
+	v2d out;
+	v2i64 v1, v2, v3;
+
+	memcpy(&v1, &left, sizeof(v2d));
+	memcpy(&v2, &right, sizeof(v2d));
+
+	v3 = v1 ^ v2;
+
+	memcpy(&out, &v3, sizeof(v2d));
 
 	return out;
 }

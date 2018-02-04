@@ -9,7 +9,7 @@ ctfp.o: ctfp.bc Makefile
 	objdump -d ctfp.o -M intel > ctfp.s
 
 ctfp.bc: ctfp.ll Makefile
-	opt ctfp.ll -always-inline -early-cse -O3 -o ctfp.bc
+	opt ctfp.ll -always-inline -dce -o ctfp.bc
 	llvm-dis -o ctfp.bc.ll ctfp.bc
 
 ctfp.ll: gen.py tpl.ll Makefile
@@ -40,15 +40,15 @@ ctfp-bench: bench.o bench_ref.o bench_ctfp1.o bench_ctfp2.o bench_escort.o
 bench.o: bench.c bench.h Makefile
 	clang -c -g -O2 $< -o $@ -Wall -Werror
 
-bench_ref.o: bench_tpl.c bench.h Makefile
-	clang -D BENCH=run_ref -O2 -g -O2 -c $< -o $@ -march=$(CPU) -fno-fast-math
+bench_ref.o: bench_tpl.c ctfp-llvm.so bench.h Makefile
+	clang -D BENCH=run_ref -O2 -g -O2 -c $< -o $@ -march=$(CPU) -ffast-math
 
 bench_ctfp1.o: bench_tpl.c ctfp-llvm.so bench.h Makefile
-	CTFP_VER=1 CTFP_DIR=. clang -D BENCH=run_ctfp1 -fplugin=./ctfp-llvm.so -O3 -g -c $< -o $@ -march=$(CPU) -fno-fast-math
+	CTFP_VER=1 CTFP_DIR=. clang -D BENCH=run_ctfp1 -fplugin=./ctfp-llvm.so -O2 -g -c $< -o $@ -march=$(CPU) -ffast-math
 	objdump -d bench_ctfp1.o -M intel > bench_ctfp1.s
 
 bench_ctfp2.o: bench_tpl.c ctfp-llvm.so bench.h Makefile
-	CTFP_VER=2 CTFP_DIR=. clang -D BENCH=run_ctfp2 -fplugin=./ctfp-llvm.so -O3 -g -c $< -o $@ -march=$(CPU) -fno-fast-math
+	CTFP_VER=2 CTFP_DIR=. clang -D BENCH=run_ctfp2 -fplugin=./ctfp-llvm.so -O2 -g -c $< -o $@ -march=$(CPU) -ffast-math
 	objdump -d bench_ctfp2.o -M intel > bench_ctfp2.s
 
 bench_escort.o: bench_escort.c bench.h Makefile
