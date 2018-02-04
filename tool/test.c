@@ -308,17 +308,9 @@ int main(int argc, char **argv)
 	if(0) {
 		float a, b;
 
-		a = 1.3; b = 3.4;
-		printf("got: %g (expected: %g)\n", divdummy_f1(a, b), a / b);
-
-		a = 1.3; b = 2.0;
-		printf("got: %g (expected: %g)\n", divdummy_f1(a, b), a / b);
-
-		a = FLT_MIN; b = FLT_MAX;
-		printf("got: %g (expected: %g)\n", divdummy_f1(a, b), a / b);
-
-		a = FLT_MAX; b = FLT_MIN;
-		printf("got: %g (expected: %g)\n", divdummy_f1(a, b), a / b);
+		printf("%e\n", FLT_MIN);
+		a = 1.2e-38; b = 1.4f;
+		printf("got: %g (expected: %g)\n", ctfp_div2_f1(a, b), a / b);
 
 		return 0;
 	}
@@ -422,6 +414,8 @@ int main(int argc, char **argv)
 		for(j = 0; j < ARRLEN(flts); j++) {
 			if(!isequal(ctfp_add1_f1(flts[i], flts[j]), flts[i] + flts[j]))
 				fprintf(stderr, "ctfp1_add1_f1(%g,%g)\n", flts[i], flts[j]);
+			if(!isequal(ctfp_sub1_f1(flts[i], flts[j]), flts[i] - flts[j]))
+				fprintf(stderr, "ctfp1_sub1_f1(%g,%g)\n", flts[i], flts[j]);
 			if(!isequal(ctfp_mul1_f1(flts[i], flts[j]), flts[i] * flts[j]))
 				fprintf(stderr, "ctfp1_mul1_f1(%g,%g)\n", flts[i], flts[j]);
 			if(!isequal(ctfp_div1_f1(flts[i], flts[j]), flts[i] / flts[j]))
@@ -429,6 +423,8 @@ int main(int argc, char **argv)
 
 			if(!isequal(ctfp_add2_f1(flts[i], flts[j]), flts[i] + flts[j]))
 				fprintf(stderr, "ctfp1_add2_f1(%g,%g)\n", flts[i], flts[j]);
+			if(!isequal(ctfp_sub2_f1(flts[i], flts[j]), flts[i] - flts[j]))
+				fprintf(stderr, "ctfp1_sub2_f1(%g,%g)\n", flts[i], flts[j]);
 			if(!isequal(ctfp_mul2_f1(flts[i], flts[j]), flts[i] * flts[j]))
 				fprintf(stderr, "ctfp1_mul2_f1(%g,%g)\n", flts[i], flts[j]);
 			if(!isequal(ctfp_div2_f1(flts[i], flts[j]), flts[i] / flts[j]))
