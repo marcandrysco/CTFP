@@ -778,7 +778,15 @@ struct CTFP : public FunctionPass {
 				else if((strcmp(ver, "1") != 0) && (strcmp(ver, "2") != 0) && (strcmp(ver, "3") != 0))
 					fprintf(stderr, "Invalid CTFP version.\n"), abort();
 
-				sprintf(id, "ctfp_%s%s_%c%u", name.c_str(), ver, type, getwidth(inst->getType()));
+
+				unsigned int width = getwidth(inst->getType());
+				const char *extra = "";
+				if(type == 'f' && width == 1)
+					extra = "_f4";
+				else if(type == 'd' && width == 1)
+					extra = "_d2";
+
+				sprintf(id, "ctfp_%s%s_%c%u%s", name.c_str(), ver, type, width, extra);
 				insert(inst, id);
 			}
 		}

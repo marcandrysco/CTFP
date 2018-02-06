@@ -2,7 +2,7 @@ CPU=ivybridge
 #CPU=skylake
 #CPU=barcelona
 
-all: ctfp.o ctfp.ll ctfp.bc ctfp-llvm.so # ctfp-math-1.so ctfp-math-2.so
+all: ctfp.o ctfp.ll ctfp.bc ctfp-llvm.so ctfp-math-1.so ctfp-math-2.so
 
 ctfp.o: ctfp.bc Makefile
 	llc -O3 -mcpu=$(CPU) ctfp.bc -o ctfp.o -filetype=obj
@@ -12,7 +12,7 @@ ctfp.bc: ctfp.ll Makefile
 	opt ctfp.ll -always-inline -dce -o ctfp.bc
 	llvm-dis -o ctfp.bc.ll ctfp.bc
 
-ctfp.ll: gen.py tpl.ll Makefile
+ctfp.ll: gen.py tpl.ll extra.ll Makefile
 	./gen.py
 
 llvm.hpp.gch: llvm.hpp Makefile

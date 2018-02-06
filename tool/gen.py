@@ -82,7 +82,7 @@ def mktype(ty, width):
 outfile.write("target datalayout = \"e-m:e-i64:64-f80:128-n8:16:32:64-S128\"\n");
 outfile.write("target triple = \"x86_64-pc-linux-gnu\"\n");
 
-for width in [ 1, 2, 4 ]: #, 8, 16, 32 ]:
+for width in [ 1, 2, 4, 8, 16, 32 ]:
 	text = tpl
 
 	text = text.replace("FP", mktype("float", width))
@@ -121,7 +121,7 @@ for width in [ 1, 2, 4 ]: #, 8, 16, 32 ]:
 	outfile.write(text)
 
 
-for width in [ 1 ]: #, 2, 4, 8, 16 ]:
+for width in [ 1, 2, 4, 8, 16 ]:
 	text = tpl
 
 	text = text.replace("FP", mktype("double", width))
@@ -161,4 +161,9 @@ for width in [ 1 ]: #, 2, 4, 8, 16 ]:
 
 
 infile.close()
+
+infile = open("extra.ll", "r")
+outfile.write(infile.read())
+infile.close()
+
 outfile.close()

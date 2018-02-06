@@ -225,51 +225,6 @@ define weak FP @getsig_NAME(FP %a) #0 {
 ; def getsig(a):
 ;   return (a & SIG_BITS) | 1.0
 
-define weak {FP, FP, FP} @initdummy_NAME(FP %v) #0 {
-	%d1 = insertvalue {FP, FP, FP} undef, FP %v, 0
-	%d2 = insertvalue {FP, FP, FP} %d1, FP VAL_ZERO, 1
-	%d3 = insertvalue {FP, FP, FP} %d2, FP VAL_ZERO, 2
-	ret {FP, FP, FP} %d3
-}
-; def initdummy(v):
-;   return (v, 0, 0)
-
-define weak {FP, FP, FP} @setdummy_NAME(FP %m, FP %r, {FP, FP, FP} %d) #0 {
-	%dv = extractvalue {FP, FP, FP} %d, 0
-	%dm = extractvalue {FP, FP, FP} %d, 1
-	%dr = extractvalue {FP, FP, FP} %d, 2
-
-	%d2v = call FP @mask_NAME(FP %m, FP VAL_DUMMY, FP %dv)
-	%d2m = call FP @or_NAME(FP %m, FP %dm)
-	%d2r = call FP @mask_NAME(FP %m, FP %r, FP %dr)
-
-	%d1 = insertvalue {FP, FP, FP} undef, FP %d2v, 0
-	%d2 = insertvalue {FP, FP, FP} %d1, FP %d2m, 1
-	%d3 = insertvalue {FP, FP, FP} %d2, FP %d2r, 2
-
-	ret {FP, FP, FP} %d3
-}
-; def setdummy(m, r, (dv, dm, dr)):
-;   return (mask(m, 1.5, dv), m | dm, mask(m, r, dr))
-
-define weak {FP, FP, FP} @ifdummy_NAME(FP %c, {FP, FP, FP} %d) #0 {
-	%v = extractvalue {FP, FP, FP} %d, 0
-	%m = call FP @eq_NAME(FP %c, FP %v)
-	%r = call {FP, FP, FP} @setdummy_NAME(FP %m, FP %c, {FP, FP, FP} %d)
-	ret {FP, FP, FP} %r
-}
-; def ifdummy(c, (dv, dm, dr)):
-;   return setdummy((c == dv), c, d)
-
-define weak FP @applydummy_NAME(FP %v, {FP, FP, FP} %d) #0 {
-	%dm = extractvalue {FP, FP, FP} %d, 1
-	%dr = extractvalue {FP, FP, FP} %d, 2
-	%r = call FP @mask_NAME(FP %dm, FP %dr, FP %v)
-	ret FP %r
-}
-; def applydummy(v, (dv, dm, dr)):
-;   return mask(dm, dr, v)
-
 define weak FP @divbyparts_NAME(FP %a, FP %b) #0 {
 	%e = call FP @getexp_NAME(FP %b)
 	%s1 = call FP @getsig_NAME(FP %b)
@@ -409,12 +364,12 @@ define weak FP @sqrtdummy_NAME(FP %a) #0 {
 ;   res4 := if inf then INF else res3
 ;   return copysign(res4, a)
 
-define weak FP @ctfp_add0_NAME(FP %a, FP %b) {
+define weak FP @ctfp_add0_NAME(FP %a, FP %b) #0 {
 	%r = fadd FP %a, %b
 	ret FP %r
 }
 
-define weak FP @ctfp_add1_NAME(FP %a, FP %b) {
+define weak FP @ctfp_add1_NAME(FP %a, FP %b) #0 {
 	%a1 = call FP @underflow_NAME(FP %a, FP ADDMIN)
 	%b1 = call FP @underflow_NAME(FP %b, FP ADDMIN)
 
@@ -422,7 +377,7 @@ define weak FP @ctfp_add1_NAME(FP %a, FP %b) {
 	ret FP %r
 }
 
-define weak FP @ctfp_add2_NAME(FP %a, FP %b) {
+define weak FP @ctfp_add2_NAME(FP %a, FP %b) #0 {
 	%a1 = call FP @underflow_NAME(FP %a, FP NORM_MIN)
 	%b1 = call FP @underflow_NAME(FP %b, FP NORM_MIN)
 
@@ -438,7 +393,7 @@ define weak FP @ctfp_add2_NAME(FP %a, FP %b) {
 	ret FP %r
 }
 
-define weak FP @ctfp_add3_NAME(FP %a, FP %b) {
+define weak FP @ctfp_add3_NAME(FP %a, FP %b) #0 {
 	%a2 = call FP @llvm.fabsVEC(FP %a)
 	%a3 = fcmp olt FP %a2, NORM_MIN
 	%a4 = select BOOL %a3, FP VAL_ZERO, FP %a
@@ -474,12 +429,12 @@ define weak FP @ctfp_add3_NAME(FP %a, FP %b) {
 
 ; sub NAME
 
-define weak FP @ctfp_sub0_NAME(FP %a, FP %b) {
+define weak FP @ctfp_sub0_NAME(FP %a, FP %b) #0 {
 	%r = fsub FP %a, %b
 	ret FP %r
 }
 
-define weak FP @ctfp_sub1_NAME(FP %a, FP %b) {
+define weak FP @ctfp_sub1_NAME(FP %a, FP %b) #0 {
 	%a1 = call FP @underflow_NAME(FP %a, FP ADDMIN)
 	%b1 = call FP @underflow_NAME(FP %b, FP ADDMIN)
 
@@ -487,7 +442,7 @@ define weak FP @ctfp_sub1_NAME(FP %a, FP %b) {
 	ret FP %r
 }
 
-define weak FP @ctfp_sub2_NAME(FP %a, FP %b) {
+define weak FP @ctfp_sub2_NAME(FP %a, FP %b) #0 {
 	%a1 = call FP @underflow_NAME(FP %a, FP NORM_MIN)
 	%b1 = call FP @underflow_NAME(FP %b, FP NORM_MIN)
 
@@ -505,12 +460,12 @@ define weak FP @ctfp_sub2_NAME(FP %a, FP %b) {
 
 ; mul NAME
 
-define weak FP @ctfp_mul0_NAME(FP %a, FP %b) {
+define weak FP @ctfp_mul0_NAME(FP %a, FP %b) #0 {
 	%r = fmul FP %a, %b
 	ret FP %r
 }
 
-define weak FP @ctfp_mul1_NAME(FP %a, FP %b) {
+define weak FP @ctfp_mul1_NAME(FP %a, FP %b) #0 {
 	%a1 = call FP @underflow_NAME(FP %a, FP MULMIN)
 	%b1 = call FP @underflow_NAME(FP %b, FP MULMIN)
 
@@ -518,7 +473,7 @@ define weak FP @ctfp_mul1_NAME(FP %a, FP %b) {
 	ret FP %r
 }
 
-define weak FP @ctfp_mul2_NAME(FP %a, FP %b) {
+define weak FP @ctfp_mul2_NAME(FP %a, FP %b) #0 {
 	%a1 = call FP @underflow_NAME(FP %a, FP NORM_MIN)
 	%b1 = call FP @underflow_NAME(FP %b, FP NORM_MIN)
 
@@ -534,7 +489,7 @@ define weak FP @ctfp_mul2_NAME(FP %a, FP %b) {
 	ret FP %r
 }
 
-define weak FP @ctfp_mul2_fma_NAME(FP %a, FP %b) {
+define weak FP @ctfp_mul2_fma_NAME(FP %a, FP %b) #0 {
 	%a1 = call FP @underflow_NAME(FP %a, FP NORM_MIN)
 	%b1 = call FP @underflow_NAME(FP %b, FP NORM_MIN)
 
@@ -552,12 +507,12 @@ define weak FP @ctfp_mul2_fma_NAME(FP %a, FP %b) {
 
 ; div NAME
 
-define weak FP @ctfp_div0_NAME(FP %a, FP %b) {
+define weak FP @ctfp_div0_NAME(FP %a, FP %b) #0 {
 	%r = fdiv FP %a, %b
 	ret FP %r
 }
 
-define weak FP @ctfp_div1_NAME(FP %a, FP %b) {
+define weak FP @ctfp_div1_NAME(FP %a, FP %b) #0 {
 	%a1 = call FP @underflow_NAME(FP %a, FP MULMIN)
 	%b1 = call FP @overflow_NAME(FP %b, FP DIVMAX)
 
@@ -565,7 +520,7 @@ define weak FP @ctfp_div1_NAME(FP %a, FP %b) {
 	ret FP %r
 }
 
-define weak FP @ctfp_div2_NAME(FP %a, FP %b) {
+define weak FP @ctfp_div2_NAME(FP %a, FP %b) #0 {
 	%a1 = call FP @underflow_NAME(FP %a, FP NORM_MIN)
 	%b1 = call FP @underflow_NAME(FP %b, FP NORM_MIN)
 
@@ -584,12 +539,12 @@ define weak FP @ctfp_div2_NAME(FP %a, FP %b) {
 
 ; sqrt NAME
 
-define weak FP @ctfp_sqrt0_NAME(FP %a) {
+define weak FP @ctfp_sqrt0_NAME(FP %a) #0 {
 	%r = tail call FP @llvm.sqrtVEC(FP %a)
 	ret FP %r
 }
 
-define weak FP @ctfp_sqrt1_NAME(FP %a) {
+define weak FP @ctfp_sqrt1_NAME(FP %a) #0 {
 	%t = call FP @underflow_NAME(FP %a, FP NORM_MIN)
 	%r = call FP @sqrtdummy_NAME(FP %t)
 	ret FP %r
