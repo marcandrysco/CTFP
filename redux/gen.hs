@@ -10,6 +10,8 @@ main =
 
 data Expr
   = Arg     String
+  | Int     String
+  | Float   String
   | Not     (Expr)
   | Or      (Expr, Expr)
   | And     (Expr, Expr)
@@ -23,6 +25,9 @@ data Type
   | Double2
 
 type Env = (String, Int, Type)
+
+
+
 
 
 
@@ -92,7 +97,8 @@ tx @@ f = tx f
 
 restrict_ctfp_add :: FP2 -> FP1
 restrict_ctfp_add =
-  withUnderflow1 (Arg "A") @@
+  withUnderflow1 (Float "AddMin") @@
+  withUnderflow2 (Float "AddMin") @@
   Fadd
   -- withUnderflow1 9.86e-32
   -- @@ withUnderflow2 9.86e-32
@@ -164,9 +170,27 @@ ones (c, i, t) =
     Double1 -> "-1"
     Double2 -> "< i64 -1, i64 -1 >"
 
+floats :: Env -> String -> String
+floats (c, i, t) v =
+  case t of
+    Float1 -> v
+    Float2 -> "< float " ++ v ++ ", float " ++ v ++ " >"
+    Double1 -> v
+    Double2 -> "< double " ++ v ++ ", double " ++ v ++ " >"
+
+ints :: Env -> String -> String
+ints (c, i, t) v =
+  case t of
+    Float1 -> v
+    Float2 -> "< i32 " ++ v ++ ", i32 " ++ v ++ " >"
+    Double1 -> v
+    Double2 -> "< i64 " ++ v ++ ", i64 " ++ v ++ " >"
+
 -- convert an expression into a string
 tostr :: (Expr, Env) -> (String, Env)
 tostr (Arg s, e) = (s, e)
+tostr (Int s, e) = (ints e s, e)
+tostr (Float s, e) = (floats e s, e)
 tostr (Not a, e) = tostr_not(a, e);
 tostr (Or (l, r), e) = tostr_iop2("or", l, r, e);
 tostr (And (l, r), e) = tostr_iop2("and", l, r, e);
