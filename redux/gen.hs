@@ -1,3 +1,4 @@
+{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
 
 
 main = 
@@ -31,31 +32,28 @@ ite b x y = Or (And (b, x), And (Not b, y))
 ite2 :: Expr -> (Expr,Expr) -> (Expr,Expr) -> (Expr,Expr)
 ite2 b (x1,x2) (y1,y2) = (ite b x1 y1, ite b x2 y2)
 
-withBlind :: (Expr -> Expr)    -- ^ test
-          -> (Expr -> Expr)       -- ^ blinder
-          -> (Expr -> Expr -> Expr)  -- ^ fixer
-          -> (Expr -> Expr)       -- ^ operation
-          -> (Expr -> Expr)       -- ^ blinded-operation
-withBlind cond blind fix op v =
-  let b   = cond v
-      tmp = ite b (blind v) v
-      res = op tmp
-      out = ite b (fix v res) res
-  in
-      out
+class WithBlind e f | e -> f where
+  withBlind :: (e -> Expr)    -- ^ test
+            -> (e -> e)       -- ^ blinder
+            -> f              -- ^ fixer
+            -> (e -> Expr)    -- ^ operation
+            -> (e -> Expr)    -- ^ blinded-operation
 
-withBlind2 :: ((Expr,Expr) -> Expr)    -- ^ test
-           -> ((Expr,Expr) -> (Expr,Expr))       -- ^ blinder
-           -> (Expr -> Expr)  -- ^ fixer
-           -> ((Expr,Expr) -> Expr)       -- ^ operation
-           -> ((Expr,Expr) -> Expr)       -- ^ blinded-operation
-withBlind2 cond blind fix op v =
-  let b   = cond v
-      tmp = ite2 b (blind v) v
-      res = op tmp
-      out = ite b (fix res) res
-  in
-      out
+instance WithBlind Expr (Expr -> Expr -> Expr) where
+  withBlind cond blind fix op v =
+    let b   = cond v
+        tmp = ite b (blind v) v
+        res = op tmp
+        out = ite b (fix v res) res
+    in out
+
+instance WithBlind (Expr, Expr) (Expr -> Expr) where
+  withBlind cond blind fix op v =
+    let b   = cond v
+        tmp = ite2 b (blind v) v
+        res = op tmp
+        out = ite b (fix res) res
+    in out
 
 type FP1   = Expr
 type FP2   = (FP1, FP1)
@@ -72,7 +70,7 @@ withUnderflow lim =
 -- variants of the above for underflow on FIRST input
 withUnderflow1 :: FP1 -> (FP2 -> FP1) -> FP2 -> FP1
 withUnderflow1 lim =
-  withBlind2
+  withBlind
     (\(v,_) -> FcmpOLT(v, lim))
     (\(v, w) -> (v, w))
     (\r -> r)
@@ -80,7 +78,7 @@ withUnderflow1 lim =
 -- variants of the above for underflow on SECOND input
 withUnderflow2 :: FP1 -> (FP2 -> FP1) -> FP2 -> FP1
 withUnderflow2 lim =
-  withBlind2
+  withBlind
     (\(_,v) -> FcmpOLT(v, lim))
     (\(w,v) -> (w, v))
     (\r -> r)
