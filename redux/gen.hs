@@ -1,32 +1,47 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
 
 
+--debug = False
+debug = True
+
 prelude =
+  "target datalayout = \"e-m:e-i64:64-f80:128-n8:16:32:64-S128\"\n" ++
+  "target triple = \"x86_64-pc-linux-gnu\"\n" ++
+  "declare float @dbg_fadd_f32(float %a, float %b)\n" ++
+  "declare float @dbg_fdiv_f32(float %a, float %b)\n" ++
+  "" ++
+  "declare float @llvm.fabs.f32(float %a)\n" ++
   "declare < 2 x float > @llvm.fabs.v2f32(< 2 x float > %a)\n" ++
-  "declare < 4 x float > @llvm.fabs.v4f32(< 4 x float > %a)\n"
+  "declare < 4 x float > @llvm.fabs.v4f32(< 4 x float > %a)\n" ++
+  "declare double @llvm.fabs.f64(double %a)\n" ++
+  "declare < 2 x double > @llvm.fabs.v2f64(< 2 x double > %a)\n" ++
+  "" ++
+  "declare float @llvm.copysign.f32(float %a, float %b)\n" ++
+  "declare < 2 x float > @llvm.copysign.v2f32(< 2 x float > %a, < 2 x float > %b)\n" ++
+  "declare < 4 x float > @llvm.copysign.v4f32(< 4 x float > %a, < 4 x float > %b)\n" ++
+  "declare double @llvm.copysign.f64(double %a, double %b)\n" ++
+  "declare < 2 x double > @llvm.copysign.v2f64(< 2 x double > %a, < 2 x double > %b)\n" ++
+  "\n"
 
 main = 
-  let t = Float4 in 
-  let e = restrict_ctfp_add (Arg "a", Arg "b") in
-  --let e = Fadd(Arg "a", Float "1.0") in
-  --let e = Or (Arg "a", Arg "b") in
-  --let e = ite (FcmpOLT (Arg "a", Arg "b")) (Arg "a") (Arg "b") in
-  --let e = ite (FcmpOLT (Arg "a", Arg "b")) (Fadd (Arg "a", Arg "a")) (Fadd (Arg "a", Arg "a")) in
-  let (r,(c,_,_)) = tostr (e, ("", 1, t)) in
-  let f = env2flt ("",0,t) in
-    putStr $ prelude ++ "define weak " ++ f ++ " @func(" ++ f ++ " %a, " ++ f ++ " %b) {\n" ++ c ++ "ret " ++ f ++ " " ++ r ++ "\n}\n"
+    putStr $ prelude
+      ++ (gen_expr2 restrict_add Float1 "ctfp_restrict_add")
+      ++ (gen_expr2 restrict_div Float1 "ctfp_restrict_div")
 
 
 data Expr
   = Arg     String
-  | Int     String
+  | Int     (String, String)
   | Float   String
   | Not     (Expr)
   | Abs     (Expr)
   | Or      (Expr, Expr)
   | And     (Expr, Expr)
   | Fadd    (Expr, Expr)
+  | Fdiv    (Expr, Expr)
+  | FcmpOEQ (Expr, Expr)
   | FcmpOLT (Expr, Expr)
+  | CopySign (Expr, Expr)
   deriving Eq
 
 data Type
@@ -62,12 +77,12 @@ instance WithBlind Expr (Expr -> Expr -> Expr) where
         out = ite b (fix v res) res
     in out
 
-instance WithBlind (Expr, Expr) (Expr -> Expr) where
+instance WithBlind (Expr, Expr) ((Expr, Expr) -> Expr -> Expr) where
   withBlind cond blind fix op v =
     let b   = cond v
         tmp = ite2 b (blind v) v
         res = op tmp
-        out = ite b (fix res) res
+        out = ite b (fix v res) res
     in out
 
 type FP1   = Expr
@@ -75,28 +90,32 @@ type FP2   = (FP1, FP1)
 type UnOp  = FP1 -> FP1
 type BinOp = FP2 -> FP2
 
+
+-- underflow with one input
 withUnderflow :: FP1 -> (FP1 -> FP1) -> FP1 -> FP1
 withUnderflow lim =
   withBlind
     (\v -> FcmpOLT(Abs(v), lim))
     (\v -> Float "0.0")
-    (\_ r -> r)
+    (\v r -> CopySign(r, v))
 
--- variants of the above for underflow on FIRST input
+-- underflow only on the first input
 withUnderflow1 :: FP1 -> (FP2 -> FP1) -> FP2 -> FP1
 withUnderflow1 lim =
   withBlind
     (\(v,_) -> FcmpOLT(Abs(v), lim))
     (\(v, w) -> (Float "0.0", w))
-    (\r -> r)
+    (\v r -> r)
 
--- variants of the above for underflow on SECOND input
+-- underflow only on the second input
 withUnderflow2 :: FP1 -> (FP2 -> FP1) -> FP2 -> FP1
 withUnderflow2 lim =
   withBlind
     (\(_,v) -> FcmpOLT(v, lim))
     (\(w,v) -> (w, Float "0.0"))
-    (\r -> r)
+    (\_ r -> r)
+
+
 
 
 infixr 8 @@
@@ -105,15 +124,93 @@ infixr 8 @@
 tx @@ f = tx f
 
 
+-- ## HELPERS ## --
+
+-- extract the exponent component
+get_exp :: Expr -> Expr
+get_exp e =
+  And (e, Int ("0x7F800000", "0x7FF0000000000000") )
+
+-- extract the significand component
+get_sig :: Expr -> Expr
+get_sig e =
+  Or ( And (e, Int ("0x007FFFFF", "0x000FFFFFFFFFFFFF") ), Float "1.0" )
+
+
+
+-- ## STRATEGIES ## --
+
+{-
+with_dummy :: (a -> Bool)    -- ^ cond bad inputs
+           -> b              -- ^ output in case of bad input
+           -> a
+           -> (a -> b)
+           -> (a -> b)
+with_dummy badIn badOut safeIn op inp =
+  withBlind
+    badIn
+    (\_ -> safeIn)
+    (\_ _ -> copySign inp badOut)
+    op
+    inp
+-}
+
+with_dummy1 :: FP1 -> FP1 -> FP1 -> (FP2 -> FP1) -> FP2 -> FP1
+with_dummy1 badIn badOut safeIn op (v1, v2) =
+  withBlind
+    (\(v,w) -> FcmpOEQ (v, badIn))
+    (\(v,w) -> (safeIn, w))
+    (\_ _ -> CopySign(badOut, v1))
+    op
+    (v1, v2)
+
+with_dummy' :: FP2 -> FP1 -> FP1 -> (FP2 -> FP1) -> FP2 -> FP1
+with_dummy' badIn badOut safeIn op (v1, v2) =
+  withBlind
+    (\(v,w) -> And(FcmpOEQ (v, fst badIn), FcmpOEQ (w, snd badIn)))
+    (\(v,w) -> (safeIn, w))
+    (\_ _ -> badOut)
+    op
+    (v1, v2)
+
+
+-- divide only by the exponent component of the inputs
+div_exp :: (FP2 -> FP1) -> FP2 -> FP1
+div_exp =
+  withBlind
+    (\_ -> (Int ("-1","-1")))
+    (\(w,v) -> (Fdiv(w, get_exp v), get_sig v))
+    --(\(w,v) -> (w, get_exp(v)))
+    (\v r -> r)
+
+
+-- values
+val_zero = Float "0.0"
+val_dummy = Float "1.5"
+val_nan = Int ("0x7FC00000", "0x7FF8000000000000")
+val_inf = Int ("0x7F800000", "0x7FF0000000000000")
+
 -- constants
 addmin = "9.8607613152626476e-32"
 
 
-restrict_ctfp_add :: FP2 -> FP1
-restrict_ctfp_add =
+-- ## RESTRICT ## --
+
+-- addition
+restrict_add :: FP2 -> FP1
+restrict_add =
   withUnderflow1 (Float addmin) @@
   withUnderflow2 (Float addmin) @@
   Fadd
+
+
+-- division
+restrict_div :: FP2 -> FP1
+restrict_div =
+  with_dummy' (val_zero, val_zero) val_nan val_dummy @@
+  with_dummy' (val_inf, val_inf) val_nan val_dummy @@
+  div_exp @@
+  Fdiv
 
 
 -- allocate a register from the environment
@@ -137,26 +234,6 @@ getcode :: Env -> String
 getcode (c, i, t) = c
 
 
--- create an integer values of all zeros
-zeros :: Env -> String
-zeros (c, i, t) =
-  case t of
-    Float1 -> "0"
-    Float2 -> "< i32 0, i32 0 >"
-    Float4 -> "< i32 0, i32 0, i32 0, i32 0 >"
-    Double1 -> "0"
-    Double2 -> "< i64 0, i64 0 >"
-
--- create an integer values of all ones
-ones :: Env -> String
-ones (c, i, t) =
-  case t of
-    Float1 -> "-1"
-    Float2 -> "< i32 -1, i32 -1 >"
-    Float4 -> "< i32 -1, i32 -1, i32 -1, i32 -1 >"
-    Double1 -> "-1"
-    Double2 -> "< i64 -1, i64 -1 >"
-
 floats :: Env -> String -> String
 floats (c, i, t) v =
   case t of
@@ -175,6 +252,27 @@ ints (c, i, t) v =
     Double1 -> v
     Double2 -> "< i64 " ++ v ++ ", i64 " ++ v ++ " >"
 
+
+-- create an integer values of all ones
+ones :: Env -> String
+ones e = ints e "-1"
+
+-- create an integer values of all zeros
+zeros :: Env -> String
+zeros e = ints e "0"
+
+
+-- select a string using the type
+type2sel :: Type -> (String, String) -> String
+type2sel Float1 p = fst p
+type2sel Float2 p = fst p
+type2sel Float4 p = fst p
+type2sel Double1 p = snd p
+type2sel Double2 p = snd p
+
+-- select a string using the environment
+env2sel :: Env -> (String, String) -> String
+env2sel (_,_,t) p = type2sel t p
 
 -- convert a type to the floating-point type string
 type2flt :: Type -> String
@@ -228,14 +326,34 @@ env2vec (_,_,t) = type2vec t
 -- convert an expression into a string
 tostr :: (Expr, Env) -> (String, Env)
 tostr (Arg s, e) = ("%"++s, e)
-tostr (Int s, e) = (ints e s, e)
+tostr (Int p, e) = gen_int (env2sel e p, e)
 tostr (Float s, e) = (floats e s, e)
 tostr (Not a, e) = tostr_not(a, e);
 tostr (Abs a, e) = tostr_call1("llvm.fabs." ++ (env2vec e), a, e);
 tostr (Or (l, r), e) = tostr_iop2("or", l, r, e);
 tostr (And (l, r), e) = tostr_iop2("and", l, r, e);
 tostr (Fadd (l, r), e) = tostr_fop2("fadd", l, r, e);
+tostr (Fdiv (l, r), e) = tostr_fop2("fdiv", l, r, e);
 tostr (FcmpOLT (a, b), e) = tostr_fcmp("fcmp olt", a, b, e);
+tostr (FcmpOEQ (a, b), e) = tostr_fcmp("fcmp oeq", a, b, e);
+tostr (CopySign (a, b), e) = gen_call2("llvm.copysign." ++ (env2vec e), a, b, e);
+
+
+
+gen_expr2 :: ((Expr, Expr) -> Expr) -> Type -> String -> String
+gen_expr2 f t n =
+  let e = f (Arg "a", Arg "b") in
+  let (r,(c,_,_)) = tostr (e, ("", 1, t)) in
+  let f = env2flt ("",0,t) in
+    "define weak " ++ f ++ " @" ++ n ++ "(" ++ f ++ " %a, " ++ f ++ " %b) {\n" ++ c ++ "ret " ++ f ++ " " ++ r ++ "\n}\n"
+
+-- generate an integer constant
+gen_int :: (String, Env) -> (String, Env)
+gen_int (i, e) =
+  let (e',n) = alloc e in
+  let s = n++" = bitcast "++(env2int e)++" "++(show (read i::Int))++" to "++(env2flt e)++"\n" in
+    (n, addcode e' s)
+
 
 tostr_not :: (Expr, Env) -> (String, Env)
 tostr_not (a, e) =
@@ -260,11 +378,14 @@ tostr_iop2 (o, a, b, e) =
 -- create a two-operand floating-point operation
 tostr_fop2 :: (String, Expr, Expr, Env) -> (String, Env)
 tostr_fop2 (o, a, b, e) =
-  let (ra,e1) = tostr (a, e) in
-  let (rb,e2) = tostr (b, e1) in
-  let (e3,r) = alloc e2 in
-  let s = r++" = "++o++" "++(env2flt e)++" "++ra++", "++rb++"\n" in
-    (r, addcode e3 s)
+  if debug
+    then gen_call2("dbg_"++o++"_"++(env2vec e), a, b, e)
+    else
+      let (ra,e1) = tostr (a, e) in
+      let (rb,e2) = tostr (b, e1) in
+      let (e3,r) = alloc e2 in
+      let s = r++" = "++o++" "++(env2flt e)++" "++ra++", "++rb++"\n" in
+        (r, addcode e3 s)
 
 -- create a function call with one argument
 tostr_call1 :: (String, Expr, Env) -> (String, Env)
@@ -273,6 +394,15 @@ tostr_call1 (f, a, e) =
   let (e'',r) = alloc e' in
   let s = r++" = call "++(env2flt e)++" @"++f++"("++(env2flt e)++" "++ra++")\n" in
     (r, addcode e'' s)
+
+-- create a function call with one argument
+gen_call2 :: (String, Expr, Expr, Env) -> (String, Env)
+gen_call2 (f, a, b, e) =
+  let (ra,e') = tostr (a, e) in
+  let (rb,e'') = tostr (b, e') in
+  let (e''',r) = alloc e'' in
+  let s = r++" = call "++(env2flt e)++" @"++f++"("++(env2flt e)++" "++ra++", "++(env2flt e)++" "++rb++")\n" in
+    (r, addcode e''' s)
 
 tostr_fcmp :: (String, Expr, Expr, Env) -> (String, Env)
 tostr_fcmp (o, a, b, e) =

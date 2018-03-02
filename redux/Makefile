@@ -2,9 +2,16 @@ CPU=ivybridge
 #CPU=skylake
 #CPU=barcelona
 
-all: run
+all: ctfp.ll
 
-run: gen.hs Makefile
-	runghc $< | tee ctfp.ll
-	llc -O3 -mcpu=$(CPU) ctfp.ll -o ctfp.o -filetype=obj
+ctfp.ll: gen.hs Makefile
+	runghc $< > ctfp.ll
+	opt -early-cse ctfp.ll > ctfp.bc
+	llc -O3 -mcpu=$(CPU) ctfp.bc -o ctfp.o -filetype=obj
 	objdump -d ctfp.o -M intel > ctfp.s
+
+
+run: all
+	clang test.c ctfp.ll -o test
+	./test
+
