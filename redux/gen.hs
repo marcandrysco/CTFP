@@ -24,9 +24,13 @@ prelude =
   "\n"
 
 main = 
-    putStr $ prelude
-      ++ (gen_expr2 restrict_add Float1 "ctfp_restrict_add")
-      ++ (gen_expr2 restrict_div Float1 "ctfp_restrict_div")
+  do putStr prelude
+     gen_func restrict_add Float1 "ctfp_restrict_add"
+     gen_func restrict_div Float1 "ctfp_restrict_div"
+     putStr "\n"
+    --putStr $ prelude
+      -- ++ (gen_expr2 restrict_add Float1 "ctfp_restrict_add")
+      -- ++ (gen_expr2 restrict_div Float1 "ctfp_restrict_div")
 
 
 data Expr
@@ -140,21 +144,6 @@ get_sig e =
 
 -- ## STRATEGIES ## --
 
-{-
-with_dummy :: (a -> Bool)    -- ^ cond bad inputs
-           -> b              -- ^ output in case of bad input
-           -> a
-           -> (a -> b)
-           -> (a -> b)
-with_dummy badIn badOut safeIn op inp =
-  withBlind
-    badIn
-    (\_ -> safeIn)
-    (\_ _ -> copySign inp badOut)
-    op
-    inp
--}
-
 with_dummy1 :: FP1 -> FP1 -> FP1 -> (FP2 -> FP1) -> FP2 -> FP1
 with_dummy1 badIn badOut safeIn op (v1, v2) =
   withBlind
@@ -164,28 +153,38 @@ with_dummy1 badIn badOut safeIn op (v1, v2) =
     op
     (v1, v2)
 
+-- compare and replace both inputs if matching the bad input
 with_dummy' :: FP2 -> FP1 -> FP1 -> (FP2 -> FP1) -> FP2 -> FP1
 with_dummy' badIn badOut safeIn op (v1, v2) =
   withBlind
     (\(v,w) -> And(FcmpOEQ (v, fst badIn), FcmpOEQ (w, snd badIn)))
-    (\(v,w) -> (safeIn, w))
+    (\(v,w) -> (safeIn, safeIn))
     (\_ _ -> badOut)
     op
     (v1, v2)
-
 
 -- divide only by the exponent component of the inputs
 div_exp :: (FP2 -> FP1) -> FP2 -> FP1
 div_exp =
   withBlind
-    (\_ -> (Int ("-1","-1")))
+    (\_ -> val_true)
     (\(w,v) -> (Fdiv(w, get_exp v), get_sig v))
     --(\(w,v) -> (w, get_exp(v)))
     (\v r -> r)
 
+div_noop op (a, b) =
+  withBlind
+    (\(u,v) -> FcmpOEQ(v, val_one))
+    (\_ -> (val_dummy, val_dummy))
+    (\_ _ -> a)
+    op
+    (a, b)
 
 -- values
+val_true = Int ("-1", "-1")
+val_false = Int ("0", "0")
 val_zero = Float "0.0"
+val_one = Float "1.0"
 val_dummy = Float "1.5"
 val_nan = Int ("0x7FC00000", "0x7FF8000000000000")
 val_inf = Int ("0x7F800000", "0x7FF0000000000000")
@@ -210,6 +209,7 @@ restrict_div =
   with_dummy' (val_zero, val_zero) val_nan val_dummy @@
   with_dummy' (val_inf, val_inf) val_nan val_dummy @@
   div_exp @@
+  div_noop @@
   Fdiv
 
 
@@ -338,6 +338,96 @@ tostr (FcmpOLT (a, b), e) = tostr_fcmp("fcmp olt", a, b, e);
 tostr (FcmpOEQ (a, b), e) = tostr_fcmp("fcmp oeq", a, b, e);
 tostr (CopySign (a, b), e) = gen_call2("llvm.copysign." ++ (env2vec e), a, b, e);
 
+
+-- generate the code for a function
+gen_func :: ((Expr, Expr) -> Expr) -> Type -> String -> IO ()
+gen_func f t n = 
+  let ty = type2flt t in
+    do
+       putStr $ "define weak " ++ ty ++ " @" ++ n ++ "(" ++ ty ++ " %a, " ++ ty ++ " %b) {\n"
+       (r,_) <- gen_expr (f (Arg "a", Arg "b"), ("", 1, t))
+       putStr $ "ret " ++ ty ++ " " ++ r ++ "\n}\n"
+
+-- generate code for an arbitrary expression
+gen_expr :: (Expr, Env) -> IO (String, Env)
+gen_expr (Arg s, env) = return ("%" ++ s, env)
+gen_expr (Int val, env) = gen2_int (env2sel env val, env)
+gen_expr (Float val, env) = return (floats env val, env)
+gen_expr (Not a, env) = gen_not (a, env)
+gen_expr (Abs a, env) = gen_call1("llvm.fabs." ++ (env2vec env), a, env);
+gen_expr (Or (a, b), env) = gen_iop2 ("or", a, b, env)
+gen_expr (And (a, b), env) = gen_iop2 ("and", a, b, env)
+gen_expr (Fadd (a, b), env) = gen_fop2 ("fadd", a, b, env)
+gen_expr (Fdiv (a, b), env) = gen_fop2 ("fdiv", a, b, env)
+gen_expr (FcmpOLT (a, b), env) = gen_fcmp ("fcmp olt", a, b, env)
+gen_expr (FcmpOEQ (a, b), env) = gen_fcmp ("fcmp oeq", a, b, env)
+gen_expr (CopySign (a, b), env) = gen2_call2("llvm.copysign." ++ (env2vec env), a, b, env);
+
+-- generate an integer constant
+gen2_int :: (String, Env) -> IO (String, Env)
+gen2_int (int, env) =
+  let (env',r) = alloc env in
+    do putStr $ r++" = bitcast "++(env2int env')++" "++(show (read int::Int))++" to "++(env2flt env')++"\n"
+       return (r, env')
+
+-- generate a bitwise not
+gen_not :: (Expr, Env) -> IO (String, Env)
+gen_not (a, env) =
+  do (ra, env) <- gen_expr (a, env)
+     let (env',[ra',rt,ro]) = allocs env 3 in
+       do putStr $ ra'++" = bitcast "++(env2flt env')++" "++ra++" to "++(env2int env')++"\n"
+          putStr $ rt++" = xor "++(env2int env')++" "++ra'++", "++(ones env')++"\n"
+          putStr $ ro++" = bitcast "++(env2int env')++" "++rt++" to "++(env2flt env')++"\n"
+          return (ro, env')
+
+-- generate code for a two-operand integer operation
+gen_iop2 :: (String, Expr, Expr, Env) -> IO (String, Env)
+gen_iop2 (op, a, b, env) =
+  do (ra, env) <- gen_expr (a, env)
+     (rb, env) <- gen_expr (b, env)
+     let (env',[ra',rb',rt,ro]) = allocs env 4 in
+       do putStr $ ra'++" = bitcast "++(env2flt env)++" "++ra++" to "++(env2int env)++"\n"
+          putStr $ rb'++" = bitcast "++(env2flt env)++" "++rb++" to "++(env2int env)++"\n"
+          putStr $ rt++" = "++op++" "++(env2int env)++" "++ra'++", "++rb'++"\n"
+          putStr $ ro++" = bitcast "++(env2int env)++" "++rt++" to "++(env2flt env)++"\n"
+          return (ro, env')
+
+-- generate code for a two-operand floating-point operation
+gen_fop2 :: (String, Expr, Expr, Env) -> IO (String, Env)
+gen_fop2 (op, a, b, env) =
+  do (ra, env) <- gen_expr (a, env)
+     (rb, env) <- gen_expr (b, env)
+     let (env',ro) = alloc env in
+       do putStr $ ro++" = "++op++" "++(env2flt env)++" "++ra++", "++rb++"\n"
+          return (ro, env')
+
+-- generate code for a floating-point comparison
+gen_fcmp :: (String, Expr, Expr, Env) -> IO (String, Env)
+gen_fcmp (cmp, a, b, env) =
+  do (ra, env) <- gen_expr (a, env)
+     (rb, env) <- gen_expr (b, env)
+     let (env', [rt,rs,ro]) = allocs env 3 in
+       do putStr $ rt++" = "++cmp++" "++(env2flt env')++" "++ra++", "++rb++"\n"
+          putStr $ rs++" = select "++(env2bool env')++" "++rt++", "++(env2int env')++" "++(ones env')++", "++(env2int env')++" "++(zeros env')++"\n"
+          putStr $ ro++" = bitcast "++(env2int env')++" "++rs++" to "++(env2flt env')++"\n"
+          return (ro, env')
+
+-- create a function call with one argument
+gen_call1 :: (String, Expr, Env) -> IO (String, Env)
+gen_call1 (fn, a, env) =
+  do (ra, env) <- gen_expr (a, env)
+     let (env', r) = alloc env in
+       do putStr $ r++" = call "++(env2flt env')++" @"++fn++"("++(env2flt env')++" "++ra++")\n"
+          return (r, env')
+
+-- create a function call with one argument
+gen2_call2 :: (String, Expr, Expr, Env) -> IO (String, Env)
+gen2_call2 (fn, a, b, env) =
+  do (ra, env) <- gen_expr (a, env)
+     (rb, env) <- gen_expr (b, env)
+     let (env', r) = alloc env in
+       do putStr $ r++" = call "++(env2flt env')++" @"++fn++"("++(env2flt env')++" "++ra++", "++(env2flt env')++" "++rb++")\n"
+          return (r, env')
 
 
 gen_expr2 :: ((Expr, Expr) -> Expr) -> Type -> String -> String
