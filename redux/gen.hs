@@ -323,22 +323,6 @@ env2vec :: Env -> String
 env2vec (_,_,t) = type2vec t
 
 
--- convert an expression into a string
-tostr :: (Expr, Env) -> (String, Env)
-tostr (Arg s, e) = ("%"++s, e)
-tostr (Int p, e) = gen_int (env2sel e p, e)
-tostr (Float s, e) = (floats e s, e)
-tostr (Not a, e) = tostr_not(a, e);
-tostr (Abs a, e) = tostr_call1("llvm.fabs." ++ (env2vec e), a, e);
-tostr (Or (l, r), e) = tostr_iop2("or", l, r, e);
-tostr (And (l, r), e) = tostr_iop2("and", l, r, e);
-tostr (Fadd (l, r), e) = tostr_fop2("fadd", l, r, e);
-tostr (Fdiv (l, r), e) = tostr_fop2("fdiv", l, r, e);
-tostr (FcmpOLT (a, b), e) = tostr_fcmp("fcmp olt", a, b, e);
-tostr (FcmpOEQ (a, b), e) = tostr_fcmp("fcmp oeq", a, b, e);
-tostr (CopySign (a, b), e) = gen_call2("llvm.copysign." ++ (env2vec e), a, b, e);
-
-
 -- generate the code for a function
 gen_func :: ((Expr, Expr) -> Expr) -> Type -> String -> IO ()
 gen_func f t n = 
@@ -351,7 +335,7 @@ gen_func f t n =
 -- generate code for an arbitrary expression
 gen_expr :: (Expr, Env) -> IO (String, Env)
 gen_expr (Arg s, env) = return ("%" ++ s, env)
-gen_expr (Int val, env) = gen2_int (env2sel env val, env)
+gen_expr (Int val, env) = gen_int (env2sel env val, env)
 gen_expr (Float val, env) = return (floats env val, env)
 gen_expr (Not a, env) = gen_not (a, env)
 gen_expr (Abs a, env) = gen_call1("llvm.fabs." ++ (env2vec env), a, env);
@@ -361,11 +345,11 @@ gen_expr (Fadd (a, b), env) = gen_fop2 ("fadd", a, b, env)
 gen_expr (Fdiv (a, b), env) = gen_fop2 ("fdiv", a, b, env)
 gen_expr (FcmpOLT (a, b), env) = gen_fcmp ("fcmp olt", a, b, env)
 gen_expr (FcmpOEQ (a, b), env) = gen_fcmp ("fcmp oeq", a, b, env)
-gen_expr (CopySign (a, b), env) = gen2_call2("llvm.copysign." ++ (env2vec env), a, b, env);
+gen_expr (CopySign (a, b), env) = gen_call2("llvm.copysign." ++ (env2vec env), a, b, env);
 
 -- generate an integer constant
-gen2_int :: (String, Env) -> IO (String, Env)
-gen2_int (int, env) =
+gen_int :: (String, Env) -> IO (String, Env)
+gen_int (int, env) =
   let (env',r) = alloc env in
     do putStr $ r++" = bitcast "++(env2int env')++" "++(show (read int::Int))++" to "++(env2flt env')++"\n"
        return (r, env')
@@ -421,85 +405,10 @@ gen_call1 (fn, a, env) =
           return (r, env')
 
 -- create a function call with one argument
-gen2_call2 :: (String, Expr, Expr, Env) -> IO (String, Env)
-gen2_call2 (fn, a, b, env) =
+gen_call2 :: (String, Expr, Expr, Env) -> IO (String, Env)
+gen_call2 (fn, a, b, env) =
   do (ra, env) <- gen_expr (a, env)
      (rb, env) <- gen_expr (b, env)
      let (env', r) = alloc env in
        do putStr $ r++" = call "++(env2flt env')++" @"++fn++"("++(env2flt env')++" "++ra++", "++(env2flt env')++" "++rb++")\n"
           return (r, env')
-
-
-gen_expr2 :: ((Expr, Expr) -> Expr) -> Type -> String -> String
-gen_expr2 f t n =
-  let e = f (Arg "a", Arg "b") in
-  let (r,(c,_,_)) = tostr (e, ("", 1, t)) in
-  let f = env2flt ("",0,t) in
-    "define weak " ++ f ++ " @" ++ n ++ "(" ++ f ++ " %a, " ++ f ++ " %b) {\n" ++ c ++ "ret " ++ f ++ " " ++ r ++ "\n}\n"
-
--- generate an integer constant
-gen_int :: (String, Env) -> (String, Env)
-gen_int (i, e) =
-  let (e',n) = alloc e in
-  let s = n++" = bitcast "++(env2int e)++" "++(show (read i::Int))++" to "++(env2flt e)++"\n" in
-    (n, addcode e' s)
-
-
-tostr_not :: (Expr, Env) -> (String, Env)
-tostr_not (a, e) =
-  let (an,e2) = tostr (a, e) in
-  let (e3,[vn,tn,on]) = allocs e2 3 in
-  let vs = vn++" = bitcast "++(env2flt e)++" "++an++" to "++(env2int e)++"\n" in
-  let ts = tn++" = xor "++(env2int e)++" "++vn++", "++(ones e)++"\n" in
-  let os = on++" = bitcast "++(env2int e)++" "++tn++" to "++(env2flt e)++"\n" in
-    (on, addcode e3 (concat [vs,ts,os]))
-
-tostr_iop2 :: (String, Expr, Expr, Env) -> (String, Env)
-tostr_iop2 (o, a, b, e) =
-  let (at,e1) = tostr (a, e) in
-  let (bt,e2) = tostr (b, e1) in
-  let (e3,[an,bn,tn,on]) = allocs e2 4 in
-  let ls = an++" = bitcast "++(env2flt e)++" "++at++" to "++(env2int e)++"\n" in
-  let rs = bn++" = bitcast "++(env2flt e)++" "++bt++" to "++(env2int e)++"\n" in
-  let ts = tn++" = "++o++" "++(env2int e)++" "++an++", "++bn++"\n" in
-  let os = on++" = bitcast "++(env2int e)++" "++tn++" to "++(env2flt e)++"\n" in
-    (on, addcode e3 (concat [ls, rs, ts, os]))
-
--- create a two-operand floating-point operation
-tostr_fop2 :: (String, Expr, Expr, Env) -> (String, Env)
-tostr_fop2 (o, a, b, e) =
-  if debug
-    then gen_call2("dbg_"++o++"_"++(env2vec e), a, b, e)
-    else
-      let (ra,e1) = tostr (a, e) in
-      let (rb,e2) = tostr (b, e1) in
-      let (e3,r) = alloc e2 in
-      let s = r++" = "++o++" "++(env2flt e)++" "++ra++", "++rb++"\n" in
-        (r, addcode e3 s)
-
--- create a function call with one argument
-tostr_call1 :: (String, Expr, Env) -> (String, Env)
-tostr_call1 (f, a, e) =
-  let (ra,e') = tostr (a, e) in
-  let (e'',r) = alloc e' in
-  let s = r++" = call "++(env2flt e)++" @"++f++"("++(env2flt e)++" "++ra++")\n" in
-    (r, addcode e'' s)
-
--- create a function call with one argument
-gen_call2 :: (String, Expr, Expr, Env) -> (String, Env)
-gen_call2 (f, a, b, e) =
-  let (ra,e') = tostr (a, e) in
-  let (rb,e'') = tostr (b, e') in
-  let (e''',r) = alloc e'' in
-  let s = r++" = call "++(env2flt e)++" @"++f++"("++(env2flt e)++" "++ra++", "++(env2flt e)++" "++rb++")\n" in
-    (r, addcode e''' s)
-
-tostr_fcmp :: (String, Expr, Expr, Env) -> (String, Env)
-tostr_fcmp (o, a, b, e) =
-  let (ra,e1) = tostr (a, e) in
-  let (rb,e2) = tostr (b, e1) in
-  let (e3,[rt,ri,rf]) = allocs e2 3 in
-  let st = rt++" = "++o++" "++(env2flt e)++" "++ra++", "++rb++"\n" in
-  let si = ri++" = select "++(env2bool e)++" "++rt++", "++(env2int e)++" "++(ones e)++", "++(env2int e)++" "++(zeros e)++"\n" in
-  let sf = rf++" = bitcast "++(env2int e)++" "++ri++" to "++(env2flt e)++"\n" in
-    (rf, addcode e3 (concat [st,si,sf]))
