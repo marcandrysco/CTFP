@@ -1,8 +1,8 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
 
 
---debug = False
-debug = True
+debug = False
+--debug = True
 
 prelude =
   "target datalayout = \"e-m:e-i64:64-f80:128-n8:16:32:64-S128\"\n" ++
@@ -26,25 +26,37 @@ prelude =
 
 main = 
   do putStr prelude
+     --gen_func stupid Float1 "stupid"
      gen_func restrict_add Float1 "ctfp_restrict_add"
-     gen_func restrict_div Float1 "ctfp_restrict_div"
+     --gen_func restrict_div Float1 "ctfp_restrict_div"
      putStr "\n"
+
+stupid (a, b) =
+  FAdd (a, func FAdd (a, b))
+  --FAdd (a, b)
+
+
+-- Create a call from a function and arguments
+func :: ((Expr, Expr) -> Expr) -> (Expr, Expr) -> Expr
+func fn (a, b) =
+  Call (fn (Arg "a", Arg "b"), a, b)
 
 
 data Expr
-  = Arg     String
-  | Int     (String, String)
-  | Float   String
-  | Not     (Expr)
-  | Abs     (Expr)
-  | Or      (Expr, Expr)
-  | And     (Expr, Expr)
-  | FAdd    (Expr, Expr)
-  | FDivSig (Expr, Expr)
-  | FDivExp (Expr, Expr)
-  | FcmpOEQ (Expr, Expr)
-  | FcmpOLT (Expr, Expr)
+  = Arg      String
+  | Int      (String, String)
+  | Float    String
+  | Not      (Expr)
+  | Abs      (Expr)
+  | Or       (Expr, Expr)
+  | And      (Expr, Expr)
+  | FAdd     (Expr, Expr)
+  | FDivSig  (Expr, Expr)
+  | FDivExp  (Expr, Expr)
+  | FcmpOEQ  (Expr, Expr)
+  | FcmpOLT  (Expr, Expr)
   | CopySign (Expr, Expr)
+  | Call     (Expr, Expr, Expr)
   deriving Eq
 
 data Type
@@ -54,7 +66,22 @@ data Type
   | Double1
   | Double2
 
-type Env = (String, Int, Type)
+
+-- Function type
+--   name :: Int   The function index name.
+--   expr :: Expr  The function body.
+type Func = (Int, Expr)
+
+-- Queue type
+--   idx :: Int     The current index name.
+--   fns :: [Func]  The list of queued functions.
+type Queue = (Int, [Func])
+
+-- Environment type
+--   reg :: Int    The current register index.
+--   ty  :: Type   The generation type.
+--   q   :: Queue  The queue of named functions.
+type Env = (Int, Type, Queue)
 
 ite :: Expr -> Expr -> Expr -> Expr
 ite b x y = 
@@ -84,7 +111,7 @@ instance WithBlind (Expr, Expr) ((Expr, Expr) -> Expr -> Expr) where
   withBlind cond blind fix op v =
     let b   = cond v
         tmp = ite2 b (blind v) v
-        res = op tmp
+        res = func op tmp
         out = ite b (fix v res) res
     in out
 
@@ -235,29 +262,27 @@ restrict_div =
   FDivSig
 
 
+name :: Env -> Expr -> (Env, String)
+name (i, t, (name, fns)) expr =
+  let env' = (i, t, (name+1, (name, expr):fns)) in
+    (env', "fn_"++(show name))
+
+
 -- allocate a register from the environment
 alloc :: Env -> (Env, String)
-alloc (c, i, t) = ((c, i+1, t), "%"++(show i))
+alloc (i, t, q) = ((i+1, t, q), "%"++(show i))
 
 -- allocate an array of registers from the environment
 allocs :: Env -> Int -> (Env, [String])
 allocs e n =
   if n == 0
     then (e, [])
-    else let ((c,i,t),ns) = allocs e (n-1) in
-      ((c,i+1,t),ns++["%"++(show i)])
-
--- add code to an environment
-addcode :: Env -> String -> Env
-addcode (c, i, t) s = (c ++ s, i, t)
-
--- retrieve code from an environment
-getcode :: Env -> String
-getcode (c, i, t) = c
+    else let ((i,t,q),ns) = allocs e (n-1) in
+      ((i+1,t,q),ns++["%"++(show i)])
 
 
 floats :: Env -> String -> String
-floats (c, i, t) v =
+floats (i, t, q) v =
   case t of
     Float1 -> v
     Float2 -> "< float " ++ v ++ ", float " ++ v ++ " >"
@@ -266,7 +291,7 @@ floats (c, i, t) v =
     Double2 -> "< double " ++ v ++ ", double " ++ v ++ " >"
 
 ints :: Env -> String -> String
-ints (c, i, t) v =
+ints (i, t, q) v =
   case t of
     Float1 -> v
     Float2 -> "< i32 " ++ v ++ ", i32 " ++ v ++ " >"
@@ -294,7 +319,7 @@ type2sel Double2 p = snd p
 
 -- select a string using the environment
 env2sel :: Env -> (String, String) -> String
-env2sel (_,_,t) p = type2sel t p
+env2sel (_,t,_) p = type2sel t p
 
 -- convert a type to the floating-point type string
 type2flt :: Type -> String
@@ -306,7 +331,7 @@ type2flt Double2 = "< 2 x double >"
 
 -- generate float type string from the environment
 env2flt :: Env -> String
-env2flt (_,_,t) = type2flt t
+env2flt (_,t,_) = type2flt t
 
 -- convert a type to the integer type string
 type2int :: Type -> String
@@ -318,7 +343,7 @@ type2int Double2 = "< 2 x i64 >"
 
 -- generate integer type string from the environment
 env2int :: Env -> String
-env2int (_,_,t) = type2int t
+env2int (_,t,_) = type2int t
 
 -- convert a type to the boolean type string
 type2bool :: Type -> String
@@ -330,7 +355,7 @@ type2bool Double2 = "< 2 x i1 >"
 
 -- generate boolean type string from the environment
 env2bool :: Env -> String
-env2bool (_,_,t) = type2bool t
+env2bool (_,t,_) = type2bool t
 
 -- convert a type to the vectorized builtin string
 type2vec :: Type -> String
@@ -342,8 +367,17 @@ type2vec Double2 = "v2f64"
 
 -- generate vectorized name from the environment
 env2vec :: Env -> String
-env2vec (_,_,t) = type2vec t
+env2vec (_,t,_) = type2vec t
 
+
+gen_unnamed :: [Func] -> Type -> Int -> IO ()
+gen_unnamed [] _ _ = return ()
+gen_unnamed ((nam, expr):fns) t idx =
+  let ty = type2flt t in
+    do putStr $ "define weak " ++ ty ++ " @fn_" ++ (show nam) ++ "(" ++ ty ++ " %a, " ++ ty ++ " %b) {\n"
+       (r,(_,_,(idx',fns'))) <- gen_expr (expr, (1, t, (idx, fns)))
+       putStr $ "ret " ++ ty ++ " " ++ r ++ "\n}\n"
+       gen_unnamed fns' t idx'
 
 -- generate the code for a function
 gen_func :: ((Expr, Expr) -> Expr) -> Type -> String -> IO ()
@@ -351,8 +385,9 @@ gen_func f t n =
   let ty = type2flt t in
     do
        putStr $ "define weak " ++ ty ++ " @" ++ n ++ "(" ++ ty ++ " %a, " ++ ty ++ " %b) {\n"
-       (r,_) <- gen_expr (f (Arg "a", Arg "b"), ("", 1, t))
+       (r,(_,_,(idx,fns))) <- gen_expr (f (Arg "a", Arg "b"), (1, t, (1, [])))
        putStr $ "ret " ++ ty ++ " " ++ r ++ "\n}\n"
+       gen_unnamed fns t idx
 
 -- generate code for an arbitrary expression
 gen_expr :: (Expr, Env) -> IO (String, Env)
@@ -369,6 +404,17 @@ gen_expr (FDivExp (a, b), env) = if debug then gen_call2 ("dbg_fdiv_exp_" ++ (en
 gen_expr (FcmpOLT (a, b), env) = gen_fcmp ("fcmp olt", a, b, env)
 gen_expr (FcmpOEQ (a, b), env) = gen_fcmp ("fcmp oeq", a, b, env)
 gen_expr (CopySign (a, b), env) = gen_call2 ("llvm.copysign." ++ (env2vec env), a, b, env)
+gen_expr (Call (fn, a, b),  env) = gen_call (fn, a, b, env)
+
+gen_call :: (Expr, Expr, Expr, Env) -> IO (String, Env)
+gen_call (fn, a, b, env) =
+  do (ra, env) <- gen_expr (a, env)
+     (rb, env) <- gen_expr (b, env)
+     let (env',r) = alloc env in
+       let (env'',func) = name env' fn in
+         let flt = env2flt env'' in 
+           do putStr $ r++" = call "++flt++" @"++func++"("++flt++" "++ra++", "++flt++" "++rb++")\n"
+              return (r, env'')
 
 -- generate an integer constant
 gen_int :: (String, Env) -> IO (String, Env)
