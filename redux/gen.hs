@@ -8,7 +8,8 @@ prelude =
   "target datalayout = \"e-m:e-i64:64-f80:128-n8:16:32:64-S128\"\n" ++
   "target triple = \"x86_64-pc-linux-gnu\"\n" ++
   "declare float @dbg_fadd_f32(float %a, float %b)\n" ++
-  "declare float @dbg_fdiv_f32(float %a, float %b)\n" ++
+  "declare float @dbg_fdiv_sig_f32(float %a, float %b)\n" ++
+  "declare float @dbg_fdiv_exp_f32(float %a, float %b)\n" ++
   "" ++
   "declare float @llvm.fabs.f32(float %a)\n" ++
   "declare < 2 x float > @llvm.fabs.v2f32(< 2 x float > %a)\n" ++
@@ -28,9 +29,6 @@ main =
      gen_func restrict_add Float1 "ctfp_restrict_add"
      gen_func restrict_div Float1 "ctfp_restrict_div"
      putStr "\n"
-    --putStr $ prelude
-      -- ++ (gen_expr2 restrict_add Float1 "ctfp_restrict_add")
-      -- ++ (gen_expr2 restrict_div Float1 "ctfp_restrict_div")
 
 
 data Expr
@@ -41,8 +39,9 @@ data Expr
   | Abs     (Expr)
   | Or      (Expr, Expr)
   | And     (Expr, Expr)
-  | Fadd    (Expr, Expr)
-  | Fdiv    (Expr, Expr)
+  | FAdd    (Expr, Expr)
+  | FDivSig (Expr, Expr)
+  | FDivExp (Expr, Expr)
   | FcmpOEQ (Expr, Expr)
   | FcmpOLT (Expr, Expr)
   | CopySign (Expr, Expr)
@@ -163,15 +162,34 @@ with_dummy' badIn badOut safeIn op (v1, v2) =
     op
     (v1, v2)
 
+with_dummy1' :: FP1 -> FP1 -> FP1 -> (FP2 -> FP1) -> FP2 -> FP1
+with_dummy1' badIn badOut safeIn op (v1, v2) =
+  withBlind
+    (\(v,_) -> FcmpOEQ (v, badIn))
+    (\(v,w) -> (safeIn, safeIn))
+    (\_ _ -> badOut)
+    op
+    (v1, v2)
+
+with_dummy2' :: FP1 -> FP1 -> FP1 -> (FP2 -> FP1) -> FP2 -> FP1
+with_dummy2' badIn badOut safeIn op (v1, v2) =
+  withBlind
+    (\(_,w) -> FcmpOEQ (w, badIn))
+    (\(v,w) -> (safeIn, safeIn))
+    (\_ _ -> badOut)
+    op
+    (v1, v2)
+
 -- divide only by the exponent component of the inputs
 div_exp :: (FP2 -> FP1) -> FP2 -> FP1
 div_exp =
   withBlind
     (\_ -> val_true)
-    (\(w,v) -> (Fdiv(w, get_exp v), get_sig v))
+    (\(w,v) -> (FDivExp(w, get_exp v), get_sig v))
     --(\(w,v) -> (w, get_exp(v)))
     (\v r -> r)
 
+-- prevent division by one using a dummy
 div_noop op (a, b) =
   withBlind
     (\(u,v) -> FcmpOEQ(v, val_one))
@@ -200,7 +218,7 @@ restrict_add :: FP2 -> FP1
 restrict_add =
   withUnderflow1 (Float addmin) @@
   withUnderflow2 (Float addmin) @@
-  Fadd
+  FAdd
 
 
 -- division
@@ -208,9 +226,13 @@ restrict_div :: FP2 -> FP1
 restrict_div =
   with_dummy' (val_zero, val_zero) val_nan val_dummy @@
   with_dummy' (val_inf, val_inf) val_nan val_dummy @@
+  with_dummy1' val_zero val_zero val_dummy @@
+  with_dummy1' val_inf val_inf val_dummy @@
+  with_dummy2' val_zero val_inf val_dummy @@
+  with_dummy2' val_inf val_zero val_dummy @@
   div_exp @@
   div_noop @@
-  Fdiv
+  FDivSig
 
 
 -- allocate a register from the environment
@@ -341,11 +363,12 @@ gen_expr (Not a, env) = gen_not (a, env)
 gen_expr (Abs a, env) = gen_call1("llvm.fabs." ++ (env2vec env), a, env);
 gen_expr (Or (a, b), env) = gen_iop2 ("or", a, b, env)
 gen_expr (And (a, b), env) = gen_iop2 ("and", a, b, env)
-gen_expr (Fadd (a, b), env) = gen_fop2 ("fadd", a, b, env)
-gen_expr (Fdiv (a, b), env) = gen_fop2 ("fdiv", a, b, env)
+gen_expr (FAdd (a, b), env) = if debug then gen_call2 ("dbg_fadd_" ++ (env2vec env), a, b, env) else gen_fop2 ("fadd", a, b, env)
+gen_expr (FDivSig (a, b), env) = if debug then gen_call2 ("dbg_fdiv_sig_" ++ (env2vec env), a, b, env) else gen_fop2 ("fdiv", a, b, env)
+gen_expr (FDivExp (a, b), env) = if debug then gen_call2 ("dbg_fdiv_exp_" ++ (env2vec env), a, b, env) else gen_fop2 ("fdiv", a, b, env)
 gen_expr (FcmpOLT (a, b), env) = gen_fcmp ("fcmp olt", a, b, env)
 gen_expr (FcmpOEQ (a, b), env) = gen_fcmp ("fcmp oeq", a, b, env)
-gen_expr (CopySign (a, b), env) = gen_call2("llvm.copysign." ++ (env2vec env), a, b, env);
+gen_expr (CopySign (a, b), env) = gen_call2 ("llvm.copysign." ++ (env2vec env), a, b, env)
 
 -- generate an integer constant
 gen_int :: (String, Env) -> IO (String, Env)

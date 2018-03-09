@@ -6,13 +6,13 @@ all: ctfp.ll
 
 ctfp.ll: gen.hs Makefile
 	runghc $< > ctfp.ll
-	opt ctfp.ll > ctfp.bc
-	#opt -early-cse ctfp.ll > ctfp.bc
+	#opt ctfp.ll > ctfp.bc
+	opt -early-cse ctfp.ll > ctfp.bc
 	llc -O3 -mcpu=$(CPU) ctfp.bc -o ctfp.o -filetype=obj
 	objdump -d ctfp.o -M intel > ctfp.s
 
 
 run: all
-	clang test.c ctfp.ll -o test
+	clang test.c ctfp.bc -o test -Werror -Wall
 	./test
 
