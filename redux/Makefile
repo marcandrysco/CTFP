@@ -8,7 +8,7 @@ ctfp.ll: gen.hs Makefile
 	@#runghc $<
 	runghc $< > ctfp.ll
 	@##opt ctfp.ll > ctfp.bc
-	opt -early-cse ctfp.ll > ctfp.bc
+	opt -early-cse ctfp.ll -S > ctfp.bc
 	llc -O3 -mcpu=$(CPU) ctfp.bc -o ctfp.o -filetype=obj
 	objdump -d ctfp.o -M intel > ctfp.s
 

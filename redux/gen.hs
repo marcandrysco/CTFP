@@ -26,14 +26,9 @@ prelude =
 
 main = 
   do putStr prelude
-     --gen_func stupid Float1 "stupid"
      gen_func restrict_add Float1 "ctfp_restrict_add"
-     --gen_func restrict_div Float1 "ctfp_restrict_div"
+     gen_func restrict_div Float1 "ctfp_restrict_div"
      putStr "\n"
-
-stupid (a, b) =
-  FAdd (a, func FAdd (a, b))
-  --FAdd (a, b)
 
 
 -- Create a call from a function and arguments
@@ -50,6 +45,7 @@ data Expr
   | Abs      (Expr)
   | Or       (Expr, Expr)
   | And      (Expr, Expr)
+  | Xor      (Expr, Expr)
   | FAdd     (Expr, Expr)
   | FDivSig  (Expr, Expr)
   | FDivExp  (Expr, Expr)
@@ -78,19 +74,21 @@ type Func = (Int, Expr)
 type Queue = (Int, [Func])
 
 -- Environment type
---   reg :: Int    The current register index.
---   ty  :: Type   The generation type.
---   q   :: Queue  The queue of named functions.
-type Env = (Int, Type, Queue)
+--   reg  :: Int     The current register index.
+--   ty   :: Type    The generation type.
+--   q    :: Queue   The queue of named functions.
+--   name :: String  The base function name.
+type Env = (Int, Type, Queue, String)
 
-ite :: Expr -> Expr -> Expr -> Expr
-ite b x y = 
-  if x == y
-    then x
-    else Or (And (b, x), And (Not b, y))
 
-ite2 :: Expr -> (Expr,Expr) -> (Expr,Expr) -> (Expr,Expr)
-ite2 b (x1,x2) (y1,y2) = (ite b x1 y1, ite b x2 y2)
+-- get the type from the environment
+env_type :: Env -> Type
+env_type (_,ty,_,_) = ty
+
+-- gee the function name from the environment
+env_func :: Env -> String
+env_func (_,_,_,name) = name
+
 
 class WithBlind e f | e -> f where
   withBlind :: (e -> Expr)    -- ^ test
@@ -141,7 +139,7 @@ withUnderflow1 lim =
 withUnderflow2 :: FP1 -> (FP2 -> FP1) -> FP2 -> FP1
 withUnderflow2 lim =
   withBlind
-    (\(_,v) -> FcmpOLT(v, lim))
+    (\(_,v) -> FcmpOLT(Abs(v), lim))
     (\(w,v) -> (w, Float "0.0"))
     (\_ r -> r)
 
@@ -156,6 +154,17 @@ tx @@ f = tx f
 
 -- ## HELPERS ## --
 
+-- create a conditional using logic operations
+ite :: Expr -> Expr -> Expr -> Expr
+ite b x y = 
+  if x == y
+    then x
+    else Or (And (b, x), And (Not b, y))
+
+-- create a conditional on two expressions
+ite2 :: Expr -> (Expr,Expr) -> (Expr,Expr) -> (Expr,Expr)
+ite2 b (x1,x2) (y1,y2) = (ite b x1 y1, ite b x2 y2)
+
 -- extract the exponent component
 get_exp :: Expr -> Expr
 get_exp e =
@@ -167,6 +176,14 @@ get_sig e =
   Or ( And (e, Int ("0x007FFFFF", "0x000FFFFFFFFFFFFF") ), Float "1.0" )
 
 
+do_sign :: (FP2 -> FP1) -> FP2 -> FP1
+do_sign op (x1, x2) =
+  withBlind
+    (\_ -> val_true)
+    (\(u,v) -> (Abs(u), Abs(v)))
+    (\_ r -> CopySign(r, Xor(x1, x2)))
+    op
+    (x1, x2)
 
 -- ## STRATEGIES ## --
 
@@ -251,6 +268,7 @@ restrict_add =
 -- division
 restrict_div :: FP2 -> FP1
 restrict_div =
+  do_sign @@
   with_dummy' (val_zero, val_zero) val_nan val_dummy @@
   with_dummy' (val_inf, val_inf) val_nan val_dummy @@
   with_dummy1' val_zero val_zero val_dummy @@
@@ -259,45 +277,49 @@ restrict_div =
   with_dummy2' val_inf val_zero val_dummy @@
   div_exp @@
   div_noop @@
+  with_dummy2' val_zero val_inf val_dummy @@
+  with_dummy2' val_inf val_zero val_dummy @@
   FDivSig
 
 
+-- get a name
 name :: Env -> Expr -> (Env, String)
-name (i, t, (name, fns)) expr =
-  let env' = (i, t, (name+1, (name, expr):fns)) in
-    (env', "fn_"++(show name))
-
+name (i, t, (name, fns), n) expr =
+  let env' = (i, t, (name+1, (name, expr):fns), n) in
+    (env', show name)
 
 -- allocate a register from the environment
 alloc :: Env -> (Env, String)
-alloc (i, t, q) = ((i+1, t, q), "%"++(show i))
+alloc (i, t, q, n) = ((i+1, t, q, n), "%"++(show i))
 
 -- allocate an array of registers from the environment
 allocs :: Env -> Int -> (Env, [String])
 allocs e n =
   if n == 0
     then (e, [])
-    else let ((i,t,q),ns) = allocs e (n-1) in
-      ((i+1,t,q),ns++["%"++(show i)])
+    else let ((i,t,q,f),ns) = allocs e (n-1) in
+      ((i+1,t,q,f),ns++["%"++(show i)])
 
 
+-- create a floating point value string
 floats :: Env -> String -> String
-floats (i, t, q) v =
-  case t of
-    Float1 -> v
-    Float2 -> "< float " ++ v ++ ", float " ++ v ++ " >"
-    Float4 -> "< float " ++ v ++ ", float " ++ v ++ ", float " ++ v ++ ", float " ++ v ++ " >"
-    Double1 -> v
-    Double2 -> "< double " ++ v ++ ", double " ++ v ++ " >"
+floats env val =
+  case env_type env of
+    Float1 -> val
+    Float2 -> "< float " ++ val ++ ", float " ++ val ++ " >"
+    Float4 -> "< float " ++ val ++ ", float " ++ val ++ ", float " ++ val ++ ", float " ++ val ++ " >"
+    Double1 -> val
+    Double2 -> "< double " ++ val ++ ", double " ++ val ++ " >"
 
+-- create an integer value string
 ints :: Env -> String -> String
-ints (i, t, q) v =
-  case t of
-    Float1 -> v
-    Float2 -> "< i32 " ++ v ++ ", i32 " ++ v ++ " >"
-    Float4 -> "< i32 " ++ v ++ ", i32 " ++ v ++ ", i32 " ++ v ++ ", i32 " ++ v ++ " >"
-    Double1 -> v
-    Double2 -> "< i64 " ++ v ++ ", i64 " ++ v ++ " >"
+ints env val =
+  case env_type env of
+    Float1 -> val
+    Float2 -> "< i32 " ++ val ++ ", i32 " ++ val ++ " >"
+    Float4 -> "< i32 " ++ val ++ ", i32 " ++ val ++ ", i32 " ++ val ++ ", i32 " ++ val ++ " >"
+    Double1 -> val
+    Double2 -> "< i64 " ++ val ++ ", i64 " ++ val ++ " >"
 
 
 -- create an integer values of all ones
@@ -319,7 +341,7 @@ type2sel Double2 p = snd p
 
 -- select a string using the environment
 env2sel :: Env -> (String, String) -> String
-env2sel (_,t,_) p = type2sel t p
+env2sel env p = type2sel (env_type env) p
 
 -- convert a type to the floating-point type string
 type2flt :: Type -> String
@@ -331,7 +353,7 @@ type2flt Double2 = "< 2 x double >"
 
 -- generate float type string from the environment
 env2flt :: Env -> String
-env2flt (_,t,_) = type2flt t
+env2flt env = type2flt (env_type env)
 
 -- convert a type to the integer type string
 type2int :: Type -> String
@@ -343,7 +365,7 @@ type2int Double2 = "< 2 x i64 >"
 
 -- generate integer type string from the environment
 env2int :: Env -> String
-env2int (_,t,_) = type2int t
+env2int env = type2int (env_type env)
 
 -- convert a type to the boolean type string
 type2bool :: Type -> String
@@ -355,7 +377,7 @@ type2bool Double2 = "< 2 x i1 >"
 
 -- generate boolean type string from the environment
 env2bool :: Env -> String
-env2bool (_,t,_) = type2bool t
+env2bool env = type2bool (env_type env)
 
 -- convert a type to the vectorized builtin string
 type2vec :: Type -> String
@@ -367,17 +389,17 @@ type2vec Double2 = "v2f64"
 
 -- generate vectorized name from the environment
 env2vec :: Env -> String
-env2vec (_,t,_) = type2vec t
+env2vec env = type2vec (env_type env)
 
 
-gen_unnamed :: [Func] -> Type -> Int -> IO ()
-gen_unnamed [] _ _ = return ()
-gen_unnamed ((nam, expr):fns) t idx =
+gen_unnamed :: [Func] -> Type -> Int -> String -> IO ()
+gen_unnamed [] _ _ _ = return ()
+gen_unnamed ((nam, expr):fns) t idx fn =
   let ty = type2flt t in
-    do putStr $ "define weak " ++ ty ++ " @fn_" ++ (show nam) ++ "(" ++ ty ++ " %a, " ++ ty ++ " %b) {\n"
-       (r,(_,_,(idx',fns'))) <- gen_expr (expr, (1, t, (idx, fns)))
+    do putStr $ "define weak " ++ ty ++ " @"++fn++"_" ++ (show nam) ++ "(" ++ ty ++ " %a, " ++ ty ++ " %b) {\n"
+       (r,(_,_,(idx',fns'),_)) <- gen_expr (expr, (1, t, (idx, fns), fn))
        putStr $ "ret " ++ ty ++ " " ++ r ++ "\n}\n"
-       gen_unnamed fns' t idx'
+       gen_unnamed fns' t idx' fn
 
 -- generate the code for a function
 gen_func :: ((Expr, Expr) -> Expr) -> Type -> String -> IO ()
@@ -385,9 +407,9 @@ gen_func f t n =
   let ty = type2flt t in
     do
        putStr $ "define weak " ++ ty ++ " @" ++ n ++ "(" ++ ty ++ " %a, " ++ ty ++ " %b) {\n"
-       (r,(_,_,(idx,fns))) <- gen_expr (f (Arg "a", Arg "b"), (1, t, (1, [])))
+       (r,(_,_,(idx,fns),n)) <- gen_expr (f (Arg "a", Arg "b"), (1, t, (1, []), n))
        putStr $ "ret " ++ ty ++ " " ++ r ++ "\n}\n"
-       gen_unnamed fns t idx
+       gen_unnamed fns t idx n
 
 -- generate code for an arbitrary expression
 gen_expr :: (Expr, Env) -> IO (String, Env)
@@ -398,6 +420,7 @@ gen_expr (Not a, env) = gen_not (a, env)
 gen_expr (Abs a, env) = gen_call1("llvm.fabs." ++ (env2vec env), a, env);
 gen_expr (Or (a, b), env) = gen_iop2 ("or", a, b, env)
 gen_expr (And (a, b), env) = gen_iop2 ("and", a, b, env)
+gen_expr (Xor (a, b), env) = gen_iop2 ("xor", a, b, env)
 gen_expr (FAdd (a, b), env) = if debug then gen_call2 ("dbg_fadd_" ++ (env2vec env), a, b, env) else gen_fop2 ("fadd", a, b, env)
 gen_expr (FDivSig (a, b), env) = if debug then gen_call2 ("dbg_fdiv_sig_" ++ (env2vec env), a, b, env) else gen_fop2 ("fdiv", a, b, env)
 gen_expr (FDivExp (a, b), env) = if debug then gen_call2 ("dbg_fdiv_exp_" ++ (env2vec env), a, b, env) else gen_fop2 ("fdiv", a, b, env)
@@ -413,7 +436,7 @@ gen_call (fn, a, b, env) =
      let (env',r) = alloc env in
        let (env'',func) = name env' fn in
          let flt = env2flt env'' in 
-           do putStr $ r++" = call "++flt++" @"++func++"("++flt++" "++ra++", "++flt++" "++rb++")\n"
+           do putStr $ r++" = call "++flt++" @"++(env_func env'')++"_"++func++"("++flt++" "++ra++", "++flt++" "++rb++")\n"
               return (r, env'')
 
 -- generate an integer constant
