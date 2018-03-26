@@ -14,6 +14,6 @@ ctfp.ll: gen.hs Makefile
 
 
 run: all
-	clang test.c ctfp.bc -o test -Werror -Wall
+	clang -O2 test.c ctfp.bc -o test -Werror -Wall
 	./test
 

@@ -8,6 +8,8 @@ prelude =
   "target datalayout = \"e-m:e-i64:64-f80:128-n8:16:32:64-S128\"\n" ++
   "target triple = \"x86_64-pc-linux-gnu\"\n" ++
   "declare float @dbg_fadd_f32(float %a, float %b)\n" ++
+  "declare float @dbg_fsub_f32(float %a, float %b)\n" ++
+  "declare float @dbg_fmul_f32(float %a, float %b)\n" ++
   "declare float @dbg_fdiv_sig_f32(float %a, float %b)\n" ++
   "declare float @dbg_fdiv_exp_f32(float %a, float %b)\n" ++
   "" ++
@@ -27,6 +29,8 @@ prelude =
 main = 
   do putStr prelude
      gen_func restrict_add Float1 "ctfp_restrict_add"
+     gen_func restrict_sub Float1 "ctfp_restrict_sub"
+     gen_func restrict_mul Float1 "ctfp_restrict_mul"
      gen_func restrict_div Float1 "ctfp_restrict_div"
      putStr "\n"
 
@@ -47,9 +51,12 @@ data Expr
   | And      (Expr, Expr)
   | Xor      (Expr, Expr)
   | FAdd     (Expr, Expr)
+  | FSub     (Expr, Expr)
+  | FMul     (Expr, Expr)
   | FDivSig  (Expr, Expr)
   | FDivExp  (Expr, Expr)
   | FcmpOEQ  (Expr, Expr)
+  | FCmpUNE  (Expr, Expr)
   | FcmpOLT  (Expr, Expr)
   | FcmpOGT  (Expr, Expr)
   | CopySign (Expr, Expr)
@@ -177,15 +184,15 @@ with_underflow1 :: FP1 -> (FP2 -> FP1) -> FP2 -> FP1
 with_underflow1 lim =
   withBlind
     (\(v,_) -> FcmpOLT(Abs(v), lim))
-    (\(v, w) -> (val_zero, w))
-    (\v r -> r)
+    (\(v, w) -> (CopySign(val_zero, v), w))
+    (\_ r -> r)
 
 -- underflow only on the second input
 with_underflow2 :: FP1 -> (FP2 -> FP1) -> FP2 -> FP1
 with_underflow2 lim =
   withBlind
     (\(_,v) -> FcmpOLT(Abs(v), lim))
-    (\(w,v) -> (w, val_zero))
+    (\(w,v) -> (w, CopySign(val_zero, v)))
     (\_ r -> r)
 
 -- overflow only on the first input
@@ -193,7 +200,7 @@ with_overflow1 :: FP1 -> (FP2 -> FP1) -> FP2 -> FP1
 with_overflow1 lim =
   withBlind
     (\(v,_) -> FcmpOGT(Abs(v), lim))
-    (\(v, w) -> (val_zero, w))
+    (\(v, w) -> (val_inf, w))
     (\v r -> r)
 
 -- overflow only on the second input
@@ -201,7 +208,7 @@ with_overflow2 :: FP1 -> (FP2 -> FP1) -> FP2 -> FP1
 with_overflow2 lim =
   withBlind
     (\(_,v) -> FcmpOGT(Abs(v), lim))
-    (\(w,v) -> (w, val_zero))
+    (\(w,v) -> (w, val_inf))
     (\_ r -> r)
 
 
@@ -214,11 +221,18 @@ with_dummy1 badIn badOut safeIn op (a, b) =
     op
     (a, b)
 
+cmp_eq (a, b) =
+  if a == val_nan
+    then FCmpUNE (b, b)
+    else if b == val_nan
+      then FCmpUNE (a, a)
+      else FcmpOEQ (a, b)
+
 -- compare and replace both inputs if matching the bad input
 with_dummy' :: FP2 -> FP1 -> FP1 -> (FP2 -> FP1) -> FP2 -> FP1
 with_dummy' badIn badOut safeIn op (a, b) =
   withBlind
-    (\(v,w) -> And(FcmpOEQ (v, fst badIn), FcmpOEQ (w, snd badIn)))
+    (\(v,w) -> And(cmp_eq (v, fst badIn), cmp_eq (w, snd badIn)))
     (\(v,w) -> (safeIn, safeIn))
     (\_ _ -> badOut)
     op
@@ -227,7 +241,7 @@ with_dummy' badIn badOut safeIn op (a, b) =
 with_dummy1' :: FP1 -> FP1 -> FP1 -> (FP2 -> FP1) -> FP2 -> FP1
 with_dummy1' badIn badOut safeIn op (a, b) =
   withBlind
-    (\(v,_) -> FcmpOEQ (v, badIn))
+    (\(v,_) -> cmp_eq (v, badIn))
     (\(v,w) -> (safeIn, safeIn))
     (\_ _ -> badOut)
     op
@@ -236,7 +250,7 @@ with_dummy1' badIn badOut safeIn op (a, b) =
 with_dummy2' :: FP1 -> FP1 -> FP1 -> (FP2 -> FP1) -> FP2 -> FP1
 with_dummy2' badIn badOut safeIn op (a, b) =
   withBlind
-    (\(_,w) -> FcmpOEQ (w, badIn))
+    (\(_,w) -> cmp_eq (w, badIn))
     (\(v,w) -> (safeIn, safeIn))
     (\_ _ -> badOut)
     op
@@ -271,8 +285,10 @@ val_inf = Int ("0x7F800000", "0x7FF0000000000000")
 
 -- constants
 addmin = Float ( "9.86076131526264760e-32", "2.00416836000897278e-292" )
+mulmin = Float ( "1.08420217248550443e-19", "1.49166814624004135e-154" )
 divmin = Float ( "1.08420217248550443e-19", "1.49166814624004135e-154" )
 divmax = Float ( "9.22337203685477581e+18", "6.70390396497129855e+153" )
+fltmin = Float ( "1.17549435082228751e-38", "2.22507385850720138e-308" )
 
 -- ## RESTRICT ## --
 
@@ -283,23 +299,42 @@ restrict_add =
   with_underflow2 addmin @@
   FAdd
 
+-- subtraction
+restrict_sub :: FP2 -> FP1
+restrict_sub =
+  with_underflow1 addmin @@
+  with_underflow2 addmin @@
+  FSub
+
+-- multiplication
+restrict_mul :: FP2 -> FP1
+restrict_mul =
+  with_underflow1 mulmin @@
+  with_underflow2 mulmin @@
+  FMul
 
 -- division
 restrict_div :: FP2 -> FP1
 restrict_div =
   do_sign @@
+  with_underflow1 divmin @@
+  with_underflow2 divmin @@
+  with_overflow1 divmax @@
+  with_overflow2 divmax @@
+  with_dummy1' val_nan val_nan val_dummy @@
+  with_dummy2' val_nan val_nan val_dummy @@
   with_dummy' (val_zero, val_zero) val_nan val_dummy @@
   with_dummy' (val_inf, val_inf) val_nan val_dummy @@
   with_dummy1' val_zero val_zero val_dummy @@
   with_dummy1' val_inf val_inf val_dummy @@
   with_dummy2' val_zero val_inf val_dummy @@
   with_dummy2' val_inf val_zero val_dummy @@
-  with_underflow1 divmin @@
-  with_overflow2 divmax @@
   div_exp @@
   div_noop @@
-  with_dummy2' val_zero val_inf val_dummy @@
-  with_dummy2' val_inf val_zero val_dummy @@
+  with_dummy1' val_zero val_zero val_dummy @@
+  with_dummy1' val_inf val_inf val_dummy @@
+  --with_dummy2' val_zero val_inf val_dummy @@
+  --with_dummy2' val_inf val_zero val_dummy @@
   FDivSig
 
 
@@ -443,11 +478,14 @@ gen_expr (Or (a, b), env) = gen_iop2 ("or", a, b, env)
 gen_expr (And (a, b), env) = gen_iop2 ("and", a, b, env)
 gen_expr (Xor (a, b), env) = gen_iop2 ("xor", a, b, env)
 gen_expr (FAdd (a, b), env) = if debug then gen_call2 ("dbg_fadd_" ++ (env2vec env), a, b, env) else gen_fop2 ("fadd", a, b, env)
+gen_expr (FSub (a, b), env) = if debug then gen_call2 ("dbg_fsub_" ++ (env2vec env), a, b, env) else gen_fop2 ("fsub", a, b, env)
+gen_expr (FMul (a, b), env) = if debug then gen_call2 ("dbg_fmul_" ++ (env2vec env), a, b, env) else gen_fop2 ("fmul", a, b, env)
 gen_expr (FDivSig (a, b), env) = if debug then gen_call2 ("dbg_fdiv_sig_" ++ (env2vec env), a, b, env) else gen_fop2 ("fdiv", a, b, env)
 gen_expr (FDivExp (a, b), env) = if debug then gen_call2 ("dbg_fdiv_exp_" ++ (env2vec env), a, b, env) else gen_fop2 ("fdiv", a, b, env)
+gen_expr (FcmpOEQ (a, b), env) = gen_fcmp ("fcmp oeq", a, b, env)
 gen_expr (FcmpOLT (a, b), env) = gen_fcmp ("fcmp olt", a, b, env)
 gen_expr (FcmpOGT (a, b), env) = gen_fcmp ("fcmp ogt", a, b, env)
-gen_expr (FcmpOEQ (a, b), env) = gen_fcmp ("fcmp oeq", a, b, env)
+gen_expr (FCmpUNE (a, b), env) = gen_fcmp ("fcmp une", a, b, env)
 gen_expr (CopySign (a, b), env) = gen_call2 ("llvm.copysign." ++ (env2vec env), a, b, env)
 gen_expr (Call (fn, a, b),  env) = gen_call (fn, a, b, env)
 
