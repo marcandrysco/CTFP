@@ -6,6 +6,11 @@
 *.ll
 
 # bin
+ctfp.s
+ctfp.ll
 ctfp.bc
 ctfp-test
 ctfp-math.so
+
+redux/test
+redux/perf
