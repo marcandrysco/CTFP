@@ -248,6 +248,7 @@ int main(int argc, char **argv)
 		}
 	}
 
+	if(0)
 	for(i = 0; i < 1000000; i++) {
 		float x = rand_f32(), y = rand_f32();
 

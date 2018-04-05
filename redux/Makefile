@@ -53,6 +53,13 @@ bench_full.o: bench.c ctfp-llvm.so ctfp.bc Makefile
 
 ## Run
 
+run3:
+	runghc gen.hs test > run.out
+	opt -S -early-cse run.out > run.opt
+
+run2: all test
+	./test
+
 run: all test perf
 	./test
 	./perf

@@ -4,17 +4,23 @@ import System.Environment
 
 
 -- main entry, just dispatches based on desired generator
-main :: IO ()
-main' =
-  putStr $ show (restrict_add (Arg "a", Arg "b"))
-
 main =
   do args <- getArgs
      case args of
        []        -> llvm_main False
        ["debug"] -> llvm_main True
        ["z3"]    -> z3_main
+       ["test"]  -> test_main
        _         -> putStr "Invalid arguments\n"
+
+test_main :: IO ()
+test_main =
+  do putStr $ prelude
+     llvm_func test_func Float1 "testfunc"
+
+test_func =
+  do_sign @@
+  FDivSig
 
 
 ---- ## DATA TYPES ## ----
@@ -43,6 +49,9 @@ data Expr
   | FCmpOGT  (Expr, Expr)
   | CopySign (Expr, Expr)
   | Call     (Expr, Expr, Expr)
+  | Let      (String, Expr)
+  | Var      String
+  | Seq      (Expr, Expr)
   deriving (Eq, Show)
 
 -- Floating point target type
@@ -64,12 +73,18 @@ type Func = (Int, Expr)
 --   fns :: [Func]  The list of queued functions.
 type Queue = (Int, [Func])
 
+-- Bind type
+--   id  :: String  The variable name.
+--   reg :: String  The register name.
+type Bind = (String, String)
+
 -- Environment type
 --   reg  :: Int     The current register index.
 --   ty   :: Type    The generation type.
 --   q    :: Queue   The queue of named functions.
 --   name :: String  The base function name.
-type Env = (Int, Type, Queue, String)
+--   bind :: [Bind]  List of bindings.
+type Env = (Int, Type, Queue, String, [Bind])
 
 
 debug = False
@@ -181,31 +196,32 @@ llvm_main dbg =
      llvm_hack32 "add"
      llvm_hack32 "sub"
      llvm_hack32 "mul"
-     --llvm_hack32 "div"
-     --gen_func restrict_add Float1 "ctfp_restrict_add_f32v1"
-     --gen_func restrict_sub Float1 "ctfp_restrict_sub_f32v1"
-     --gen_func restrict_mul Float1 "ctfp_restrict_mul_f32v1"
-     gen_func restrict_div Float1 "ctfp_restrict_div_f32v1"
-     gen_func full_add Float1 "ctfp_full_add_f32v1"
-     gen_func full_sub Float1 "ctfp_full_sub_f32v1"
-     gen_func full_mul Float1 "ctfp_full_mul_f32v1"
-     gen_func full_div Float1 "ctfp_full_div_f32v1"
-     gen_func restrict_add Double1 "ctfp_restrict_add_f64v1"
-     gen_func restrict_sub Double1 "ctfp_restrict_sub_f64v1"
-     gen_func restrict_mul Double1 "ctfp_restrict_mul_f64v1"
-     gen_func restrict_div Double1 "ctfp_restrict_div_f64v1"
-     gen_func full_add Double1 "ctfp_full_add_f64v1"
-     gen_func full_sub Double1 "ctfp_full_sub_f64v1"
-     gen_func full_mul Double1 "ctfp_full_mul_f64v1"
-     gen_func full_div Double1 "ctfp_full_div_f64v1"
+     llvm_hack32 "div"
+     --llvm_func restrict_add Float1 "ctfp_restrict_add_f32v1"
+     --llvm_func restrict_sub Float1 "ctfp_restrict_sub_f32v1"
+     --llvm_func restrict_mul Float1 "ctfp_restrict_mul_f32v1"
+     --llvm_func restrict_div Float1 "ctfp_restrict_div_f32v1"
+     llvm_func full_add Float1 "ctfp_full_add_f32v1"
+     llvm_func full_sub Float1 "ctfp_full_sub_f32v1"
+     llvm_func full_mul Float1 "ctfp_full_mul_f32v1"
+     llvm_func full_div Float1 "ctfp_full_div_f32v1"
+     llvm_func restrict_add Double1 "ctfp_restrict_add_f64v1"
+     llvm_func restrict_sub Double1 "ctfp_restrict_sub_f64v1"
+     llvm_func restrict_mul Double1 "ctfp_restrict_mul_f64v1"
+     llvm_func restrict_div Double1 "ctfp_restrict_div_f64v1"
+     llvm_func full_add Double1 "ctfp_full_add_f64v1"
+     llvm_func full_sub Double1 "ctfp_full_sub_f64v1"
+     llvm_func full_mul Double1 "ctfp_full_mul_f64v1"
+     llvm_func full_div Double1 "ctfp_full_div_f64v1"
      --
-     gen_func restrict_add Float4 "ctfp_restrict_add_f32v4"
-     gen_func restrict_sub Float4 "ctfp_restrict_sub_f32v4"
-     gen_func restrict_mul Float4 "ctfp_restrict_mul_f32v4"
-     --gen_func restrict_div Float4 "ctfp_restrict_div_f32v4"
+     llvm_func restrict_add Float4 "ctfp_restrict_add_f32v4"
+     llvm_func restrict_sub Float4 "ctfp_restrict_sub_f32v4"
+     llvm_func restrict_mul Float4 "ctfp_restrict_mul_f32v4"
+     llvm_func restrict_div Float4 "ctfp_restrict_div_f32v4"
      --
      putStr "\n"
 
+-- hack for generating vectorized functions
 llvm_hack32 :: String -> IO ()
 llvm_hack32 op =
   do putStr $ "define weak float @ctfp_restrict_"++op++"_f32v1(float %a, float %b) #0 {\n"
@@ -216,6 +232,18 @@ llvm_hack32 op =
      putStr $ "  ret float %r\n"
      putStr $ "}\n"
 
+
+-- generate the code for a function
+llvm_func :: ((Expr, Expr) -> Expr) -> Type -> String -> IO ()
+llvm_func fn ty nam = 
+  let tnam = type2flt ty in
+    do
+       putStr $ "define weak " ++ tnam ++ " @" ++ nam ++ "(" ++ tnam ++ " %a, " ++ tnam ++ " %b) #0 {\n"
+       (r,(_,_,(idx,fns),n,_)) <- gen_expr (fn (Arg "a", Arg "b"), env_init ty nam)
+       putStr $ "ret " ++ tnam ++ " " ++ r ++ "\n}\n"
+       gen_unnamed fns ty idx nam
+
+
 -- Create a call from a function and arguments
 func :: ((Expr, Expr) -> Expr) -> (Expr, Expr) -> Expr
 func fn (a, b) =
@@ -224,16 +252,36 @@ func fn (a, b) =
 
 -- initialize an environment
 env_init :: Type -> String -> Env
-env_init ty nam = (0, ty, (1, []), nam)
+env_init ty nam = (1, ty, (1, []), nam, [])
 
 -- get the type from the environment
 env_type :: Env -> Type
-env_type (_,ty,_,_) = ty
+env_type (_,ty,_,_,_) = ty
 
--- gee the function name from the environment
+-- get the function name from the environment
 env_func :: Env -> String
-env_func (_,_,_,name) = name
+env_func (_,_,_,name,_) = name
 
+-- get/put the bindings from the environment
+env_get_vars :: Env -> [Bind]
+env_get_vars (_,_,_,_,vars) = vars
+env_put_vars :: Env -> Bind -> Env
+env_put_vars (a,b,c,d,vars) bind = (a,b,c,d,bind:vars)
+
+-- binding a variable to the environment
+env_bind :: Env -> Bind -> Env
+env_bind env bind = env_put_vars env bind
+
+-- lookup a variable in the environment
+env_lookup :: Env -> String -> String
+env_lookup env id =
+  let
+    find xs =
+      case xs of
+        (id',reg):ys -> if id == id' then reg else find ys
+        [] -> ""
+  in
+    find (env_get_vars env)
 
 class WithBlind e f | e -> f where
   withBlind :: (e -> Expr)    -- ^ test
@@ -254,8 +302,8 @@ instance WithBlind (Expr, Expr) ((Expr, Expr) -> Expr -> Expr) where
   withBlind cond blind fix op v =
     let b   = cond v
         tmp = ite2 b (blind v) v
-        res = func op tmp
-        out = ite b (fix v res) res
+        res = Let ("res", func op tmp)
+        out = Seq(res, ite b (fix v (Var "res")) (Var "res"))
     in out
 
 type FP1   = Expr
@@ -278,6 +326,8 @@ tx @@ f = tx f
 ite :: Expr -> Expr -> Expr -> Expr
 ite b Zero y = And (Not(b), y)
 ite b x Zero = And (b, x)
+ite Ones x y = x
+ite Zero x y = y
 ite b x (CopySign (Zero, v)) = 
   if x == v
     then CopySign(And (b, x), x)
@@ -306,12 +356,12 @@ ite2 b (x1,x2) (y1,y2) = (ite b x1 y1, ite b x2 y2)
 -- extract the exponent component
 get_exp :: Expr -> Expr
 get_exp e =
-  And (e, Int ("0x7F800000", "0x7FF0000000000000") )
+  And (e, Int (dec "0x7F800000", dec "0x7FF0000000000000") )
 
 -- extract the significand component
 get_sig :: Expr -> Expr
 get_sig e =
-  Or ( And (e, Int ("0x007FFFFF", "0x000FFFFFFFFFFFFF") ), val_one )
+  Or ( And (e, Int (dec "0x007FFFFF", dec "0x000FFFFFFFFFFFFF") ), val_one )
 
 -- compute the sign explicitly for mul/div
 do_sign :: (FP2 -> FP1) -> FP2 -> FP1
@@ -322,7 +372,13 @@ do_sign op (a, b) =
     (\_ r -> CopySign(r, Xor (a, b)))
     op
     (a, b)
+--do_sign =
+--  withBlind
+--    (\_ -> val_true)
+--    (\(u,v) -> (u, v))
+--    (\_ r -> CopySign(r, val_one))
 
+-- handle big numbers by shifting them down (only division)
 do_big :: (FP2 -> FP1) -> FP2 -> FP1
 do_big =
   withBlind
@@ -467,6 +523,10 @@ div_noop op (a, b) =
     op
     (a, b)
 
+dec :: String -> String
+dec str = show ((read str)::Int)
+--show (read int::Int))
+
 -- values
 val_true = Ones
 val_false = Zero
@@ -475,8 +535,8 @@ val_one = One
 val_dummy = Float ( "1.5", "1.5" )
 val_half = Float ( "0.5", "0.5" )
 val_two = Float ( "2.0", "2.0" )
-val_nan = Int ("0x7FC00000", "0x7FF8000000000000")
-val_inf = Int ("0x7F800000", "0x7FF0000000000000")
+val_nan = Int ( dec "0x7FC00000", dec "0x7FF8000000000000")
+val_inf = Int ( dec "0x7F800000", dec "0x7FF0000000000000")
 
 -- constants
 addmin = Float ( "9.86076131526264760e-32", "2.00416836000897278e-292" )
@@ -598,21 +658,21 @@ full_div =
 
 -- get a name
 name :: Env -> Expr -> (Env, String)
-name (i, t, (name, fns), n) expr =
-  let env' = (i, t, (name+1, (name, expr):fns), n) in
+name (i, t, (name, fns), n, vars) expr =
+  let env' = (i, t, (name+1, (name, expr):fns), n, vars) in
     (env', show name)
 
 -- allocate a register from the environment
 alloc :: Env -> (Env, String)
-alloc (i, t, q, n) = ((i+1, t, q, n), "%"++(show i))
+alloc (i, t, q, n, vars) = ((i+1, t, q, n, vars), "%"++(show i))
 
 -- allocate an array of registers from the environment
 allocs :: Env -> Int -> (Env, [String])
 allocs e n =
   if n == 0
     then (e, [])
-    else let ((i,t,q,f),ns) = allocs e (n-1) in
-      ((i+1,t,q,f),ns++["%"++(show i)])
+    else let ((i,t,q,f,vars),ns) = allocs e (n-1) in
+      ((i+1,t,q,f, vars),ns++["%"++(show i)])
 
 
 -- create a floating point value string
@@ -650,24 +710,14 @@ gen_unnamed [] _ _ _ = return ()
 gen_unnamed ((nam, expr):fns) t idx fn =
   let ty = type2flt t in
     do putStr $ "define weak " ++ ty ++ " @"++fn++"_" ++ (show nam) ++ "(" ++ ty ++ " %a, " ++ ty ++ " %b) #1 {\n"
-       (r,(_,_,(idx',fns'),_)) <- gen_expr (expr, (1, t, (idx, fns), fn))
+       (r,(_,_,(idx',fns'),_,_)) <- gen_expr (expr, (1, t, (idx, fns), fn, []))
        putStr $ "ret " ++ ty ++ " " ++ r ++ "\n}\n"
        gen_unnamed fns' t idx' fn
-
--- generate the code for a function
-gen_func :: ((Expr, Expr) -> Expr) -> Type -> String -> IO ()
-gen_func f t n = 
-  let ty = type2flt t in
-    do
-       putStr $ "define weak " ++ ty ++ " @" ++ n ++ "(" ++ ty ++ " %a, " ++ ty ++ " %b) #0 {\n"
-       (r,(_,_,(idx,fns),n)) <- gen_expr (f (Arg "a", Arg "b"), (1, t, (1, []), n))
-       putStr $ "ret " ++ ty ++ " " ++ r ++ "\n}\n"
-       gen_unnamed fns t idx n
 
 -- generate code for an arbitrary expression
 gen_expr :: (Expr, Env) -> IO (String, Env)
 gen_expr (Arg s, env) = return ("%" ++ s, env)
-gen_expr (Int val, env) = gen_int (env2sel env val, env)
+gen_expr (Int val, env) = gen_int (ints env (env2sel env val), env)
 gen_expr (Float val, env) = return (floats env (env2sel env val), env)
 gen_expr (Zero, env) = return (floats env "0.0", env)
 gen_expr (One, env) = return (floats env "1.0", env)
@@ -688,6 +738,28 @@ gen_expr (FCmpOGT (a, b), env) = gen_fcmp ("fcmp ogt", a, b, env)
 gen_expr (FCmpUNE (a, b), env) = gen_fcmp ("fcmp une", a, b, env)
 gen_expr (CopySign (a, b), env) = gen_call2 ("llvm.copysign." ++ (env2vec env), a, b, env)
 gen_expr (Call (fn, a, b),  env) = gen_call (fn, a, b, env)
+gen_expr (Let (id, val),  env) = llvm_let id val env
+gen_expr (Var id, env) = llvm_var id env
+gen_expr (Seq (a, b), env) = llvm_seq a b env
+
+-- llvm code for let expressions
+llvm_let :: String -> Expr -> Env -> IO (String, Env)
+llvm_let id val env =
+    do (x, env) <- gen_expr (val, env)
+       let env' = env_bind env (id, x) in
+         return (x, env')
+
+-- llvm code for variables
+llvm_var :: String -> Env -> IO (String, Env)
+llvm_var id env =
+  return (env_lookup env id, env)
+
+-- llvm code for sequences instructions
+llvm_seq :: Expr -> Expr -> Env -> IO (String, Env)
+llvm_seq a b env =
+  do (x, env) <- gen_expr (a, env)
+     (y, env) <- gen_expr (b, env)
+     return (y, env)
 
 gen_call :: (Expr, Expr, Expr, Env) -> IO (String, Env)
 gen_call (fn, a, b, env) =
@@ -703,7 +775,7 @@ gen_call (fn, a, b, env) =
 gen_int :: (String, Env) -> IO (String, Env)
 gen_int (int, env) =
   let (env',r) = alloc env in
-    do putStr $ r++" = bitcast "++(env2int env')++" "++(show (read int::Int))++" to "++(env2flt env')++"\n"
+    do putStr $ r++" = bitcast "++(env2int env')++" "++int++" to "++(env2flt env')++"\n"
        return (r, env')
 
 -- generate a bitwise not
@@ -762,8 +834,9 @@ gen_call2 (fn, a, b, env) =
   do (ra, env) <- gen_expr (a, env)
      (rb, env) <- gen_expr (b, env)
      let (env', r) = alloc env in
-       do putStr $ r++" = call "++(env2flt env')++" @"++fn++"("++(env2flt env')++" "++ra++", "++(env2flt env')++" "++rb++")\n"
-          return (r, env')
+       let ty = env2flt env' in
+         do putStr $ r++" = call "++ty++" @"++fn++"("++ty++" "++ra++", "++ty++" "++rb++")\n"
+            return (r, env')
 
 
 -- ## TYPE HELPERS ## --
