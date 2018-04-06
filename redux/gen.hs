@@ -16,7 +16,7 @@ main =
 test_main :: IO ()
 test_main =
   do putStr $ prelude
-     llvm_func test_func Float1 "testfunc"
+     llvm_func test_func Float1 "testfunc" False
 
 test_func =
   do_sign @@
@@ -84,7 +84,8 @@ type Bind = (String, String)
 --   q    :: Queue   The queue of named functions.
 --   name :: String  The base function name.
 --   bind :: [Bind]  List of bindings.
-type Env = (Int, Type, Queue, String, [Bind])
+--   dbg  :: Bool    Debug flag.
+type Env = (Int, Type, Queue, String, [Bind], Bool)
 
 
 debug = False
@@ -145,7 +146,7 @@ z3_func :: Expr -> Type -> String -> IO ()
 z3_func fn ty nam =
   do putStr "(declare-const a Float32)\n"
      putStr "(declare-const b Float32)\n"
-     z3_expr (fn, (env_init ty nam))
+     z3_expr (fn, (env_init ty nam False))
      return ()
 
 -- generate z3 code from an expression
@@ -201,23 +202,23 @@ llvm_main dbg =
      --llvm_func restrict_sub Float1 "ctfp_restrict_sub_f32v1"
      --llvm_func restrict_mul Float1 "ctfp_restrict_mul_f32v1"
      --llvm_func restrict_div Float1 "ctfp_restrict_div_f32v1"
-     llvm_func full_add Float1 "ctfp_full_add_f32v1"
-     llvm_func full_sub Float1 "ctfp_full_sub_f32v1"
-     llvm_func full_mul Float1 "ctfp_full_mul_f32v1"
-     llvm_func full_div Float1 "ctfp_full_div_f32v1"
-     llvm_func restrict_add Double1 "ctfp_restrict_add_f64v1"
-     llvm_func restrict_sub Double1 "ctfp_restrict_sub_f64v1"
-     llvm_func restrict_mul Double1 "ctfp_restrict_mul_f64v1"
-     llvm_func restrict_div Double1 "ctfp_restrict_div_f64v1"
-     llvm_func full_add Double1 "ctfp_full_add_f64v1"
-     llvm_func full_sub Double1 "ctfp_full_sub_f64v1"
-     llvm_func full_mul Double1 "ctfp_full_mul_f64v1"
-     llvm_func full_div Double1 "ctfp_full_div_f64v1"
+     llvm_func full_add Float1 "ctfp_full_add_f32v1" dbg
+     llvm_func full_sub Float1 "ctfp_full_sub_f32v1" dbg
+     llvm_func full_mul Float1 "ctfp_full_mul_f32v1" dbg
+     llvm_func full_div Float1 "ctfp_full_div_f32v1" dbg
+     llvm_func restrict_add Double1 "ctfp_restrict_add_f64v1" dbg
+     llvm_func restrict_sub Double1 "ctfp_restrict_sub_f64v1" dbg
+     llvm_func restrict_mul Double1 "ctfp_restrict_mul_f64v1" dbg
+     llvm_func restrict_div Double1 "ctfp_restrict_div_f64v1" dbg
+     llvm_func full_add Double1 "ctfp_full_add_f64v1" dbg
+     llvm_func full_sub Double1 "ctfp_full_sub_f64v1" dbg
+     llvm_func full_mul Double1 "ctfp_full_mul_f64v1" dbg
+     llvm_func full_div Double1 "ctfp_full_div_f64v1" dbg
      --
-     llvm_func restrict_add Float4 "ctfp_restrict_add_f32v4"
-     llvm_func restrict_sub Float4 "ctfp_restrict_sub_f32v4"
-     llvm_func restrict_mul Float4 "ctfp_restrict_mul_f32v4"
-     llvm_func restrict_div Float4 "ctfp_restrict_div_f32v4"
+     llvm_func restrict_add Float4 "ctfp_restrict_add_f32v4" dbg
+     llvm_func restrict_sub Float4 "ctfp_restrict_sub_f32v4" dbg
+     llvm_func restrict_mul Float4 "ctfp_restrict_mul_f32v4" dbg
+     llvm_func restrict_div Float4 "ctfp_restrict_div_f32v4" dbg
      --
      putStr "\n"
 
@@ -234,14 +235,14 @@ llvm_hack32 op =
 
 
 -- generate the code for a function
-llvm_func :: ((Expr, Expr) -> Expr) -> Type -> String -> IO ()
-llvm_func fn ty nam = 
+llvm_func :: ((Expr, Expr) -> Expr) -> Type -> String -> Bool -> IO ()
+llvm_func fn ty nam dbg = 
   let tnam = type2flt ty in
     do
        putStr $ "define weak " ++ tnam ++ " @" ++ nam ++ "(" ++ tnam ++ " %a, " ++ tnam ++ " %b) #0 {\n"
-       (r,(_,_,(idx,fns),n,_)) <- gen_expr (fn (Arg "a", Arg "b"), env_init ty nam)
+       (r,(_,_,(idx,fns),n,_,_)) <- gen_expr (fn (Arg "a", Arg "b"), env_init ty nam dbg)
        putStr $ "ret " ++ tnam ++ " " ++ r ++ "\n}\n"
-       gen_unnamed fns ty idx nam
+       gen_unnamed fns ty idx nam dbg
 
 
 -- Create a call from a function and arguments
@@ -251,22 +252,22 @@ func fn (a, b) =
 
 
 -- initialize an environment
-env_init :: Type -> String -> Env
-env_init ty nam = (1, ty, (1, []), nam, [])
+env_init :: Type -> String -> Bool -> Env
+env_init ty nam dbg = (1, ty, (1, []), nam, [], dbg)
 
 -- get the type from the environment
 env_type :: Env -> Type
-env_type (_,ty,_,_,_) = ty
+env_type (_,ty,_,_,_,_) = ty
 
 -- get the function name from the environment
 env_func :: Env -> String
-env_func (_,_,_,name,_) = name
+env_func (_,_,_,name,_,_) = name
 
 -- get/put the bindings from the environment
 env_get_vars :: Env -> [Bind]
-env_get_vars (_,_,_,_,vars) = vars
+env_get_vars (_,_,_,_,vars,_) = vars
 env_put_vars :: Env -> Bind -> Env
-env_put_vars (a,b,c,d,vars) bind = (a,b,c,d,bind:vars)
+env_put_vars (a,b,c,d,vars,e) bind = (a,b,c,d,bind:vars,e)
 
 -- binding a variable to the environment
 env_bind :: Env -> Bind -> Env
@@ -585,19 +586,7 @@ restrict_div =
   with_underflow2 divmin @@
   with_overflow1 divmax @@
   with_overflow2 divmax @@
-  with_dummy1' val_nan val_nan val_dummy @@
-  with_dummy2' val_nan val_nan val_dummy @@
-  with_dummy' (val_zero, val_zero) val_nan val_dummy @@
-  with_dummy' (val_inf, val_inf) val_nan val_dummy @@
-  with_dummy1' val_zero val_zero val_dummy @@
-  with_dummy1' val_inf val_inf val_dummy @@
-  with_dummy2' val_zero val_inf val_dummy @@
-  with_dummy2' val_inf val_zero val_dummy @@
-  div_exp @@
-  div_noop @@
-  with_dummy1' val_zero val_zero val_dummy @@
-  with_dummy1' val_inf val_inf val_dummy @@
-  FDivSig
+  safediv
 
 
 safediv =
@@ -658,21 +647,21 @@ full_div =
 
 -- get a name
 name :: Env -> Expr -> (Env, String)
-name (i, t, (name, fns), n, vars) expr =
-  let env' = (i, t, (name+1, (name, expr):fns), n, vars) in
+name (i, t, (name, fns), n, vars, dbg) expr =
+  let env' = (i, t, (name+1, (name, expr):fns), n, vars, dbg) in
     (env', show name)
 
 -- allocate a register from the environment
 alloc :: Env -> (Env, String)
-alloc (i, t, q, n, vars) = ((i+1, t, q, n, vars), "%"++(show i))
+alloc (i, t, q, n, vars, dbg) = ((i+1, t, q, n, vars, dbg), "%"++(show i))
 
 -- allocate an array of registers from the environment
 allocs :: Env -> Int -> (Env, [String])
 allocs e n =
   if n == 0
     then (e, [])
-    else let ((i,t,q,f,vars),ns) = allocs e (n-1) in
-      ((i+1,t,q,f, vars),ns++["%"++(show i)])
+    else let ((i,t,q,f,vars,dbg),ns) = allocs e (n-1) in
+      ((i+1,t,q,f,vars,dbg),ns++["%"++(show i)])
 
 
 -- create a floating point value string
@@ -705,14 +694,14 @@ zeros :: Env -> String
 zeros e = ints e "0"
 
 
-gen_unnamed :: [Func] -> Type -> Int -> String -> IO ()
-gen_unnamed [] _ _ _ = return ()
-gen_unnamed ((nam, expr):fns) t idx fn =
+gen_unnamed :: [Func] -> Type -> Int -> String -> Bool -> IO ()
+gen_unnamed [] _ _ _ _ = return ()
+gen_unnamed ((nam, expr):fns) t idx fn dbg =
   let ty = type2flt t in
     do putStr $ "define weak " ++ ty ++ " @"++fn++"_" ++ (show nam) ++ "(" ++ ty ++ " %a, " ++ ty ++ " %b) #1 {\n"
-       (r,(_,_,(idx',fns'),_,_)) <- gen_expr (expr, (1, t, (idx, fns), fn, []))
+       (r,(_,_,(idx',fns'),_,_,_)) <- gen_expr (expr, (1, t, (idx, fns), fn, [], dbg))
        putStr $ "ret " ++ ty ++ " " ++ r ++ "\n}\n"
-       gen_unnamed fns' t idx' fn
+       gen_unnamed fns' t idx' fn dbg
 
 -- generate code for an arbitrary expression
 gen_expr :: (Expr, Env) -> IO (String, Env)

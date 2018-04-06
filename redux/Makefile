@@ -5,15 +5,21 @@ CPU=ivybridge
 all: ctfp.bc ctfp-llvm.so
 #all: ctfp.z3
 
-ctfp.z3: gen.hs Makefile
-	runghc $< z3
+## LLVM Generator
 
-ctfp.bc: gen.hs Makefile
-	@#runghc $<
-	runghc $< > ctfp.ll
-	@##opt ctfp.ll > ctfp.bc
-	opt -S -early-cse ctfp.ll > ctfp.2.ll
-	opt -early-cse -always-inline ctfp.ll > ctfp.bc
+gen: gen.hs Makefile
+	ghc $< -o $@
+
+
+## CTFP Targets
+
+ctfp.z3: gen Makefile
+	./gen z3
+
+ctfp.bc: gen Makefile
+	./gen > ctfp.ll
+	opt -early-cse ctfp.ll -S > ctfp.cse.ll
+	opt -always-inline ctfp.cse.ll > ctfp.bc
 	llc -O3 -mcpu=$(CPU) ctfp.bc -o ctfp.o -filetype=obj
 	objdump -d ctfp.o -M intel > ctfp.s
 
