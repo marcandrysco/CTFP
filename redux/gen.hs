@@ -194,10 +194,6 @@ z3_call (fn, a, b, env) =
 llvm_main :: Bool -> IO ()
 llvm_main dbg = 
   do putStr prelude
-     llvm_hack32 "add"
-     llvm_hack32 "sub"
-     llvm_hack32 "mul"
-     llvm_hack32 "div"
      --llvm_func restrict_add Float1 "ctfp_restrict_add_f32v1"
      --llvm_func restrict_sub Float1 "ctfp_restrict_sub_f32v1"
      --llvm_func restrict_mul Float1 "ctfp_restrict_mul_f32v1"
@@ -219,27 +215,38 @@ llvm_main dbg =
      llvm_func restrict_sub Float4 "ctfp_restrict_sub_f32v4" dbg
      llvm_func restrict_mul Float4 "ctfp_restrict_mul_f32v4" dbg
      llvm_func restrict_div Float4 "ctfp_restrict_div_f32v4" dbg
+     llvm_func full_add Float4 "ctfp_full_add_f32v4" dbg
+     llvm_func full_sub Float4 "ctfp_full_sub_f32v4" dbg
+     llvm_func full_mul Float4 "ctfp_full_mul_f32v4" dbg
+     llvm_func full_div Float4 "ctfp_full_div_f32v4" dbg
+     --
+     llvm_hack32 "restrict_add"
+     llvm_hack32 "restrict_sub"
+     llvm_hack32 "restrict_mul"
+     llvm_hack32 "restrict_div"
+     llvm_hack32 "full_add"
+     llvm_hack32 "full_sub"
+     llvm_hack32 "full_mul"
+     llvm_hack32 "full_div"
      --
      putStr "\n"
 
 -- hack for generating vectorized functions
 llvm_hack32 :: String -> IO ()
 llvm_hack32 op =
-  do putStr $ "define weak float @ctfp_restrict_"++op++"_f32v1(float %a, float %b) #0 {\n"
+  do putStr $ "define weak float @ctfp_"++op++"_f32v1_hack(float %a, float %b) #0 {\n"
      putStr $ "  %a1 = insertelement <4 x float> undef, float %a, i32 0\n"
      putStr $ "  %b1 = insertelement <4 x float> undef, float %b, i32 0\n"
-     putStr $ "  %r1 = call <4 x float> @ctfp_restrict_"++op++"_f32v4(<4 x float> %a1, <4 x float> %b1)\n"
+     putStr $ "  %r1 = call <4 x float> @ctfp_"++op++"_f32v4(<4 x float> %a1, <4 x float> %b1)\n"
      putStr $ "  %r  = extractelement <4 x float> %r1, i32 0\n"
      putStr $ "  ret float %r\n"
      putStr $ "}\n"
-
 
 -- generate the code for a function
 llvm_func :: ((Expr, Expr) -> Expr) -> Type -> String -> Bool -> IO ()
 llvm_func fn ty nam dbg = 
   let tnam = type2flt ty in
-    do
-       putStr $ "define weak " ++ tnam ++ " @" ++ nam ++ "(" ++ tnam ++ " %a, " ++ tnam ++ " %b) #0 {\n"
+    do putStr $ "define weak " ++ tnam ++ " @" ++ nam ++ "(" ++ tnam ++ " %a, " ++ tnam ++ " %b) #0 {\n"
        (r,(_,_,(idx,fns),n,_,_)) <- gen_expr (fn (Arg "a", Arg "b"), env_init ty nam dbg)
        putStr $ "ret " ++ tnam ++ " " ++ r ++ "\n}\n"
        gen_unnamed fns ty idx nam dbg

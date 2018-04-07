@@ -17,14 +17,14 @@ float rand_f32(void);
 /*
  * ctfp declarations
  */
-float ctfp_restrict_add_f32v1(float, float);
-float ctfp_restrict_sub_f32v1(float, float);
-float ctfp_restrict_mul_f32v1(float, float);
-float ctfp_restrict_div_f32v1(float, float);
-float ctfp_full_add_f32v1(float, float);
-float ctfp_full_sub_f32v1(float, float);
-float ctfp_full_mul_f32v1(float, float);
-float ctfp_full_div_f32v1(float, float);
+float ctfp_restrict_add_f32v1_hack(float, float);
+float ctfp_restrict_sub_f32v1_hack(float, float);
+float ctfp_restrict_mul_f32v1_hack(float, float);
+float ctfp_restrict_div_f32v1_hack(float, float);
+float ctfp_full_add_f32v1_hack(float, float);
+float ctfp_full_sub_f32v1_hack(float, float);
+float ctfp_full_mul_f32v1_hack(float, float);
+float ctfp_full_div_f32v1_hack(float, float);
 
 
 static inline bool issub(double f)
@@ -209,7 +209,7 @@ int main(int argc, char **argv)
 		//printf("%.17g\n", (a * 8.50705917302346159e+37) / b);
 		//printf("FLT_MIN: %.17g\n", FLT_MIN);
 
-		printf("%g\n", ctfp_full_div_f32v1(x, y));
+		printf("%g\n", ctfp_full_div_f32v1_hack(x, y));
 		printf("%g\n", x / y);
 
 		return 0;
@@ -222,59 +222,58 @@ int main(int argc, char **argv)
 			float x = val32[i], y = val32[j];
 
 			//printf("... %g %g\n", x, y);
-			if(!isequal32(ctfp_restrict_add_f32v1(x, y), simul_restrict_add_f32(x, y)))
-				printf("RESTRICT %g + %g = %g (expected %g)\n", x, y, ctfp_restrict_add_f32v1(x, y), simul_restrict_add_f32(x, y));
+			if(!isequal32(ctfp_restrict_add_f32v1_hack(x, y), simul_restrict_add_f32(x, y)))
+				printf("RESTRICT %g + %g = %g (expected %g)\n", x, y, ctfp_restrict_add_f32v1_hack(x, y), simul_restrict_add_f32(x, y));
 
-			if(!isequal32(ctfp_restrict_sub_f32v1(x, y), simul_restrict_sub_f32(x, y)))
-				printf("RESTRICT %g - %g = %g (expected %g)\n", x, y, ctfp_restrict_sub_f32v1(x, y), simul_restrict_sub_f32(x, y));
+			if(!isequal32(ctfp_restrict_sub_f32v1_hack(x, y), simul_restrict_sub_f32(x, y)))
+				printf("RESTRICT %g - %g = %g (expected %g)\n", x, y, ctfp_restrict_sub_f32v1_hack(x, y), simul_restrict_sub_f32(x, y));
 
-			if(!isequal32(ctfp_restrict_mul_f32v1(x, y), simul_restrict_mul_f32(x, y)))
-				printf("RESTRICT %g * %g = %g (expected %g)\n", x, y, ctfp_restrict_mul_f32v1(x, y), simul_restrict_mul_f32(x, y));
+			if(!isequal32(ctfp_restrict_mul_f32v1_hack(x, y), simul_restrict_mul_f32(x, y)))
+				printf("RESTRICT %g * %g = %g (expected %g)\n", x, y, ctfp_restrict_mul_f32v1_hack(x, y), simul_restrict_mul_f32(x, y));
 
-			if(!isequal32(ctfp_restrict_div_f32v1(x, y), simul_restrict_div_f32(x, y)))
-				printf("RESTRICT %g / %g = %g (expected %g)\n", x, y, ctfp_restrict_div_f32v1(x, y), simul_restrict_div_f32(x, y));
+			if(!isequal32(ctfp_restrict_div_f32v1_hack(x, y), simul_restrict_div_f32(x, y)))
+				printf("RESTRICT %g / %g = %g (expected %g)\n", x, y, ctfp_restrict_div_f32v1_hack(x, y), simul_restrict_div_f32(x, y));
 
-			if(!isequal32(ctfp_full_add_f32v1(x, y), simul_full_add_f32(x, y)))
-				printf("FULL %g + %g = %g (expected %g)\n", x, y, ctfp_full_add_f32v1(x, y), simul_full_add_f32(x, y));
+			if(!isequal32(ctfp_full_add_f32v1_hack(x, y), simul_full_add_f32(x, y)))
+				printf("FULL %g + %g = %g (expected %g)\n", x, y, ctfp_full_add_f32v1_hack(x, y), simul_full_add_f32(x, y));
 
-			if(!isequal32(ctfp_full_sub_f32v1(x, y), simul_full_sub_f32(x, y)))
-				printf("FULL %g - %g = %g (expected %g)\n", x, y, ctfp_full_sub_f32v1(x, y), simul_full_sub_f32(x, y));
+			if(!isequal32(ctfp_full_sub_f32v1_hack(x, y), simul_full_sub_f32(x, y)))
+				printf("FULL %g - %g = %g (expected %g)\n", x, y, ctfp_full_sub_f32v1_hack(x, y), simul_full_sub_f32(x, y));
 
-			if(!isequal32(ctfp_full_mul_f32v1(x, y), simul_full_mul_f32(x, y)))
-				printf("FULL %g * %g = %g (expected %g)\n", x, y, ctfp_full_mul_f32v1(x, y), simul_full_mul_f32(x, y));
+			if(!isequal32(ctfp_full_mul_f32v1_hack(x, y), simul_full_mul_f32(x, y)))
+				printf("FULL %g * %g = %g (expected %g)\n", x, y, ctfp_full_mul_f32v1_hack(x, y), simul_full_mul_f32(x, y));
 
-			if(!isequal32(ctfp_full_div_f32v1(x, y), simul_full_div_f32(x, y)))
-				printf("FULL %g / %g = %g (expected %g)\n", x, y, ctfp_full_div_f32v1(x, y), simul_full_div_f32(x, y));
+			if(!isequal32(ctfp_full_div_f32v1_hack(x, y), simul_full_div_f32(x, y)))
+				printf("FULL %g / %g = %g (expected %g)\n", x, y, ctfp_full_div_f32v1_hack(x, y), simul_full_div_f32(x, y));
 		}
 	}
 
-	if(0)
 	for(i = 0; i < 1000000; i++) {
 		float x = rand_f32(), y = rand_f32();
 
-		if(!isequal32(ctfp_restrict_add_f32v1(x, y), simul_restrict_add_f32(x, y)))
-			printf("RESTRICT %g + %g = %g (expected %g)\n", x, y, ctfp_restrict_add_f32v1(x, y), simul_restrict_add_f32(x, y));
+		if(!isequal32(ctfp_restrict_add_f32v1_hack(x, y), simul_restrict_add_f32(x, y)))
+			printf("RESTRICT %g + %g = %g (expected %g)\n", x, y, ctfp_restrict_add_f32v1_hack(x, y), simul_restrict_add_f32(x, y));
 
-		if(!isequal32(ctfp_restrict_sub_f32v1(x, y), simul_restrict_sub_f32(x, y)))
-			printf("RESTRICT %g - %g = %g (expected %g)\n", x, y, ctfp_restrict_sub_f32v1(x, y), simul_restrict_sub_f32(x, y));
+		if(!isequal32(ctfp_restrict_sub_f32v1_hack(x, y), simul_restrict_sub_f32(x, y)))
+			printf("RESTRICT %g - %g = %g (expected %g)\n", x, y, ctfp_restrict_sub_f32v1_hack(x, y), simul_restrict_sub_f32(x, y));
 
-		if(!isequal32(ctfp_restrict_mul_f32v1(x, y), simul_restrict_mul_f32(x, y)))
-			printf("RESTRICT %g * %g = %g (expected %g)\n", x, y, ctfp_restrict_mul_f32v1(x, y), simul_restrict_mul_f32(x, y));
+		if(!isequal32(ctfp_restrict_mul_f32v1_hack(x, y), simul_restrict_mul_f32(x, y)))
+			printf("RESTRICT %g * %g = %g (expected %g)\n", x, y, ctfp_restrict_mul_f32v1_hack(x, y), simul_restrict_mul_f32(x, y));
 
-		if(!isequal32(ctfp_restrict_div_f32v1(x, y), simul_restrict_div_f32(x, y)))
-			printf("RESTRICT %g / %g = %g (expected %g)\n", x, y, ctfp_restrict_div_f32v1(x, y), simul_restrict_div_f32(x, y));
+		if(!isequal32(ctfp_restrict_div_f32v1_hack(x, y), simul_restrict_div_f32(x, y)))
+			printf("RESTRICT %g / %g = %g (expected %g)\n", x, y, ctfp_restrict_div_f32v1_hack(x, y), simul_restrict_div_f32(x, y));
 
-		if(!isequal32(ctfp_full_add_f32v1(x, y), simul_full_add_f32(x, y)))
-			printf("FULL %g + %g = %g (expected %g)\n", x, y, ctfp_full_add_f32v1(x, y), simul_full_add_f32(x, y));
+		if(!isequal32(ctfp_full_add_f32v1_hack(x, y), simul_full_add_f32(x, y)))
+			printf("FULL %g + %g = %g (expected %g)\n", x, y, ctfp_full_add_f32v1_hack(x, y), simul_full_add_f32(x, y));
 
-		if(!isequal32(ctfp_full_sub_f32v1(x, y), simul_full_sub_f32(x, y)))
-			printf("FULL %g - %g = %g (expected %g)\n", x, y, ctfp_full_sub_f32v1(x, y), simul_full_sub_f32(x, y));
+		if(!isequal32(ctfp_full_sub_f32v1_hack(x, y), simul_full_sub_f32(x, y)))
+			printf("FULL %g - %g = %g (expected %g)\n", x, y, ctfp_full_sub_f32v1_hack(x, y), simul_full_sub_f32(x, y));
 
-		if(!isequal32(ctfp_full_mul_f32v1(x, y), simul_full_mul_f32(x, y)))
-			printf("FULL %g * %g = %g (expected %g)\n", x, y, ctfp_full_mul_f32v1(x, y), simul_full_mul_f32(x, y));
+		if(!isequal32(ctfp_full_mul_f32v1_hack(x, y), simul_full_mul_f32(x, y)))
+			printf("FULL %g * %g = %g (expected %g)\n", x, y, ctfp_full_mul_f32v1_hack(x, y), simul_full_mul_f32(x, y));
 
-		if(!isequal32(ctfp_full_div_f32v1(x, y), simul_full_div_f32(x, y)))
-			printf("FULL %g / %g = %g (expected %g)\n", x, y, ctfp_full_div_f32v1(x, y), simul_full_div_f32(x, y));
+		if(!isequal32(ctfp_full_div_f32v1_hack(x, y), simul_full_div_f32(x, y)))
+			printf("FULL %g / %g = %g (expected %g)\n", x, y, ctfp_full_div_f32v1_hack(x, y), simul_full_div_f32(x, y));
 	}
 
 	return 0;

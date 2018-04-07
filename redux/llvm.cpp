@@ -199,7 +199,8 @@ struct CTFP : public FunctionPass {
 			//return false;
 
 		Module *mod = func.getParent();
-		if(mod->getFunction("ctfp_restrict_add_f32v1") == nullptr) {
+		if(mod->getFunction("ctfp_restrict_add_f32v4") == nullptr) {
+			fprintf(stderr, "LInk!\n");
 			SMDiagnostic err;
 			if(getenv("CTFP_DIR") == nullptr)
 				fprintf(stderr, "Missing 'CTFP_DIR' variable.\n"), abort();
@@ -323,17 +324,20 @@ struct CTFP : public FunctionPass {
 				else
 					fprintf(stderr, "Invalid CTFP version.\n"), abort();
 
+				std::string extra = "";
 				width = getwidth(inst->getType());
-				//if((bits == 32) && (width == 1))
-					//width = 4;
+				if((bits == 32) && (width == 1))
+					extra = "_hack";
 				//else if((bits == 64) && (width == 1))
-					//width = 2;
+					//extra = "_hack";
 
-				sprintf(id, "ctfp_%s_%s_f%dv%d", sel.c_str(), name.c_str(), bits, width);
+				sprintf(id, "ctfp_%s_%s_f%dv%d%s", sel.c_str(), name.c_str(), bits, width, extra.c_str());
 				insert(inst, id);
 			}
 		}
 
+		static int a = 0;
+		fprintf(stderr, "done %d\n", a++);
 		return true;
 	}
 };

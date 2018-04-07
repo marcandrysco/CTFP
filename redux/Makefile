@@ -2,7 +2,7 @@ CPU=ivybridge
 #CPU=skylake
 #CPU=barcelona
 
-all: ctfp.bc ctfp-llvm.so
+all: ctfp.bc ctfp-llvm.so ctfp-clean.so
 #all: ctfp.z3
 
 ## LLVM Generator
@@ -16,10 +16,10 @@ gen: gen.hs Makefile
 ctfp.z3: gen Makefile
 	./gen z3
 
-ctfp.bc: gen Makefile
+ctfp.bc: gen Makefile ctfp-clean.so
 	./gen > ctfp.ll
 	opt -early-cse ctfp.ll -S > ctfp.cse.ll
-	opt -always-inline ctfp.cse.ll > ctfp.bc
+	opt -load ./ctfp-clean.so -always-inline -ctfp-clean ctfp.cse.ll > ctfp.bc
 	llc -O3 -mcpu=$(CPU) ctfp.bc -o ctfp.o -filetype=obj
 	objdump -d ctfp.o -M intel > ctfp.s
 
@@ -27,6 +27,9 @@ ctfp.bc: gen Makefile
 ## LLVM Tool
 
 ctfp-llvm.so: llvm.cpp Makefile
+	clang++ -shared -O2 -Wall -march=native -fpic $< -o $@ -std=gnu++11
+
+ctfp-clean.so: clean.cpp Makefile
 	clang++ -shared -O2 -Wall -march=native -fpic $< -o $@ -std=gnu++11
 
 
