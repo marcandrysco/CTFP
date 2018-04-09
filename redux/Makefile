@@ -16,9 +16,13 @@ gen: gen.hs Makefile
 ctfp.z3: gen Makefile
 	./gen z3
 
-ctfp.bc: gen Makefile ctfp-clean.so
+ctfp.ll: gen Makefile ctfp-clean.so
 	./gen > ctfp.ll
+
+ctfp.cse.ll: ctfp.ll
 	opt -early-cse ctfp.ll -S > ctfp.cse.ll
+
+ctfp.bc: ctfp.cse.ll
 	opt -load ./ctfp-clean.so -always-inline -ctfp-clean ctfp.cse.ll > ctfp.bc
 	llc -O3 -mcpu=$(CPU) ctfp.bc -o ctfp.o -filetype=obj
 	objdump -d ctfp.o -M intel > ctfp.s
