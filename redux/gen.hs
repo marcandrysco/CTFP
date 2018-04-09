@@ -194,10 +194,10 @@ z3_call (fn, a, b, env) =
 llvm_main :: Bool -> IO ()
 llvm_main dbg = 
   do putStr prelude
-     --llvm_func restrict_add Float1 "ctfp_restrict_add_f32v1"
-     --llvm_func restrict_sub Float1 "ctfp_restrict_sub_f32v1"
-     --llvm_func restrict_mul Float1 "ctfp_restrict_mul_f32v1"
-     --llvm_func restrict_div Float1 "ctfp_restrict_div_f32v1"
+     llvm_func restrict_add Float1 "ctfp_restrict_add_f32v1" dbg
+     llvm_func restrict_sub Float1 "ctfp_restrict_sub_f32v1" dbg
+     llvm_func restrict_mul Float1 "ctfp_restrict_mul_f32v1" dbg
+     llvm_func restrict_div Float1 "ctfp_restrict_div_f32v1" dbg
      llvm_func full_add Float1 "ctfp_full_add_f32v1" dbg
      llvm_func full_sub Float1 "ctfp_full_sub_f32v1" dbg
      llvm_func full_mul Float1 "ctfp_full_mul_f32v1" dbg
