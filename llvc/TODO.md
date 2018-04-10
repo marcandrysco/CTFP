@@ -41,3 +41,27 @@ define weak float @ctfp_restrict_add_f32v1(float %a, float %b) #2 {
   ret float %11
 }
 ```
+
+
+```
+(set-option :produce-models true)
+(set-logic QF_FPBV)
+(define-fun s10 () (_ BitVec 8) #x00)
+(define-fun s8 () RoundingMode roundNearestTiesToEven)
+(define-fun s2 () (_ FloatingPoint  8 24) ((_ to_fp 8 24) roundNearestTiesToEven (/ 244681 4194304)))
+(declare-fun s0 () (_ FloatingPoint  8 24))
+(declare-fun s1 () (_ BitVec 8))
+(assert ; no quantifiers
+   (let ((s3 (fp.eq s0 s2)))
+   (let ((s4 (fp.isNaN s0)))
+   (let ((s5 (fp.isInfinite s0)))
+   (let ((s6 (or s4 s5)))
+   (let ((s7 (not s6)))
+   (let ((s9 ((_ fp.to_sbv 8) s8 s0)))
+   (let ((s11 (ite s7 s9 s10)))
+   (let ((s12 (= (bvcomp s1 s11) #b1)))
+   (let ((s13 (and s3 s12)))
+   s13))))))))))
+(check-sat)
+(get-value (s1))
+```
