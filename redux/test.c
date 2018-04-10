@@ -21,10 +21,12 @@ float ctfp_restrict_add_f32v1_hack(float, float);
 float ctfp_restrict_sub_f32v1_hack(float, float);
 float ctfp_restrict_mul_f32v1_hack(float, float);
 float ctfp_restrict_div_f32v1_hack(float, float);
+float ctfp_restrict_sqrt_f32v1(float);
 float ctfp_full_add_f32v1_hack(float, float);
 float ctfp_full_sub_f32v1_hack(float, float);
 float ctfp_full_mul_f32v1_hack(float, float);
 float ctfp_full_div_f32v1_hack(float, float);
+float ctfp_full_sqrt_f32v1(float);
 
 
 static inline bool issub(double f)
@@ -56,8 +58,13 @@ bool chk_spec_f64(double f)
 	return (f == INFINITY) || (f == -INFINITY) || isnan(f) || issub(f);
 }
 
+typedef float v2f32 __attribute__((vector_size(8)));
 typedef float v4f32 __attribute__((vector_size(16)));
-typedef double v2v64 __attribute__((vector_size(16)));
+typedef float v8f32 __attribute__((vector_size(32)));
+typedef float v16f32 __attribute__((vector_size(64)));
+typedef double v2f64 __attribute__((vector_size(16)));
+typedef double v4f64 __attribute__((vector_size(32)));
+typedef double v8f64 __attribute__((vector_size(64)));
 
 static inline bool ispow2(double f)
 {
@@ -68,48 +75,123 @@ static inline bool ispow2(double f)
 	return f == 0.5;
 }
 
+static inline bool ispow4(double f)
+{
+	int exp;
+
+	f = frexp(f, &exp);
+
+	return (f == 0.5) && (exp & 1);
+}
+
 /**
- * Base generator for debug functions.
+ * Generator for one-operand debug functions.
  *   @NAM: The function name.
- *   @TY: THe type.
+ *   @TY: The type.
  *   @OP: The operation.
  *   @COND: The safety condition.
  */
-#define DBG_GEN(NAM, TY, OP, COND) \
+#define DBG_GEN1(NAM, TY, OP, COND) \
+	TY dbg_##NAM(TY a) { \
+	  TY r = OP(a); \
+	  if(COND) fprintf(stderr, "unsafe " #NAM "(%g)\n", a); \
+	  return r; \
+	}
+
+/**
+ * Generator for two-operand debug functions.
+ *   @NAM: The function name.
+ *   @TY: The type.
+ *   @OP: The operation.
+ *   @COND: The safety condition.
+ */
+#define DBG_GEN2(NAM, TY, OP, COND) \
 	TY dbg_##NAM(TY a, TY b) { \
 	  TY r = a OP b; \
 	  if(COND) fprintf(stderr, "unsafe " #NAM "(%g, %g)\n", a, b); \
 	  return r; \
 	}
 
-#define DBG_VEC(NAM, TY, BAS) \
+/**
+ * Generator for one-operand vectorized functions.
+ *   @NAM: The function name.
+ *   @TY: The type.
+ *   @BAS: The base type.
+ */
+#define DBG_VEC1(NAM, TY, BAS, WID) \
 	TY dbg_##NAM(TY a, TY b) { \
-	  return (TY){ dbg_##BAS(a[0], b[0]), dbg_##BAS(a[1], b[1]), dbg_##BAS(a[2], b[2]), dbg_##BAS(a[3], b[3]) }; \
+		TY r; int i; \
+		for(i = 0; i < WID; i++) r[i] = dbg_##BAS(a[i]); \
+		return r; \
 	}
 
-#define DBG_STD(NAM, TY, OP) DBG_GEN(NAM, TY, OP, issub(a) || issub(b) || issub(r))
+/**
+ * Generator for two-operand vectorized functions.
+ *   @NAM: The function name.
+ *   @TY: The type.
+ *   @BAS: The base type.
+ */
+#define DBG_VEC2(NAM, TY, BAS, WID) \
+	TY dbg_##NAM(TY a, TY b) { \
+		TY r; int i; \
+		for(i = 0; i < WID; i++) r[i] = dbg_##BAS(a[i], b[i]); \
+		return r; \
+	}
+
 #define COND_STD       (issub(a) || issub(b) || issub(r))
 #define COND_ISSPEC(a) ((a == INFINITY) || (a == -INFINITY) || isnan(a) || (a == 0.0))
 #define COND_DIVSIG    ((COND_STD) || COND_ISSPEC(a) || COND_ISSPEC(b) || ispow2(b))
 #define COND_DIVEXP    ((COND_STD) || COND_ISSPEC(a) || COND_ISSPEC(b) || !ispow2(b))
+#define COND_SQRT      (issub(a) || issub(r) || COND_ISSPEC(a) || ispow4(a) || (a < 0.0))
 
-DBG_STD(fadd_f32, float, +);
-DBG_STD(fsub_f32, float, -);
-DBG_STD(fmul_f32, float, *);
-DBG_GEN(fdiv_sig_f32, float, /, COND_DIVSIG);
-DBG_GEN(fdiv_exp_f32, float, /, COND_DIVEXP);
+DBG_GEN2(fadd_f32, float, +, COND_STD);
+DBG_GEN2(fsub_f32, float, -, COND_STD);
+DBG_GEN2(fmul_f32, float, *, COND_STD);
+DBG_GEN2(fdiv_sig_f32, float, /, COND_DIVSIG);
+DBG_GEN2(fdiv_exp_f32, float, /, COND_DIVEXP);
+DBG_GEN1(fsqrt_f32, float, sqrtf, COND_SQRT);
 
-DBG_STD(fadd_f64, double, +);
-DBG_STD(fsub_f64, double, -);
-DBG_STD(fmul_f64, double, *);
-DBG_STD(fdiv_sig_f64, double, /);
-DBG_STD(fdiv_exp_f64, double, /);
+DBG_GEN2(fadd_f64, double, +, COND_STD);
+DBG_GEN2(fsub_f64, double, -, COND_STD);
+DBG_GEN2(fmul_f64, double, *, COND_STD);
+DBG_GEN2(fdiv_sig_f64, double, /, COND_DIVSIG);
+DBG_GEN2(fdiv_exp_f64, double, /, COND_DIVEXP);
+DBG_GEN1(fsqrt_f64, double, sqrt, COND_SQRT);
 
-DBG_VEC(fadd_v4f32, v4f32, fadd_f32);
-DBG_VEC(fsub_v4f32, v4f32, fsub_f32);
-DBG_VEC(fmul_v4f32, v4f32, fmul_f32);
-DBG_VEC(fdiv_sig_v4f32, v4f32, fdiv_sig_f32);
-DBG_VEC(fdiv_exp_v4f32, v4f32, fdiv_exp_f32);
+DBG_VEC2(fadd_v2f32, v2f32, fadd_f32, 2);
+DBG_VEC2(fsub_v2f32, v2f32, fsub_f32, 2);
+DBG_VEC2(fmul_v2f32, v2f32, fmul_f32, 2);
+DBG_VEC2(fdiv_sig_v2f32, v2f32, fdiv_sig_f32, 2);
+DBG_VEC2(fdiv_exp_v2f32, v2f32, fdiv_exp_f32, 2);
+DBG_VEC1(fsqrt_v2f32, v2f32, fsqrt_f32, 2);
+
+DBG_VEC2(fadd_v4f32, v4f32, fadd_f32, 4);
+DBG_VEC2(fsub_v4f32, v4f32, fsub_f32, 4);
+DBG_VEC2(fmul_v4f32, v4f32, fmul_f32, 4);
+DBG_VEC2(fdiv_sig_v4f32, v4f32, fdiv_sig_f32, 4);
+DBG_VEC2(fdiv_exp_v4f32, v4f32, fdiv_exp_f32, 4);
+DBG_VEC1(fsqrt_v4f32, v4f32, fsqrt_f32, 4);
+
+DBG_VEC2(fadd_v2f64, v2f64, fadd_f64, 2);
+DBG_VEC2(fsub_v2f64, v2f64, fsub_f64, 2);
+DBG_VEC2(fmul_v2f64, v2f64, fmul_f64, 2);
+DBG_VEC2(fdiv_sig_v2f64, v2f64, fdiv_sig_f64, 2);
+DBG_VEC2(fdiv_exp_v2f64, v2f64, fdiv_exp_f64, 2);
+DBG_VEC1(fsqrt_v2f64, v2f64, fsqrt_f64, 2);
+
+DBG_VEC2(fadd_v4f64, v4f64, fadd_f64, 4);
+DBG_VEC2(fsub_v4f64, v4f64, fsub_f64, 4);
+DBG_VEC2(fmul_v4f64, v4f64, fmul_f64, 4);
+DBG_VEC2(fdiv_sig_v4f64, v4f64, fdiv_sig_f64, 4);
+DBG_VEC2(fdiv_exp_v4f64, v4f64, fdiv_exp_f64, 4);
+DBG_VEC1(fsqrt_v4f64, v4f64, fsqrt_f64, 4);
+
+DBG_VEC2(fadd_v8f64, v8f64, fadd_f64, 8);
+DBG_VEC2(fsub_v8f64, v8f64, fsub_f64, 8);
+DBG_VEC2(fmul_v8f64, v8f64, fmul_f64, 8);
+DBG_VEC2(fdiv_sig_v8f64, v8f64, fdiv_sig_f64, 8);
+DBG_VEC2(fdiv_exp_v8f64, v8f64, fdiv_exp_f64, 8);
+DBG_VEC1(fsqrt_v8f64, v8f64, fsqrt_f64, 8);
 
 #define ARRSIZE(arr) (sizeof(arr) / sizeof(arr[0]))
 
@@ -145,6 +227,7 @@ float simul_restrict_div_f32(float a, float b) {
 	b = overflow(underflow(b, mulmin_f32), divmax_f32);
 	return a / b;
 }
+float simul_restrict_sqrt_f32(float a) { return sqrtf(underflow(a, FLT_MIN)); }
 
 float simul_full_add_f32(float a, float b) {
 	a = underflow(a, FLT_MIN);
@@ -180,8 +263,8 @@ bool isequal32(float a, float b)
  * test values
  */
 static float val32[] = {
-	+1.0f, +2.0f, +1.3f, +2.4f, +INFINITY, +NAN, +FLT_MAX, +FLT_MIN, +FLT_MIN / 2.0f,
-	-1.0f, -2.0f, -1.3f, -2.4f, -INFINITY, -NAN, -FLT_MAX, -FLT_MIN, -FLT_MIN / 2.0f,
+	+0.0f, +1.0f, +2.0f, +4.0f, +1.3f, +2.4f, +INFINITY, +NAN, +FLT_MAX, +FLT_MIN, +FLT_MIN / 2.0f,
+	-0.0f, -1.0f, -2.0f, -4.0f, -1.3f, -2.4f, -INFINITY, -NAN, -FLT_MAX, -FLT_MIN, -FLT_MIN / 2.0f,
 };
 
 
@@ -198,6 +281,13 @@ int main(int argc, char **argv)
 
 	setbuf(stdout, NULL);
 
+	if(0) {
+		float x = 0.0;
+
+		printf("%g (expected %g)\n", ctfp_restrict_sqrt_f32v1(x), sqrtf(x));
+		
+		return 0;
+	}
 	if(0) {
 		//float x = FLT_MIN, y = FLT_MAX;
 		float x = 6.06977e+32, y = 1.84978e-06;
@@ -218,8 +308,10 @@ int main(int argc, char **argv)
 	unsigned int i, j;
 
 	for(i = 0; i < ARRSIZE(val32); i++) {
+		float x = val32[i];
+
 		for(j = 0; j < ARRSIZE(val32); j++) {
-			float x = val32[i], y = val32[j];
+			float y = val32[j];
 
 			//printf("... %g %g\n", x, y);
 			if(!isequal32(ctfp_restrict_add_f32v1_hack(x, y), simul_restrict_add_f32(x, y)))
@@ -246,6 +338,9 @@ int main(int argc, char **argv)
 			if(!isequal32(ctfp_full_div_f32v1_hack(x, y), simul_full_div_f32(x, y)))
 				printf("FULL %g / %g = %g (expected %g)\n", x, y, ctfp_full_div_f32v1_hack(x, y), simul_full_div_f32(x, y));
 		}
+
+		if(!isequal32(ctfp_restrict_sqrt_f32v1(x), simul_restrict_sqrt_f32(x)))
+			printf("RESTRICT sqrt %g = %g (expected %g)\n", x, ctfp_restrict_sqrt_f32v1(x), simul_restrict_sqrt_f32(x));
 	}
 
 	for(i = 0; i < 1000000; i++) {

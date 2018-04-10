@@ -12,6 +12,7 @@
 #include <llvm/IR/CFG.h>
 
 #include <float.h>
+#include <regex>
 #include <cmath>
 #include <set>
 #include <vector>
@@ -200,7 +201,6 @@ struct CTFP : public FunctionPass {
 
 		Module *mod = func.getParent();
 		if(mod->getFunction("ctfp_restrict_add_f32v4") == nullptr) {
-			fprintf(stderr, "LInk!\n");
 			SMDiagnostic err;
 			if(getenv("CTFP_DIR") == nullptr)
 				fprintf(stderr, "Missing 'CTFP_DIR' variable.\n"), abort();
@@ -336,8 +336,18 @@ struct CTFP : public FunctionPass {
 			}
 		}
 
-		static int a = 0;
-		fprintf(stderr, "done %d\n", a++);
+		{
+			auto iter = mod->begin();
+
+			while(iter != mod->end()) {
+				Function *func = &*iter++;
+
+				std::string name = func->getName().str();
+				if(regex_match(name, std::regex("^ctfp_.*$")))
+					func->eraseFromParent();
+			}
+		}
+
 		return true;
 	}
 };

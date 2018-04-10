@@ -1,5 +1,6 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
 
+import Data.List
 import System.Environment
 
 
@@ -10,18 +11,11 @@ main =
        []        -> llvm_main False
        ["debug"] -> llvm_main True
        ["z3"]    -> z3_main
-       ["test"]  -> test_main
        _         -> putStr "Invalid arguments\n"
 
-test_main :: IO ()
-test_main =
-  do putStr $ prelude
-     llvm_func test_func Float1 "testfunc" False
-
-test_func =
-  do_sign @@
-  FDivSig
-
+-- list of all types we generate
+--typelist = [Float1, Float2, Float4, Float8, Float16, Double1, Double2, Double4, Double8]
+typelist = [Float1, Float2, Float4, Double1, Double2]
 
 ---- ## DATA TYPES ## ----
 
@@ -33,11 +27,12 @@ data Expr
   | Ones
   | Int      (String, String)
   | Float    (String, String)
-  | Not      (Expr)
-  | Abs      (Expr)
+  | Not      Expr
+  | Abs      Expr
   | Or       (Expr, Expr)
   | And      (Expr, Expr)
   | Xor      (Expr, Expr)
+  | FSqrt    Expr
   | FAdd     (Expr, Expr)
   | FSub     (Expr, Expr)
   | FMul     (Expr, Expr)
@@ -59,8 +54,12 @@ data Type
   = Float1
   | Float2
   | Float4
+  | Float8
+  | Float16
   | Double1
   | Double2
+  | Double4
+  | Double8
 
 
 -- Function type
@@ -86,47 +85,6 @@ type Bind = (String, String)
 --   bind :: [Bind]  List of bindings.
 --   dbg  :: Bool    Debug flag.
 type Env = (Int, Type, Queue, String, [Bind], Bool)
-
-
-debug = False
---debug = True
-
-prelude =
-  "target datalayout = \"e-m:e-i64:64-f80:128-n8:16:32:64-S128\"\n" ++
-  "target triple = \"x86_64-pc-linux-gnu\"\n" ++
-  "" ++
-  "declare float @dbg_fadd_f32(float %a, float %b)\n" ++
-  "declare float @dbg_fsub_f32(float %a, float %b)\n" ++
-  "declare float @dbg_fmul_f32(float %a, float %b)\n" ++
-  "declare float @dbg_fdiv_sig_f32(float %a, float %b)\n" ++
-  "declare float @dbg_fdiv_exp_f32(float %a, float %b)\n" ++
-  "" ++
-  "declare double @dbg_fadd_f64(double %a, double %b)\n" ++
-  "declare double @dbg_fsub_f64(double %a, double %b)\n" ++
-  "declare double @dbg_fmul_f64(double %a, double %b)\n" ++
-  "declare double @dbg_fdiv_sig_f64(double %a, double %b)\n" ++
-  "declare double @dbg_fdiv_exp_f64(double %a, double %b)\n" ++
-  "" ++
-  "declare < 4 x float > @dbg_fadd_v4f32(< 4 x float > %a, < 4 x float > %b)\n" ++
-  "declare < 4 x float > @dbg_fsub_v4f32(< 4 x float > %a, < 4 x float > %b)\n" ++
-  "declare < 4 x float > @dbg_fmul_v4f32(< 4 x float > %a, < 4 x float > %b)\n" ++
-  "declare < 4 x float > @dbg_fdiv_sig_v4f32(< 4 x float > %a, < 4 x float > %b)\n" ++
-  "declare < 4 x float > @dbg_fdiv_exp_v4f32(< 4 x float > %a, < 4 x float > %b)\n" ++
-  "" ++
-  "declare float @llvm.fabs.f32(float %a)\n" ++
-  "declare < 2 x float > @llvm.fabs.v2f32(< 2 x float > %a)\n" ++
-  "declare < 4 x float > @llvm.fabs.v4f32(< 4 x float > %a)\n" ++
-  "declare double @llvm.fabs.f64(double %a)\n" ++
-  "declare < 2 x double > @llvm.fabs.v2f64(< 2 x double > %a)\n" ++
-  "" ++
-  "declare float @llvm.copysign.f32(float %a, float %b)\n" ++
-  "declare < 2 x float > @llvm.copysign.v2f32(< 2 x float > %a, < 2 x float > %b)\n" ++
-  "declare < 4 x float > @llvm.copysign.v4f32(< 4 x float > %a, < 4 x float > %b)\n" ++
-  "declare double @llvm.copysign.f64(double %a, double %b)\n" ++
-  "declare < 2 x double > @llvm.copysign.v2f64(< 2 x double > %a, < 2 x double > %b)\n" ++
-  "attributes #0 = { alwaysinline }\n" ++
-  "attributes #1 = { alwaysinline }\n" ++
-  "\n"
 
 
 ---- ## Z3 GENERATION ## ----
@@ -193,43 +151,54 @@ z3_call (fn, a, b, env) =
 -- main function for llvm
 llvm_main :: Bool -> IO ()
 llvm_main dbg = 
-  do putStr prelude
-     llvm_func restrict_add Float1 "ctfp_restrict_add_f32v1" dbg
-     llvm_func restrict_sub Float1 "ctfp_restrict_sub_f32v1" dbg
-     llvm_func restrict_mul Float1 "ctfp_restrict_mul_f32v1" dbg
-     llvm_func restrict_div Float1 "ctfp_restrict_div_f32v1" dbg
-     llvm_func full_add Float1 "ctfp_full_add_f32v1" dbg
-     llvm_func full_sub Float1 "ctfp_full_sub_f32v1" dbg
-     llvm_func full_mul Float1 "ctfp_full_mul_f32v1" dbg
-     llvm_func full_div Float1 "ctfp_full_div_f32v1" dbg
-     llvm_func restrict_add Double1 "ctfp_restrict_add_f64v1" dbg
-     llvm_func restrict_sub Double1 "ctfp_restrict_sub_f64v1" dbg
-     llvm_func restrict_mul Double1 "ctfp_restrict_mul_f64v1" dbg
-     llvm_func restrict_div Double1 "ctfp_restrict_div_f64v1" dbg
-     llvm_func full_add Double1 "ctfp_full_add_f64v1" dbg
-     llvm_func full_sub Double1 "ctfp_full_sub_f64v1" dbg
-     llvm_func full_mul Double1 "ctfp_full_mul_f64v1" dbg
-     llvm_func full_div Double1 "ctfp_full_div_f64v1" dbg
-     --
-     llvm_func restrict_add Float4 "ctfp_restrict_add_f32v4" dbg
-     llvm_func restrict_sub Float4 "ctfp_restrict_sub_f32v4" dbg
-     llvm_func restrict_mul Float4 "ctfp_restrict_mul_f32v4" dbg
-     llvm_func restrict_div Float4 "ctfp_restrict_div_f32v4" dbg
-     llvm_func full_add Float4 "ctfp_full_add_f32v4" dbg
-     llvm_func full_sub Float4 "ctfp_full_sub_f32v4" dbg
-     llvm_func full_mul Float4 "ctfp_full_mul_f32v4" dbg
-     llvm_func full_div Float4 "ctfp_full_div_f32v4" dbg
-     --
-     llvm_hack32 "restrict_add"
-     llvm_hack32 "restrict_sub"
-     llvm_hack32 "restrict_mul"
-     llvm_hack32 "restrict_div"
-     llvm_hack32 "full_add"
-     llvm_hack32 "full_sub"
-     llvm_hack32 "full_mul"
-     llvm_hack32 "full_div"
-     --
-     putStr "\n"
+  let
+    fns = [ "restrict_add", "restrict_sub", "restrict_mul", "restrict_div", "restrict_sqrt", "full_add", "full_sub", "full_mul", "full_div", "full_sqrt" ]
+    f ty =
+      let
+        post = type2post ty
+      in
+        do llvm_func2 restrict_add  ty ( "ctfp_restrict_add_"  ++ post) dbg
+           llvm_func2 restrict_sub  ty ( "ctfp_restrict_sub_"  ++ post) dbg
+           llvm_func2 restrict_mul  ty ( "ctfp_restrict_mul_"  ++ post) dbg
+           llvm_func2 restrict_div  ty ( "ctfp_restrict_div_"  ++ post) dbg
+           llvm_func1 restrict_sqrt ty ( "ctfp_restrict_sqrt_" ++ post) dbg
+           llvm_func2 full_add ty  ( "ctfp_full_add_"  ++ post) dbg
+           llvm_func2 full_sub ty  ( "ctfp_full_sub_"  ++ post) dbg
+           llvm_func2 full_mul ty  ( "ctfp_full_mul_"  ++ post) dbg
+           llvm_func2 full_div ty  ( "ctfp_full_div_"  ++ post) dbg
+           llvm_func1 full_sqrt ty ( "ctfp_full_sqrt_" ++ post) dbg
+  in
+    do llvm_prelude
+       mapM f typelist
+       mapM llvm_hack32 fns
+       mapM llvm_hack64 fns
+       return ()
+
+llvm_prelude :: IO ()
+llvm_prelude = 
+  do putStr $ "target datalayout = \"e-m:e-i64:64-f80:128-n8:16:32:64-S128\"\n"
+     putStr $ "target triple = \"x86_64-pc-linux-gnu\"\n"
+     putStr $ "attributes #0 = { alwaysinline }\n"
+     putStr $ "attributes #1 = { alwaysinline }\n"
+     mapM llvm_decls typelist
+     return ()
+  
+llvm_decls :: Type -> IO ()
+llvm_decls ty =
+  let
+    flt = type2flt ty
+    post = type2post ty
+    vec = type2vec ty
+  in
+    do putStr $ "declare "++flt++" @dbg_fadd_"++vec++"("++flt++" %a, "++flt++" %b) readnone\n"
+       putStr $ "declare "++flt++" @dbg_fsub_"++vec++"("++flt++" %a, "++flt++" %b) readnone\n"
+       putStr $ "declare "++flt++" @dbg_fmul_"++vec++"("++flt++" %a, "++flt++" %b) readnone\n"
+       putStr $ "declare "++flt++" @dbg_fdiv_sig_"++vec++"("++flt++" %a, "++flt++" %b) readnone\n"
+       putStr $ "declare "++flt++" @dbg_fdiv_exp_"++vec++"("++flt++" %a, "++flt++" %b) readnone\n"
+       putStr $ "declare "++flt++" @dbg_fsqrt_"++vec++"("++flt++" %a) readnone\n"
+       putStr $ "declare "++flt++" @llvm.sqrt."++vec++"("++flt++" %a) readnone\n"
+       putStr $ "declare "++flt++" @llvm.fabs."++vec++"("++flt++" %a) readnone\n"
+       putStr $ "declare "++flt++" @llvm.copysign."++vec++"("++flt++" %b, "++flt++" %a) readnone\n"
 
 -- hack for generating vectorized functions
 llvm_hack32 :: String -> IO ()
@@ -242,15 +211,33 @@ llvm_hack32 op =
      putStr $ "  ret float %r\n"
      putStr $ "}\n"
 
+-- hack for generating vectorized functions
+llvm_hack64 :: String -> IO ()
+llvm_hack64 op =
+  do putStr $ "define weak double @ctfp_"++op++"_f64v1_hack(double %a, double %b) #0 {\n"
+     putStr $ "  %a1 = insertelement <2 x double> undef, double %a, i64 0\n"
+     putStr $ "  %b1 = insertelement <2 x double> undef, double %b, i64 0\n"
+     putStr $ "  %r1 = call <2 x double> @ctfp_"++op++"_f64v2(<2 x double> %a1, <2 x double> %b1)\n"
+     putStr $ "  %r  = extractelement <2 x double> %r1, i64 0\n"
+     putStr $ "  ret double %r\n"
+     putStr $ "}\n"
+
 -- generate the code for a function
-llvm_func :: ((Expr, Expr) -> Expr) -> Type -> String -> Bool -> IO ()
+llvm_func :: Expr -> Type -> String -> Bool -> IO ()
 llvm_func fn ty nam dbg = 
   let tnam = type2flt ty in
     do putStr $ "define weak " ++ tnam ++ " @" ++ nam ++ "(" ++ tnam ++ " %a, " ++ tnam ++ " %b) #0 {\n"
-       (r,(_,_,(idx,fns),n,_,_)) <- gen_expr (fn (Arg "a", Arg "b"), env_init ty nam dbg)
+       (r,(_,_,(idx,fns),n,_,_)) <- gen_expr (fn, env_init ty nam dbg)
        putStr $ "ret " ++ tnam ++ " " ++ r ++ "\n}\n"
        gen_unnamed fns ty idx nam dbg
 
+-- helper for 2-argument functions
+llvm_func1 :: (Expr -> Expr) -> Type -> String -> Bool -> IO ()
+llvm_func1 fn = llvm_func (fn (Arg "a"))
+
+-- helper for 2-argument functions
+llvm_func2 :: ((Expr, Expr) -> Expr) -> Type -> String -> Bool -> IO ()
+llvm_func2 fn = llvm_func (fn (Arg "a", Arg "b"))
 
 -- Create a call from a function and arguments
 func :: ((Expr, Expr) -> Expr) -> (Expr, Expr) -> Expr
@@ -269,6 +256,10 @@ env_type (_,ty,_,_,_,_) = ty
 -- get the function name from the environment
 env_func :: Env -> String
 env_func (_,_,_,name,_,_) = name
+
+-- retrieve the debug flag
+env_dbg :: Env -> Bool
+env_dbg (_,_,_,_,_,dbg) = dbg
 
 -- get/put the bindings from the environment
 env_get_vars :: Env -> [Bind]
@@ -348,14 +339,6 @@ ite b x y =
   if x == y
     then x
     else Or (And (b, x), And (Not b, y))
---  | x == y        = x
---  | x == val_zero = And (b, y)
---  | y == val_zero = And (b, x)
---  | 
---  | otherwise     =
---      case (x,y) of
---        (Float ("0.0","0.0"),_) -> val_zero
---        _            -> Or (And (b, x), And (Not b, y))
 
 -- create a conditional on two expressions
 ite2 :: Expr -> (Expr,Expr) -> (Expr,Expr) -> (Expr,Expr)
@@ -380,11 +363,6 @@ do_sign op (a, b) =
     (\_ r -> CopySign(r, Xor (a, b)))
     op
     (a, b)
---do_sign =
---  withBlind
---    (\_ -> val_true)
---    (\(u,v) -> (u, v))
---    (\_ r -> CopySign(r, val_one))
 
 -- handle big numbers by shifting them down (only division)
 do_big :: (FP2 -> FP1) -> FP2 -> FP1
@@ -394,37 +372,34 @@ do_big =
     (\(u,v) -> (FMul (u, val_half), v))
     (\_ r -> FMul (r, val_two))
 
--- try an addition, replace with zeros on failure
-tryadd  =
-  let trial v w = FAdd (FMul (v, addoff), FMul (w, addoff)) in
-    withBlind
-      (\(u,v)   -> FCmpOLT (Abs (trial u v), addcmp))
-      (\(u,v)   -> (val_zero, val_zero))
-      (\(u,v) r -> CopySign(r, trial u v))
+-- divide only by the exponent component of the inputs
+div_exp :: (FP2 -> FP1) -> FP2 -> FP1
+div_exp =
+  withBlind
+    (\_ -> val_true)
+    (\(w,v) -> (FDivExp(w, get_exp v), get_sig v))
+    --(\(w,v) -> (w, get_exp(v)))
+    (\v r -> r)
 
--- try a subtraction, replace with zeros on failure
-trysub  =
-  let trial v w = FSub (FMul (v, addoff), FMul (w, addoff)) in
-    withBlind
-      (\(u,v)   -> FCmpOLT (Abs (trial u v), addcmp))
-      (\(u,v)   -> (val_zero, val_zero))
-      (\(u,v) r -> CopySign(r, trial u v))
+-- prevent division by one using a dummy
+div_noop op (a, b) =
+  withBlind
+    (\(u,v) -> FCmpOEQ(v, val_one))
+    (\_ -> (val_dummy, val_dummy))
+    (\_ _ -> a)
+    op
+    (a, b)
 
--- try a multiplication, replace with zeros on failure
-trymul  =
-  let trial u v = FMul (FMul (u, muloff), v) in
-    withBlind
-      (\(u,v)   -> FCmpOLT (Abs (trial u v), mulcmp))
-      (\(u,v)   -> (val_zero, val_zero))
-      (\(u,v) r -> r)
+is_nan a = FCmpUNE (a, a)
 
--- try a division, replace with zeros on failure
-trydiv  =
-  let trial u v = safediv (FMul (u, divoff), v) in
-    withBlind
-      (\(u,v)   -> FCmpOLT (Abs (trial u v), divcmp))
-      (\(u,v)   -> (val_zero, val_one))
-      (\(u,v) r -> r)
+-- compare for equality that works on nan
+cmp_eq (a, b) =
+  if a == val_nan
+    then FCmpUNE (b, b)
+    else if b == val_nan
+      then FCmpUNE (a, a)
+      else FCmpOEQ (a, b)
+
 
 -- ## STRATEGIES ## --
 
@@ -468,6 +443,13 @@ with_overflow2 lim =
     (\(w,v) -> (w, val_inf))
     (\_ r -> r)
 
+-- perform dummy computation for a single value
+with_dummy :: FP1 -> FP1 -> FP1 -> (FP1 -> FP1) -> FP1 -> FP1
+with_dummy badIn badOut safeIn =
+  withBlind
+    (\v   -> cmp_eq (v, badIn))
+    (\v   -> safeIn)
+    (\_ _ -> badOut)
 
 with_dummy1 :: FP1 -> FP1 -> FP1 -> (FP2 -> FP1) -> FP2 -> FP1
 with_dummy1 badIn badOut safeIn op (a, b) =
@@ -477,13 +459,6 @@ with_dummy1 badIn badOut safeIn op (a, b) =
     (\_ _ -> CopySign(badOut, a))
     op
     (a, b)
-
-cmp_eq (a, b) =
-  if a == val_nan
-    then FCmpUNE (b, b)
-    else if b == val_nan
-      then FCmpUNE (a, a)
-      else FCmpOEQ (a, b)
 
 -- compare and replace both inputs if matching the bad input
 with_dummy' :: FP2 -> FP1 -> FP1 -> (FP2 -> FP1) -> FP2 -> FP1
@@ -513,27 +488,74 @@ with_dummy2' badIn badOut safeIn op (a, b) =
     op
     (a, b)
 
--- divide only by the exponent component of the inputs
-div_exp :: (FP2 -> FP1) -> FP2 -> FP1
-div_exp =
-  withBlind
-    (\_ -> val_true)
-    (\(w,v) -> (FDivExp(w, get_exp v), get_sig v))
-    --(\(w,v) -> (w, get_exp(v)))
-    (\v r -> r)
 
--- prevent division by one using a dummy
-div_noop op (a, b) =
-  withBlind
-    (\(u,v) -> FCmpOEQ(v, val_one))
-    (\_ -> (val_dummy, val_dummy))
-    (\_ _ -> a)
-    op
-    (a, b)
+-- ## SQRT STRATEGIES ## --
 
+-- handle square root of negative numbers
+neg_sqrt :: (FP1 -> FP1) -> FP1 -> FP1
+neg_sqrt =
+  withBlind
+    (\v   -> FCmpOLT (v, val_zero))
+    (\v   -> val_dummy)
+    (\_ _ -> val_nan)
+
+-- handle square root of zero (must preserve sign)
+zero_sqrt :: (FP1 -> FP1) -> FP1 -> FP1
+zero_sqrt =
+  withBlind
+    (\v   -> FCmpOEQ (v, val_zero))
+    (\v   -> val_dummy)
+    (\v _ -> v)
+
+-- blind the square root on powers-of-four
+blind_sqrt :: (FP1 -> FP1) -> FP1 -> FP1
+blind_sqrt =
+  withBlind
+    (\v   -> FCmpOEQ (And (v, val_pow4), val_oddexp))
+    (\v   -> Or (v, val_blind))
+    (\_ r -> And (r, val_unblind))
+  
+
+-- ## TRIAL STRATEGIES ## --
+
+-- try an addition, replace with zeros on failure
+tryadd  =
+  let trial v w = FAdd (FMul (v, addoff), FMul (w, addoff)) in
+    withBlind
+      (\(u,v)   -> FCmpOLT (Abs (trial u v), addcmp))
+      (\(u,v)   -> (val_zero, val_zero))
+      (\(u,v) r -> CopySign(r, trial u v))
+
+-- try a subtraction, replace with zeros on failure
+trysub  =
+  let trial v w = FSub (FMul (v, addoff), FMul (w, addoff)) in
+    withBlind
+      (\(u,v)   -> FCmpOLT (Abs (trial u v), addcmp))
+      (\(u,v)   -> (val_zero, val_zero))
+      (\(u,v) r -> CopySign(r, trial u v))
+
+-- try a multiplication, replace with zeros on failure
+trymul  =
+  let trial u v = FMul (FMul (u, muloff), v) in
+    withBlind
+      (\(u,v)   -> FCmpOLT (Abs (trial u v), mulcmp))
+      (\(u,v)   -> (val_zero, val_zero))
+      (\(u,v) r -> r)
+
+-- try a division, replace with zeros on failure
+trydiv  =
+  let trial u v = safediv (FMul (u, divoff), v) in
+    withBlind
+      (\(u,v)   -> FCmpOLT (Abs (trial u v), divcmp))
+      (\(u,v)   -> (val_zero, val_one))
+      (\(u,v) r -> r)
+
+
+-- ## CONSTANTS ## --
+
+-- convert hex string to decimal string
 dec :: String -> String
 dec str = show ((read str)::Int)
---show (read int::Int))
 
 -- values
 val_true = Ones
@@ -545,6 +567,10 @@ val_half = Float ( "0.5", "0.5" )
 val_two = Float ( "2.0", "2.0" )
 val_nan = Int ( dec "0x7FC00000", dec "0x7FF8000000000000")
 val_inf = Int ( dec "0x7F800000", dec "0x7FF0000000000000")
+val_blind = Int ( "1", "1" )
+val_unblind = Int ( dec "0xFFFFFFFE", dec "0xFFFFFFFFFFFFFFFE" )
+val_oddexp = Int ( dec "0x00800000", dec " 0x0010000000000000" )
+val_pow4 = Int ( dec "0x00FFFFFF", dec "0x001FFFFFFFFFFFFF" )
 
 -- constants
 addmin = Float ( "9.86076131526264760e-32", "2.00416836000897278e-292" )
@@ -561,6 +587,28 @@ mulcmp = Float ( "1.0", "1.0" )
 
 divoff = Float ( "8.50705917302346159e+37", "6.70390396497129855e+153" )
 divcmp = Float ( "1.0", "1.0" )
+
+
+-- ## DIVISION ## --
+
+-- perform a division that is safe for all special (non suborn) values
+safediv =
+  with_dummy1' val_nan val_nan val_dummy @@
+  with_dummy2' val_nan val_nan val_dummy @@
+  with_dummy' (val_zero, val_zero) val_nan val_dummy @@
+  with_dummy' (val_inf, val_inf) val_nan val_dummy @@
+  with_dummy1' val_zero val_zero val_dummy @@
+  with_dummy1' val_inf val_inf val_dummy @@
+  with_dummy2' val_zero val_inf val_dummy @@
+  with_dummy2' val_inf val_zero val_dummy @@
+  div_exp @@
+  div_noop @@
+  with_dummy1' val_zero val_zero val_dummy @@
+  with_dummy1' val_inf val_inf val_dummy @@
+  with_dummy2' val_zero val_inf val_dummy @@
+  with_dummy2' val_inf val_zero val_dummy @@
+  FDivSig
+
 
 -- ## RESTRICT ## --
 
@@ -595,24 +643,17 @@ restrict_div =
   with_overflow2 divmax @@
   safediv
 
-
-safediv =
-  with_dummy1' val_nan val_nan val_dummy @@
-  with_dummy2' val_nan val_nan val_dummy @@
-  with_dummy' (val_zero, val_zero) val_nan val_dummy @@
-  with_dummy' (val_inf, val_inf) val_nan val_dummy @@
-  with_dummy1' val_zero val_zero val_dummy @@
-  with_dummy1' val_inf val_inf val_dummy @@
-  with_dummy2' val_zero val_inf val_dummy @@
-  with_dummy2' val_inf val_zero val_dummy @@
-  div_exp @@
-  div_noop @@
-  with_dummy1' val_zero val_zero val_dummy @@
-  with_dummy1' val_inf val_inf val_dummy @@
-  with_dummy2' val_zero val_inf val_dummy @@
-  with_dummy2' val_inf val_zero val_dummy @@
-  FDivSig
-
+-- sqrt
+restrict_sqrt :: FP1 -> FP1
+restrict_sqrt =
+  with_underflow fltmin @@
+  with_underflow fltmin @@
+  with_dummy val_nan val_nan val_dummy @@
+  with_dummy val_inf val_inf val_dummy @@
+  neg_sqrt @@
+  zero_sqrt @@
+  blind_sqrt @@
+  FSqrt
 
 -- ## FULL ## --
 
@@ -651,6 +692,10 @@ full_div =
   do_big @@
   safediv
 
+-- sqrt
+full_sqrt :: FP1 -> FP1
+full_sqrt = restrict_sqrt
+
 
 -- get a name
 name :: Env -> Expr -> (Env, String)
@@ -674,22 +719,36 @@ allocs e n =
 -- create a floating point value string
 floats :: Env -> String -> String
 floats env val =
-  case env_type env of
-    Float1 -> val
-    Float2 -> "< float " ++ val ++ ", float " ++ val ++ " >"
-    Float4 -> "< float " ++ val ++ ", float " ++ val ++ ", float " ++ val ++ ", float " ++ val ++ " >"
-    Double1 -> val
-    Double2 -> "< double " ++ val ++ ", double " ++ val ++ " >"
+  let
+    vec val cnt = "< " ++ (intercalate " , " (replicate cnt val)) ++ " >"
+  in
+    case env_type env of
+      Float1 -> val
+      Float2 -> vec ("float " ++ val) 2
+      Float4 -> vec ("float " ++ val) 4
+      Float8 -> vec ("float " ++ val) 8
+      Float16 -> vec ("float " ++ val) 16
+      Double1 -> val
+      Double2 -> vec ("double " ++ val) 2
+      Double4 -> vec ("double " ++ val) 4
+      Double8 -> vec ("double " ++ val) 8
 
 -- create an integer value string
 ints :: Env -> String -> String
 ints env val =
-  case env_type env of
-    Float1 -> val
-    Float2 -> "< i32 " ++ val ++ ", i32 " ++ val ++ " >"
-    Float4 -> "< i32 " ++ val ++ ", i32 " ++ val ++ ", i32 " ++ val ++ ", i32 " ++ val ++ " >"
-    Double1 -> val
-    Double2 -> "< i64 " ++ val ++ ", i64 " ++ val ++ " >"
+  let
+    vec val cnt = "< " ++ (intercalate " , " (replicate cnt val)) ++ " >"
+  in
+    case env_type env of
+      Float1 -> val
+      Float2 -> vec ("i32 " ++ val) 2
+      Float4 -> vec ("i32 " ++ val) 4
+      Float8 -> vec ("i32 " ++ val) 8
+      Float16 -> vec ("i32 " ++ val) 16
+      Double1 -> val
+      Double2 -> vec ("i64 " ++ val) 2
+      Double4 -> vec ("i64 " ++ val) 4
+      Double8 -> vec ("i64 " ++ val) 8
 
 
 -- create an integer values of all ones
@@ -723,11 +782,12 @@ gen_expr (Abs a, env) = gen_call1("llvm.fabs." ++ (env2vec env), a, env);
 gen_expr (Or (a, b), env) = gen_iop2 ("or", a, b, env)
 gen_expr (And (a, b), env) = gen_iop2 ("and", a, b, env)
 gen_expr (Xor (a, b), env) = gen_iop2 ("xor", a, b, env)
-gen_expr (FAdd (a, b), env) = if debug then gen_call2 ("dbg_fadd_" ++ (env2vec env), a, b, env) else gen_fop2 ("fadd", a, b, env)
-gen_expr (FSub (a, b), env) = if debug then gen_call2 ("dbg_fsub_" ++ (env2vec env), a, b, env) else gen_fop2 ("fsub", a, b, env)
-gen_expr (FMul (a, b), env) = if debug then gen_call2 ("dbg_fmul_" ++ (env2vec env), a, b, env) else gen_fop2 ("fmul", a, b, env)
-gen_expr (FDivSig (a, b), env) = if debug then gen_call2 ("dbg_fdiv_sig_" ++ (env2vec env), a, b, env) else gen_fop2 ("fdiv", a, b, env)
-gen_expr (FDivExp (a, b), env) = if debug then gen_call2 ("dbg_fdiv_exp_" ++ (env2vec env), a, b, env) else gen_fop2 ("fdiv", a, b, env)
+gen_expr (FSqrt a, env) = gen_call1 ( if env_dbg env then "dbg_fsqrt_" ++ (env2vec env) else "llvm.sqrt." ++ (env2vec env), a, env)
+gen_expr (FAdd (a, b), env) = if env_dbg env then gen_call2 ("dbg_fadd_" ++ (env2vec env), a, b, env) else gen_fop2 ("fadd", a, b, env)
+gen_expr (FSub (a, b), env) = if env_dbg env then gen_call2 ("dbg_fsub_" ++ (env2vec env), a, b, env) else gen_fop2 ("fsub", a, b, env)
+gen_expr (FMul (a, b), env) = if env_dbg env then gen_call2 ("dbg_fmul_" ++ (env2vec env), a, b, env) else gen_fop2 ("fmul", a, b, env)
+gen_expr (FDivSig (a, b), env) = if env_dbg env then gen_call2 ("dbg_fdiv_sig_" ++ (env2vec env), a, b, env) else gen_fop2 ("fdiv", a, b, env)
+gen_expr (FDivExp (a, b), env) = if env_dbg env then gen_call2 ("dbg_fdiv_exp_" ++ (env2vec env), a, b, env) else gen_fop2 ("fdiv", a, b, env)
 gen_expr (FCmpOEQ (a, b), env) = gen_fcmp ("fcmp oeq", a, b, env)
 gen_expr (FCmpOLT (a, b), env) = gen_fcmp ("fcmp olt", a, b, env)
 gen_expr (FCmpOGT (a, b), env) = gen_fcmp ("fcmp ogt", a, b, env)
@@ -842,8 +902,12 @@ type2sel :: Type -> (String, String) -> String
 type2sel Float1 p = fst p
 type2sel Float2 p = fst p
 type2sel Float4 p = fst p
+type2sel Float8 p = fst p
+type2sel Float16 p = fst p
 type2sel Double1 p = snd p
 type2sel Double2 p = snd p
+type2sel Double4 p = snd p
+type2sel Double8 p = snd p
 
 -- select a string using the environment
 env2sel :: Env -> (String, String) -> String
@@ -854,8 +918,12 @@ type2flt :: Type -> String
 type2flt Float1 = "float"
 type2flt Float2 = "< 2 x float >"
 type2flt Float4 = "< 4 x float >"
+type2flt Float8 = "< 8 x float >"
+type2flt Float16 = "< 16 x float >"
 type2flt Double1 = "double"
 type2flt Double2 = "< 2 x double >"
+type2flt Double4 = "< 4 x double >"
+type2flt Double8 = "< 8 x double >"
 
 -- generate float type string from the environment
 env2flt :: Env -> String
@@ -866,8 +934,12 @@ type2int :: Type -> String
 type2int Float1 = "i32"
 type2int Float2 = "< 2 x i32 >"
 type2int Float4 = "< 4 x i32 >"
+type2int Float8 = "< 8 x i32 >"
+type2int Float16 = "< 16 x i32 >"
 type2int Double1 = "i64"
 type2int Double2 = "< 2 x i64 >"
+type2int Double4 = "< 4 x i64 >"
+type2int Double8 = "< 8 x i64 >"
 
 -- generate integer type string from the environment
 env2int :: Env -> String
@@ -878,8 +950,12 @@ type2bool :: Type -> String
 type2bool Float1 = "i1"
 type2bool Float2 = "< 2 x i1 >"
 type2bool Float4 = "< 4 x i1 >"
+type2bool Float8 = "< 8 x i1 >"
+type2bool Float16 = "< 16 x i1 >"
 type2bool Double1 = "i1"
 type2bool Double2 = "< 2 x i1 >"
+type2bool Double4 = "< 4 x i1 >"
+type2bool Double8 = "< 8 x i1 >"
 
 -- generate boolean type string from the environment
 env2bool :: Env -> String
@@ -890,8 +966,12 @@ type2vec :: Type -> String
 type2vec Float1 = "f32"
 type2vec Float2 = "v2f32"
 type2vec Float4 = "v4f32"
+type2vec Float8 = "v8f32"
+type2vec Float16 = "v16f32"
 type2vec Double1 = "f64"
 type2vec Double2 = "v2f64"
+type2vec Double4 = "v4f64"
+type2vec Double8 = "v8f64"
 
 -- generate vectorized name from the environment
 env2vec :: Env -> String
@@ -902,5 +982,9 @@ type2post :: Type -> String
 type2post Float1 = "f32v1"
 type2post Float2 = "f32v2"
 type2post Float4 = "f32v4"
+type2post Float8 = "f32v8"
+type2post Float16 = "f32v16"
 type2post Double1 = "f64v1"
 type2post Double2 = "f64v2"
+type2post Double4 = "f64v4"
+type2post Double8 = "f64v8"
