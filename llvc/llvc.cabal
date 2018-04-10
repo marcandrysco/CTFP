@@ -2,7 +2,7 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 0b833f70758047725d5add4f46588b99b29de33fab7b893efa15e655668a69a2
+-- hash: 7ce7f79c5e0d10fd82f359c65a9450e82ad7767ebda9e8baa7bf6da3d98c863f
 
 name:           llvc
 version:        0.1.0.0
@@ -30,10 +30,18 @@ library
       src
   build-depends:
       base >=4.7 && <5
+    , cmdargs
+    , containers
+    , directory
+    , filepath
+    , megaparsec
+    , process
     , unordered-containers
   exposed-modules:
       Language.LLVC.Parse
       Language.LLVC.Types
+      Language.LLVC.Utils
+      Language.LLVC.UX
       Language.LLVC.Verify
       Lib
   other-modules:

@@ -25,7 +25,13 @@ dependencies:
 library:
   source-dirs: src
   dependencies:
+    - cmdargs
+    - process
+    - directory
+    - filepath
+    - containers
     - unordered-containers
+    - megaparsec
 
 executables:
   llvc:
