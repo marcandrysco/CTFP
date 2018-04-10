@@ -97,13 +97,13 @@ pprints = L.intercalate ", " . fmap UX.pprint
 
 -- | 'Pred' are boolean combinations of 'Expr' used to define contracts 
 data Pred a 
-  = PExpr  (Expr a) a 
-  | PNot   (Expr a) a
-  | PAnd   [Expr a] a
-  | POr    [Expr a] a
+  = PEq    !(Expr a) !(Expr a)  
+  | PNot   !(Pred a) 
+  | PAnd   [Pred a] 
+  | POr    [Pred a] 
   deriving (Eq, Ord, Show, Functor)
 
-pTrue, pFalse :: a -> Pred a 
+pTrue, pFalse :: Pred a 
 pTrue  = POr []
 pFalse = PAnd []
 
@@ -114,8 +114,8 @@ pFalse = PAnd []
 type Program a = M.HashMap Var (FnDef a)  -- ^ A list of function declarations
 
 data FnBody a = FnBody 
-  { fnDefs :: [((Var, a), Expr a)]        -- ^ Assignments for each variable
-  , fnRet  :: !(TypedExpr a)              -- ^ Return value
+  { fnAsgns :: [((Var, a), Expr a)]        -- ^ Assignments for each variable
+  , fnRet   :: !(TypedExpr a)              -- ^ Return value
   }
   deriving (Eq, Ord, Show, Functor)
 
@@ -124,8 +124,8 @@ data FnDef a = FnDef
   , fnArgs :: ![(Var, Type)]         -- ^ Parameters and their types 
   , fnOut  :: !Type                  -- ^ Output type 
   , fnBody :: Maybe (FnBody a)       -- ^ 'Nothing' for 'declare', 'Just fb' for 'define' 
-  , fnReq  :: !(Pred a)              -- ^ Precondition / "requires" clause               
-  , fnEns  :: !(Pred a)              -- ^ Postcondition / "ensures" clause               
+  , fnPre  :: !(Pred a)              -- ^ Precondition / "requires" clause               
+  , fnPost :: !(Pred a)              -- ^ Postcondition / "ensures" clause               
   , fnLab  :: a                      
   }
   deriving (Eq, Ord, Show, Functor)
@@ -191,8 +191,8 @@ decl f ts t l = FnDef
   , fnArgs = zip args ts 
   , fnOut  = t 
   , fnBody = Nothing 
-  , fnReq  = pTrue l 
-  , fnEns  = pTrue l 
+  , fnPre  = pTrue
+  , fnPost = pTrue
   , fnLab  = l 
   }
 
@@ -202,8 +202,8 @@ defn f xts b t l = FnDef
   , fnArgs = xts 
   , fnOut  = t 
   , fnBody = Just b 
-  , fnReq  = pTrue l 
-  , fnEns  = pTrue l 
+  , fnPre  = pTrue
+  , fnPost = pTrue
   , fnLab  = l 
   }
 
