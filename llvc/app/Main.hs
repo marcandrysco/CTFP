@@ -1,6 +1,9 @@
 module Main where
 
-import Lib
+import Language.LLVC.Verify 
+import System.Environment 
 
 main :: IO ()
-main = someFunc
+main = do 
+  args <- getArgs
+  mapM_ verify args

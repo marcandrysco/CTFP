@@ -1,10 +1,10 @@
 name:                llvc
 version:             0.1.0.0
-github:              "githubuser/llvc"
-license:             BSD3
-author:              "Author name here"
-maintainer:          "example@example.com"
-copyright:           "2018 Author name here"
+github:              "ucsd-progsys/llvc"
+license:             MIT 
+author:              "Ranjit Jhala"
+maintainer:          "jhala@cs.ucsd.edu"
+copyright:           "2018 Ranjit Jhala"
 
 extra-source-files:
 - README.md
@@ -17,16 +17,18 @@ extra-source-files:
 # To avoid duplicated efforts in documentation and dealing with the
 # complications of embedding Haddock markup inside cabal files, it is
 # common to point users to the README.md file.
-description:         Please see the README on Github at <https://github.com/githubuser/llvc#readme>
+description:         Please see the README on Github at <https://github.com/ucsd-progsys/llvc#readme>
 
 dependencies:
 - base >= 4.7 && < 5
 
 library:
   source-dirs: src
+  dependencies:
+    - unordered-containers
 
 executables:
-  llvc-exe:
+  llvc:
     main:                Main.hs
     source-dirs:         app
     ghc-options:
