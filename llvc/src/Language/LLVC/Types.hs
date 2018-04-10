@@ -61,7 +61,7 @@ pFalse = PAnd []
 type Program a = M.HashMap Var (FnDef a)  -- ^ A list of function declarations
 
 data FnBody a = FnBody 
-  { fnDefs :: [(Var, Expr a)]        -- ^ Assignments for each variable
+  { fnDefs :: [((Var, a), Expr a)]     -- ^ Assignments for each variable
   , fnRet  :: !(TypedExpr a)         -- ^ Return value
   }
   deriving (Eq, Ord, Show, Functor)
@@ -111,6 +111,16 @@ decl f ts t l = FnDef
   { fnName = f 
   , fnArgs = zip args ts 
   , fnBody = Nothing 
+  , fnReq  = pTrue l 
+  , fnEns  = pTrue l 
+  , fnLab  = l 
+  }
+
+defn :: Var -> [(Var, Type)] -> FnBody a -> Type -> a -> FnDef a 
+defn f xts b t l = FnDef 
+  { fnName = f 
+  , fnArgs = xts 
+  , fnBody = Just b 
   , fnReq  = pTrue l 
   , fnEns  = pTrue l 
   , fnLab  = l 

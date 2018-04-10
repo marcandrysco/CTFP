@@ -5,6 +5,7 @@ import qualified Data.HashMap.Strict        as M
 import           Text.Megaparsec hiding (parse)
 import           Data.List.NonEmpty         as NE
 import qualified Text.Megaparsec.Char.Lexer as L
+import qualified Text.Megaparsec.Lexer      as L
 import           Text.Megaparsec.Char
 import           Text.Megaparsec.Expr
 import           Language.LLVC.Types
@@ -36,6 +37,9 @@ instance (Show a, Show b) => PPrint (ParseError a b) where
 
 type BareProgram = Program SourceSpan 
 type BareDef     = FnDef   SourceSpan 
+type BareExpr    = Expr    SourceSpan 
+type BareBody    = FnBody  SourceSpan 
+type BareVar     = (Var,   SourceSpan)
 
 --------------------------------------------------------------------------------
 -- | Top-Level Expression Parser
@@ -57,10 +61,52 @@ declareP = do
   outTy      <- typeP 
   (name, sp) <- identifier "@" 
   inTys      <- parens (sepBy typeP comma) <* many attrP
-  return (decl name inTys outTy sp)  
+  return      $ decl name inTys outTy sp
 
 defineP :: Parser BareDef 
-defineP = undefined 
+defineP = do 
+  outTy      <- rWord "weak" *> typeP
+  (name, sp) <- identifier "@" 
+  args       <- parens (sepBy argTypeP comma) <* many attrP
+  body       <- braces bodyP 
+  return      $ defn name args body outTy sp
+
+argTypeP :: Parser (Var, Type)
+argTypeP = do 
+  t <- typeP 
+  x <- varP "%" 
+  return (x, t)
+
+bodyP :: Parser BareBody
+bodyP = FnBody <$> many defP <*> retP 
+
+defP :: Parser (BareVar, BareExpr) 
+defP = (,) <$> identifier "%" <* symbol "=" <*> exprP
+
+retP :: Parser (Type, BareExpr)
+retP = do 
+  _       <- rWord "ret" 
+  t       <- typeP 
+  e       <- exprP 
+  return (t, e) 
+
+exprP :: Parser BareExpr 
+-- exprP = identifier "%" >>= (return . uncurry EVar)
+exprP 
+  =  eVarP 
+ <|> eCallP 
+ <|> eLitP 
+ <?> "expression"
+
+eVarP :: Parser BareExpr
+eVarP =   uncurry EVar <$> identifier "%" 
+
+eCallP :: Parser BareExpr 
+eCallP = undefined 
+
+eLitP :: Parser BareExpr 
+eLitP = undefined 
+
 
 typeP :: Parser Type 
 typeP 
@@ -223,7 +269,9 @@ lexeme p = L.lexeme sc (withSpan p)
 
 -- | 'integer' parses an integer.
 integer :: Parser (Integer, SourceSpan)
-integer = lexeme L.decimal
+-- integer = lexeme L.decimal
+integer = lexeme L.integer 
+
 
 -- | `rWord`
 rWord   :: String -> Parser SourceSpan
