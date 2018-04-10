@@ -1,14 +1,25 @@
-{-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE DeriveFunctor        #-}
+{-# LANGUAGE FlexibleInstances    #-}
+{-# LANGUAGE FlexibleContexts     #-}
+{-# LANGUAGE TypeSynonymInstances #-}
 
 module Language.LLVC.Types where 
 
+-- import qualified Data.Maybe          as Mb
+
+import qualified Data.List           as L 
 import qualified Data.HashMap.Strict as M 
 import qualified Language.LLVC.UX    as UX 
+import Text.Printf (printf)
 
 data Type 
   = Float 
   | I Int                      -- ^ Int of a given size 1, 16, 32 etc.
   deriving (Eq, Ord, Show)
+
+instance UX.PPrint Type where 
+  pprint Float = "float"
+  pprint (I n) = "i" ++ show n
 
 type Var   = UX.Text 
 
@@ -17,20 +28,36 @@ type Var   = UX.Text
 -------------------------------------------------------------------------------
 data Fn 
   = FnFcmp    Rel               -- ^ fcmp olt 
-  | FnBv      BvOp              -- ^ bitwise operation 
+  | FnBin      BinOp              -- ^ bitwise operation 
   | FnSelect    
   | FnBitcast 
   | FnFunc    Var 
   deriving (Eq, Ord, Show)
 
-data BvOp
+data BinOp
   = BvXor 
   | BvAnd 
+  | FAdd 
   deriving (Eq, Ord, Show)
 
 data Rel 
   = Olt 
   deriving (Eq, Ord, Show)
+
+instance UX.PPrint BinOp where 
+  pprint BvXor = "xor"
+  pprint BvAnd = "and"
+  pprint FAdd  = "fadd" 
+
+instance UX.PPrint Rel where 
+  pprint Olt = "olt"
+
+instance UX.PPrint Fn where 
+  pprint (FnFcmp r) = printf "fcmp %s" (UX.pprint r)
+  pprint (FnBin  o) = UX.pprint o
+  pprint FnSelect   = "select" 
+  pprint FnBitcast  = "bitcast" 
+  pprint (FnFunc f) = f
 
 -------------------------------------------------------------------------------
 -- | 'Expr' correspond to the RHS of LLVM assignments 
@@ -42,6 +69,31 @@ data Expr a
   deriving (Eq, Ord, Show, Functor)
 
 type TypedExpr a = (Type, Expr a)
+
+instance UX.PPrint (Expr a) where 
+  pprint (ELit n _)         = show n 
+  pprint (EVar x _)         = x 
+  pprint (ECall fn tes t _) = ppCall fn tes t 
+
+ppCall :: Fn -> [TypedExpr a] -> Type -> UX.Text 
+ppCall (FnFunc f) tes t   
+  = printf "call %s %s (%s)" (UX.pprint t) f (pprints tes) 
+ppCall (FnBin o) [te1, (_, e2)] _ 
+  = printf "%s %s, %s" (UX.pprint o) (UX.pprint te1) (UX.pprint e2) 
+ppCall (FnFcmp r) [te1, (_, e2)] _ 
+  = printf "fcmp %s %s, %s" (UX.pprint r) (UX.pprint te1) (UX.pprint e2) 
+ppCall FnSelect tes _ 
+  = printf "select %s" (pprints tes)
+ppCall FnBitcast [te] t 
+  = printf "bitcast %s to %s" (UX.pprint te) (UX.pprint t) 
+ppCall f tes _ 
+  = UX.panic ("ppCall: TBD" ++ UX.pprint f ++ pprints tes) UX.junkSpan
+instance UX.PPrint (TypedExpr a) where 
+  pprint (t, e) = printf "%s %s" (UX.pprint t) (UX.pprint e)
+
+-- instance UX.PPrint a => UX.PPrint [a] where 
+pprints :: (UX.PPrint a) => [a] -> UX.Text
+pprints = L.intercalate ", " . fmap UX.pprint 
 
 -- | 'Pred' are boolean combinations of 'Expr' used to define contracts 
 data Pred a 
@@ -58,23 +110,45 @@ pFalse = PAnd []
 -------------------------------------------------------------------------------
 -- | A 'Program' is a list of Function Definitions  
 -------------------------------------------------------------------------------
+
 type Program a = M.HashMap Var (FnDef a)  -- ^ A list of function declarations
 
 data FnBody a = FnBody 
-  { fnDefs :: [((Var, a), Expr a)]     -- ^ Assignments for each variable
-  , fnRet  :: !(TypedExpr a)         -- ^ Return value
+  { fnDefs :: [((Var, a), Expr a)]        -- ^ Assignments for each variable
+  , fnRet  :: !(TypedExpr a)              -- ^ Return value
   }
   deriving (Eq, Ord, Show, Functor)
 
 data FnDef a = FnDef 
   { fnName :: !Var                   -- ^ Name
   , fnArgs :: ![(Var, Type)]         -- ^ Parameters and their types 
+  , fnOut  :: !Type                  -- ^ Output type 
   , fnBody :: Maybe (FnBody a)       -- ^ 'Nothing' for 'declare', 'Just fb' for 'define' 
   , fnReq  :: !(Pred a)              -- ^ Precondition / "requires" clause               
   , fnEns  :: !(Pred a)              -- ^ Postcondition / "ensures" clause               
   , fnLab  :: a                      
   }
   deriving (Eq, Ord, Show, Functor)
+
+instance UX.PPrint (FnDef a) where 
+  pprint fd        = printf "%s %s %s(%s) %s" dS oS (fnName fd) aS bS
+    where
+      oS           = UX.pprint (fnOut fd)
+      (dS, bS, aS) = case fnBody fd of 
+                       Nothing -> ("declare", "\n"       , pprints (snd <$> fnArgs fd))
+                       Just b  -> ("define" , UX.pprint b, pprints (fnArgs fd) )
+         
+instance UX.PPrint (Var, Type) where 
+  pprint (x, t) = printf "%s %s" (UX.pprint t) x 
+
+instance UX.PPrint (FnBody a) where 
+  pprint (FnBody xes te)  = unlines ("{" : fmap ppAsgn xes ++ [ppRet te, "}"]) 
+    where 
+      ppRet               = printf "  ret %s"     . UX.pprint  
+      ppAsgn ((x,_), e)   = printf "  %s = %s"  x (UX.pprint e)
+
+instance UX.PPrint (Program a) where 
+  pprint p = L.intercalate "\n\n" (UX.pprint <$> M.elems p)
 
 -------------------------------------------------------------------------------
 -- | Constructors 
@@ -96,20 +170,26 @@ mkFcmp :: Rel -> Type -> Expr a -> Expr a -> a -> Expr a
 mkFcmp r t e1 e2 = ECall (FnFcmp r) [(t, e1), (t, e2)] (I 1)
 
 mkSelect :: (Show a) => TypedExpr a -> TypedExpr a -> TypedExpr a -> a -> Expr a 
-mkSelect x@(t1, e1) y@(t2, e2) z@(t3, e3) l 
+mkSelect x@(t1, _) y@(t2, _) z@(t3, _) l 
   | t1 == I 1 && t2 == t3 = ECall FnSelect [x, y, z] t2 l 
   | otherwise             = error $ "Malformed Select: " ++ show [x, y, z]
 
-mkBitcast :: Type -> Expr a -> Type -> a -> Expr a 
-mkBitcast t e = ECall FnBitcast [(t, e)]
+mkBitcast :: TypedExpr a -> Type -> a -> Expr a 
+mkBitcast te = ECall FnBitcast [te]
 
-mkBvOp :: BvOp -> Type -> Expr a -> Expr a -> a -> Expr a 
-mkBvOp o t e1 e2 = ECall (FnBv o) [(t, e1), (t, e2)] t 
+mkBinOp :: BinOp -> TypedExpr a -> Expr a -> a -> Expr a 
+mkBinOp o (t, e1) e2 = ECall (FnBin o) [(t, e1), (t, e2)] t 
+
+mkCall :: Var -> [(Var, Type)] -> Type -> a -> Expr a 
+mkCall f xts t sp = ECall (FnFunc f) tes t sp
+  where 
+    tes           = [ (tx, EVar x sp) | (x, tx) <- xts]
 
 decl :: Var -> [Type] -> Type -> a -> FnDef a 
 decl f ts t l = FnDef 
   { fnName = f 
   , fnArgs = zip args ts 
+  , fnOut  = t 
   , fnBody = Nothing 
   , fnReq  = pTrue l 
   , fnEns  = pTrue l 
@@ -120,6 +200,7 @@ defn :: Var -> [(Var, Type)] -> FnBody a -> Type -> a -> FnDef a
 defn f xts b t l = FnDef 
   { fnName = f 
   , fnArgs = xts 
+  , fnOut  = t 
   , fnBody = Just b 
   , fnReq  = pTrue l 
   , fnEns  = pTrue l 
@@ -127,4 +208,7 @@ defn f xts b t l = FnDef
   }
 
 args :: [Var]
-args = ["%arg" ++ show i | i <- [0..]] 
+args = ["%arg" ++ show i | i <- [0..] :: [Integer]] 
+
+
+
