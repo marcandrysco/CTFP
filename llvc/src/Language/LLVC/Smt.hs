@@ -5,6 +5,7 @@ module Language.LLVC.Smt where
 
 import           Text.Printf (printf) 
 import           Data.Monoid
+import qualified Data.List           as L
 import qualified Language.LLVC.UX    as UX
 import           Language.LLVC.Types 
 
@@ -15,8 +16,29 @@ import           Language.LLVC.Types
 class ToSmt a where 
   toSmt :: a -> Smt 
 
+instance ToSmt Op where 
+  toSmt BvXor  = "bvxor"
+  toSmt BvAnd  = "bvand"
+  toSmt FAdd   = "FIXME-FAdd" 
+  toSmt FpEq   = "fp.eq" 
+  toSmt FpAbs  = "fp.abs" 
+  toSmt FpLt   = "fp.lt" 
+  toSmt ToFp32 = "to_fp_32" 
+  toSmt Ite    = "ite" 
+
+instance ToSmt (Arg a) where 
+  toSmt (ELit n _) = show n 
+  toSmt (EVar x _) = toSmt x 
+
 instance ToSmt Pred where 
-  toSmt = undefined 
+  toSmt (PArg a)     = toSmt a 
+  toSmt (PAtom o ps) = printf "(%s %s)"  (toSmt o) (toSmts ps) 
+  toSmt (PNot p)     = printf "(not %s)" (toSmt p)
+  toSmt (PAnd ps)    = printf "(and %s)" (toSmts ps)
+  toSmt (POr  ps)    = printf "(or %s)"  (toSmts ps)
+
+toSmts :: (ToSmt a) => [a] -> Smt
+toSmts = L.intercalate " " . fmap toSmt
 
 instance ToSmt Type where 
   toSmt Float  = "Float32" 
