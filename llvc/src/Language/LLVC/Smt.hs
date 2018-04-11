@@ -114,9 +114,9 @@ preamble = mconcat $ cmd <$>
   [ "(set-logic QF_FPBV)"
   , "(define-sort Int1    () Bool)"
   , "(define-sort Int32   () (_ BitVec 32))"
-  , "(define-sort Float32 () (_ FloatingPoint  8 24))"
-  , "(define-fun  to_fp_32 ((Int32 a)) Float32  ((_ to_fp 8 24) RNE a)"
-  , "(define-fun  fp_add ((Float32 a) (Float32 b)) Float32 (fp.add RNE a b)"
+  -- , "(define-sort Float32 () (_ FloatingPoint  8 24))"
+  , "(define-fun to_fp_32 ((a Int32)) Float32  ((_ to_fp 8 24) RNE a))"
+  , "(define-fun fp_add ((a Float32) (b Float32)) Float32 (fp.add RNE a b))"
   ]
 
 cmd :: UX.Text -> VC
