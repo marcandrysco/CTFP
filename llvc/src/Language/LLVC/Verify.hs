@@ -1,11 +1,9 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE FlexibleInstances    #-}
 
-module Language.LLVC.Verify where 
+module Language.LLVC.Verify (vc) where 
 
 import Prelude hiding (pred)
--- import           Text.Printf (printf) 
--- import qualified Language.LLVC.UX    as UX
 import qualified Data.Maybe          as Mb 
 import qualified Data.HashMap.Strict as M 
 import           Data.Monoid
@@ -15,12 +13,9 @@ import           Language.LLVC.Utils
 import           Language.LLVC.Smt   
 import           Language.LLVC.Types 
 
-verify :: FilePath -> IO ()
-verify f = do 
-  putStrLn ("LLVC: checking " ++ show f) 
-  return ()
-
+-------------------------------------------------------------------------------
 vc :: (Located a) => Program a -> VC 
+-------------------------------------------------------------------------------
 vc p    = mconcatMap (vcFun env) (M.elems p) 
   where 
     env = mkEnv p 

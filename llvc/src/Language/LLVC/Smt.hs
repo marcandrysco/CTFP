@@ -1,13 +1,27 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE FlexibleInstances    #-}
 
-module Language.LLVC.Smt where 
+module Language.LLVC.Smt 
+  ( -- * Opaque SMT Query type 
+    VC
+
+    -- * Constructing Queries
+  , declare
+  , check
+  , assert
+
+    -- * Issuing Query
+  , writeQuery 
+  ) 
+  where 
 
 import           Text.Printf (printf) 
 import           Data.Monoid
--- import qualified Data.List           as L
 import qualified Language.LLVC.UX    as UX
 import           Language.LLVC.Types 
+
+writeQuery :: FilePath -> VC -> IO () 
+writeQuery f vc = writeFile f (toSmt (preamble <> vc))
 
 -------------------------------------------------------------------------------
 -- | Serializing API
@@ -15,6 +29,9 @@ import           Language.LLVC.Types
 
 class ToSmt a where 
   toSmt :: a -> Smt 
+
+instance ToSmt VC where 
+  toSmt (VC cmds) = unlines [ c | Cmd c <- cmds] 
 
 instance ToSmt Op where 
   toSmt BvXor  = "bvxor"
