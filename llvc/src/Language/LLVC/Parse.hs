@@ -29,14 +29,6 @@ parseWith p f s = case runParser (whole p) f s of
                     Left err -> panic (show err) (posSpan . NE.head . errorPos $ err)
                     Right e  -> e
 
-type BareTypedArg  = TypedArg  SourceSpan 
-type BareProgram   = Program   SourceSpan 
-type BareArg       = Arg       SourceSpan 
-type BareDef       = FnDef     SourceSpan 
-type BareExpr      = Expr      SourceSpan 
-type BareBody      = FnBody    SourceSpan 
-type BareVar       = (Var,     SourceSpan)
-
 --------------------------------------------------------------------------------
 -- | Top-Level Expression Parser
 --------------------------------------------------------------------------------

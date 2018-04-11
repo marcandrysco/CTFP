@@ -7,12 +7,12 @@
 module Language.LLVC.Types where 
 
 -- import qualified Data.Maybe          as Mb
-import Data.Hashable
-import GHC.Generics
+import           Data.Hashable
+import           GHC.Generics
 import qualified Data.List           as L 
 import qualified Data.HashMap.Strict as M 
 import qualified Language.LLVC.UX    as UX 
-import Text.Printf (printf)
+import           Text.Printf (printf)
 
 data Type 
   = Float 
@@ -40,6 +40,8 @@ data Rel
   = Olt 
   deriving (Eq, Ord, Show, Generic) 
 
+instance Hashable Op 
+instance Hashable Rel 
 instance Hashable Fn 
 
 instance UX.PPrint Rel where 
@@ -105,18 +107,18 @@ data FnBody a = FnBody
   { fnAsgns :: [((Var, a), Expr a)]  -- ^ Assignments for each variable
   , fnRet   :: !(TypedArg a)         -- ^ Return value
   }
-  deriving (Eq, Ord, Show, Functor)
+  deriving (Eq, Show, Functor)
 
 data FnDef a = FnDef 
   { fnName :: !Var                   -- ^ Name
   , fnArgs :: ![(Var, Type)]         -- ^ Parameters and their types 
   , fnOut  :: !Type                  -- ^ Output type 
   , fnBody :: Maybe (FnBody a)       -- ^ 'Nothing' for 'declare', 'Just fb' for 'define' 
-  , fnPre  :: !(Pred a)              -- ^ Precondition / "requires" clause               
-  , fnPost :: !(Pred a)              -- ^ Postcondition / "ensures" clause               
+  , fnPre  :: !Pred                  -- ^ Precondition / "requires" clause               
+  , fnPost :: !Pred                  -- ^ Postcondition / "ensures" clause               
   , fnLab  :: a                      
   }
-  deriving (Eq, Ord, Show, Functor)
+  deriving (Eq, Show, Functor)
 
 instance UX.PPrint (FnDef a) where 
   pprint fd        = printf "%s %s %s(%s) %s" dS oS (fnName fd) aS bS
@@ -219,7 +221,8 @@ data Op
   | BvXor
   | BvAnd 
   | FAdd 
-  deriving (Eq, Ord, Show)
+  deriving (Eq, Ord, Show, Generic)
+
 
 instance UX.PPrint Op where 
   pprint BvXor  = "xor"
@@ -232,17 +235,29 @@ instance UX.PPrint Op where
   pprint ToFp32 = "to_fp_32" 
 
 -- | 'Pred' are boolean combinations of 'Expr' used to define contracts 
-data Pred a 
-  = PAtom  Op [Arg a]  
-  | PNot   (Pred a)
-  | PAnd   [Pred a]
-  | POr    [Pred a]
-  deriving (Eq, Ord, Show, Functor)
+data Pred 
+  = PAtom  Op [BareArg]  
+  | PNot   !Pred 
+  | PAnd   [Pred]
+  | POr    [Pred]
+  deriving (Eq, Show, Generic) 
 
-pTrue, pFalse :: Pred a 
+pTrue, pFalse :: Pred
 pTrue  = POr []
 pFalse = PAnd []
 
-subst :: Pred a -> [(Var, Arg b)] -> Pred a 
+subst :: Pred -> [(Var, Arg b)] -> Pred
 subst = undefined 
+
+-------------------------------------------------------------------------------
+-- | 'Bare' aliases 
+-------------------------------------------------------------------------------
+
+type BareTypedArg  = TypedArg  UX.SourceSpan 
+type BareProgram   = Program   UX.SourceSpan 
+type BareArg       = Arg       UX.SourceSpan 
+type BareDef       = FnDef     UX.SourceSpan 
+type BareExpr      = Expr      UX.SourceSpan 
+type BareBody      = FnBody    UX.SourceSpan 
+type BareVar       = (Var,     UX.SourceSpan)
 

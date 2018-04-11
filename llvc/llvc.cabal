@@ -2,7 +2,7 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 51aaf91b584a8bc52e90459afa131988e69d4447568fd86f2483a2e64a244e62
+-- hash: 80f99f8d63861e423d1b1e3903e22a0daefbfe6d0c3e1b114e1f386395e5d3b9
 
 name:           llvc
 version:        0.1.0.0
@@ -35,6 +35,7 @@ library
     , containers
     , directory
     , filepath
+    , hashable
     , megaparsec
     , process
     , unordered-containers

@@ -15,7 +15,7 @@ import           Language.LLVC.Types
 class ToSmt a where 
   toSmt :: a -> Smt 
 
-instance ToSmt (Pred a) where 
+instance ToSmt Pred where 
   toSmt = undefined 
 
 instance ToSmt Type where 
@@ -52,10 +52,10 @@ instance Monoid VC where
 declare :: (Var, Type) -> VC 
 declare (x, t) = cmd $ printf "(declare-const %s %s)" (toSmt x) (toSmt t)
 
-assert :: Pred a -> VC 
+assert :: Pred -> VC 
 assert p = cmd $ printf "(assert %s)" (toSmt p)
 
-check :: Pred a -> VC 
+check :: Pred -> VC 
 check p = withBracket (assert (PNot p) <> checkSat) 
 
 withBracket :: VC -> VC 

@@ -5,7 +5,10 @@ module Language.LLVC.Verify where
 
 -- import           Text.Printf (printf) 
 -- import qualified Language.LLVC.UX    as UX
+import qualified Data.Maybe          as Mb 
+import qualified Data.HashMap.Strict as M 
 import           Data.Monoid
+import           Language.LLVC.UX 
 import           Language.LLVC.Utils 
 import           Language.LLVC.Smt   
 import           Language.LLVC.Types 
@@ -15,7 +18,12 @@ verify f = do
   putStrLn ("LLVC: checking " ++ show f) 
   return ()
 
-vcFun :: Program a -> FnDef a -> VC 
+vc :: (Located a) => Program a -> VC 
+vc p    = mconcatMap (vcFun env) (M.elems p) 
+  where 
+    env = mkEnv p 
+
+vcFun :: (Located a) => Env -> FnDef a -> VC 
 vcFun env fd@(FnDef { fnBody = Just fb })
   =  mconcatMap declare      (fnArgs fd) 
   <> mconcatMap (vcAsgn env) (fnAsgns fb)
@@ -23,7 +31,7 @@ vcFun env fd@(FnDef { fnBody = Just fb })
 vcFun _ _ 
   =  mempty 
 
-vcAsgn :: Program a -> ((Var, a), Expr a) -> VC 
+vcAsgn :: (Located a) => Env  -> ((Var, a), Expr a) -> VC 
 vcAsgn env ((x, _), ECall fn tys tx l) 
                 = declare (x, tx) 
                <> check  pre 
@@ -32,7 +40,7 @@ vcAsgn env ((x, _), ECall fn tys tx l)
     (pre, post) = contractAt env fn x tys l 
     -- tx          = resultType env fn   tys t  
 
-contractAt :: Program a -> Fn -> Var -> [TypedArg a] -> a -> (Pred a, Pred a)
+contractAt :: (Located a) => Env -> Fn -> Var -> [TypedArg a] -> a -> (Pred, Pred)
 contractAt env fn rv tys l = (pre, post) 
   where 
     pre                    = subst (ctPre  ct) su 
@@ -40,7 +48,7 @@ contractAt env fn rv tys l = (pre, post)
     su                     = zip formals actuals 
     actuals                = EVar rv l : (snd <$> tys) 
     formals                = retVar    : ctParams ct
-    ct                     = contract env fn 
+    ct                     = contract env fn (sourceSpan l) 
 
 -- resultType :: Program a -> Fn -> [TypedArg a] -> Type -> Type 
 -- resultType _ _ _ t           = t 
@@ -51,14 +59,25 @@ contractAt env fn rv tys l = (pre, post)
 -- resultType _ FnBitcast _ t   = t 
 
 -------------------------------------------------------------------------------
-
-
-contract :: Program a -> Fn -> Contract a 
-contract env fn = undefined 
-
-data Contract a = Contract 
+-- | Contracts for all the `Fn` stuff.
+-------------------------------------------------------------------------------
+data Contract = Contract 
   { ctParams :: ![Var] 
   , ctResult :: !Var 
-  , ctPre    :: !(Pred a)
-  , ctPost   :: !(Pred a)
-  } deriving (Eq, Ord, Show)
+  , ctPre    :: !Pred
+  , ctPost   :: !Pred
+  } deriving (Eq, Show)
+
+type Env = M.HashMap Fn Contract 
+
+mkEnv :: Program a -> Env 
+mkEnv = undefined 
+
+contract :: Env -> Fn -> SourceSpan -> Contract
+contract env fn l = Mb.fromMaybe err (M.lookup fn env)
+  where 
+    err           = panic msg l 
+    msg           = "Cannot find contract for: " ++ show fn
+
+primContracts :: M.HashMap Fn Contract
+primContracts = undefined
