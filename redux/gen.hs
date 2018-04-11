@@ -2,7 +2,8 @@
 
 import Data.List
 import System.Environment
-
+import Data.Map (Map)
+import qualified Data.Map as Map
 
 -- main entry, just dispatches based on desired generator
 main =
@@ -14,8 +15,16 @@ main =
        _         -> putStr "Invalid arguments\n"
 
 -- list of all types we generate
---typelist = [Float1, Float2, Float4, Float8, Float16, Double1, Double2, Double4, Double8]
-typelist = [Float1, Float2, Float4, Double1, Double2]
+typelist = [Float1, Float2, Float4, Float8, Float16, Double1, Double2, Double4, Double8]
+--typelist = [Float1, Float2, Float4, Double1, Double2]
+--typelist = [Float1]
+
+
+bar (a, b) = FMul (FAdd (a, a), FAdd (a, a))
+foo (a, b) = FAdd (bar (a, b), Call (bar (Arg "a", Arg "b"), a, b))
+
+main' = llvm_func2 foo Float1 "foo" False
+
 
 ---- ## DATA TYPES ## ----
 
@@ -44,10 +53,8 @@ data Expr
   | FCmpOGT  (Expr, Expr)
   | CopySign (Expr, Expr)
   | Call     (Expr, Expr, Expr)
-  | Let      (String, Expr)
-  | Var      String
   | Seq      (Expr, Expr)
-  deriving (Eq, Show)
+  deriving (Eq, Show, Ord)
 
 -- Floating point target type
 data Type
@@ -77,6 +84,10 @@ type Queue = (Int, [Func])
 --   reg :: String  The register name.
 type Bind = (String, String)
 
+-- CSE map type
+--   map :: Map Expr String   The map from expressions to registers.
+type CSE = Map Expr String
+
 -- Environment type
 --   reg  :: Int     The current register index.
 --   ty   :: Type    The generation type.
@@ -84,7 +95,8 @@ type Bind = (String, String)
 --   name :: String  The base function name.
 --   bind :: [Bind]  List of bindings.
 --   dbg  :: Bool    Debug flag.
-type Env = (Int, Type, Queue, String, [Bind], Bool)
+--   cse  :: CSE     CSE map.
+type Env = (Int, Type, Queue, String, [Bind], Bool, CSE)
 
 
 ---- ## Z3 GENERATION ## ----
@@ -227,7 +239,7 @@ llvm_func :: Expr -> Type -> String -> Bool -> IO ()
 llvm_func fn ty nam dbg = 
   let tnam = type2flt ty in
     do putStr $ "define weak " ++ tnam ++ " @" ++ nam ++ "(" ++ tnam ++ " %a, " ++ tnam ++ " %b) #0 {\n"
-       (r,(_,_,(idx,fns),n,_,_)) <- gen_expr (fn, env_init ty nam dbg)
+       (r,(_,_,(idx,fns),n,_,_,_)) <- llvm_expr (fn, env_init ty nam dbg)
        putStr $ "ret " ++ tnam ++ " " ++ r ++ "\n}\n"
        gen_unnamed fns ty idx nam dbg
 
@@ -245,27 +257,35 @@ func fn (a, b) =
   Call (fn (Arg "a", Arg "b"), a, b)
 
 
+-- ## ENVIRONMENT ## --
+
 -- initialize an environment
 env_init :: Type -> String -> Bool -> Env
-env_init ty nam dbg = (1, ty, (1, []), nam, [], dbg)
+env_init ty nam dbg = (1, ty, (1, []), nam, [], dbg, Map.empty)
 
 -- get the type from the environment
 env_type :: Env -> Type
-env_type (_,ty,_,_,_,_) = ty
+env_type (_,ty,_,_,_,_,_) = ty
 
 -- get the function name from the environment
 env_func :: Env -> String
-env_func (_,_,_,name,_,_) = name
+env_func (_,_,_,name,_,_,_) = name
 
 -- retrieve the debug flag
 env_dbg :: Env -> Bool
-env_dbg (_,_,_,_,_,dbg) = dbg
+env_dbg (_,_,_,_,_,dbg,_) = dbg
 
 -- get/put the bindings from the environment
 env_get_vars :: Env -> [Bind]
-env_get_vars (_,_,_,_,vars,_) = vars
+env_get_vars (_,_,_,_,vars,_,_) = vars
 env_put_vars :: Env -> Bind -> Env
-env_put_vars (a,b,c,d,vars,e) bind = (a,b,c,d,bind:vars,e)
+env_put_vars (a,b,c,d,vars,e,f) bind = (a,b,c,d,bind:vars,e,f)
+
+-- get/put the cse map on the environment
+env_get_cse :: Env -> CSE
+env_get_cse (_,_,_,_,_,_,cse) = cse
+env_put_cse :: Env -> CSE -> Env
+env_put_cse (a,b,c,d,e,f,_) env = (a,b,c,d,e,f,env)
 
 -- binding a variable to the environment
 env_bind :: Env -> Bind -> Env
@@ -281,6 +301,15 @@ env_lookup env id =
         [] -> ""
   in
     find (env_get_vars env)
+
+-- try to find a register in the cse map
+cse_find :: Env -> Expr -> Maybe String
+cse_find env expr = Map.lookup expr (env_get_cse env)
+
+-- add a register to the cse map
+cse_add :: Env -> Expr -> String -> Env
+cse_add env expr reg = env_put_cse env (Map.insert expr reg (env_get_cse env))
+
 
 class WithBlind e f | e -> f where
   withBlind :: (e -> Expr)    -- ^ test
@@ -301,8 +330,8 @@ instance WithBlind (Expr, Expr) ((Expr, Expr) -> Expr -> Expr) where
   withBlind cond blind fix op v =
     let b   = cond v
         tmp = ite2 b (blind v) v
-        res = Let ("res", func op tmp)
-        out = Seq(res, ite b (fix v (Var "res")) (Var "res"))
+        res = func op tmp
+        out = ite b (fix v res) res
     in out
 
 type FP1   = Expr
@@ -699,21 +728,21 @@ full_sqrt = restrict_sqrt
 
 -- get a name
 name :: Env -> Expr -> (Env, String)
-name (i, t, (name, fns), n, vars, dbg) expr =
-  let env' = (i, t, (name+1, (name, expr):fns), n, vars, dbg) in
+name (i, t, (name, fns), n, vars, dbg, cse) expr =
+  let env' = (i, t, (name+1, (name, expr):fns), n, vars, dbg, cse) in
     (env', show name)
 
 -- allocate a register from the environment
 alloc :: Env -> (Env, String)
-alloc (i, t, q, n, vars, dbg) = ((i+1, t, q, n, vars, dbg), "%"++(show i))
+alloc (i, t, q, n, vars, dbg, cse) = ((i+1, t, q, n, vars, dbg, cse), "%"++(show i))
 
 -- allocate an array of registers from the environment
 allocs :: Env -> Int -> (Env, [String])
 allocs e n =
   if n == 0
     then (e, [])
-    else let ((i,t,q,f,vars,dbg),ns) = allocs e (n-1) in
-      ((i+1,t,q,f,vars,dbg),ns++["%"++(show i)])
+    else let ((i,t,q,f,vars,dbg,cse),ns) = allocs e (n-1) in
+      ((i+1,t,q,f,vars,dbg,cse),ns++["%"++(show i)])
 
 
 -- create a floating point value string
@@ -765,9 +794,49 @@ gen_unnamed [] _ _ _ _ = return ()
 gen_unnamed ((nam, expr):fns) t idx fn dbg =
   let ty = type2flt t in
     do putStr $ "define weak " ++ ty ++ " @"++fn++"_" ++ (show nam) ++ "(" ++ ty ++ " %a, " ++ ty ++ " %b) #1 {\n"
-       (r,(_,_,(idx',fns'),_,_,_)) <- gen_expr (expr, (1, t, (idx, fns), fn, [], dbg))
+       (r,(_,_,(idx',fns'),_,_,_,_)) <- llvm_expr (expr, (1, t, (idx, fns), fn, [], dbg, Map.empty))
        putStr $ "ret " ++ ty ++ " " ++ r ++ "\n}\n"
        gen_unnamed fns' t idx' fn dbg
+
+llvm_expr :: (Expr, Env) -> IO (String, Env)
+llvm_expr (expr, env) =
+  case cse_find env expr of
+    Just reg ->
+      return (reg, env);
+      --do (reg, env) <- gen_expr (expr, env)
+         --return (reg, cse_add env expr reg)
+    Nothing ->
+      do (reg, env) <- gen_expr (expr, env)
+         return (reg, cse_add env expr reg)
+{-
+      case expr of
+        Arg s -> return ("%" ++ s, env)
+        Int val -> gen_int (ints env (env2sel env val), env)
+        Float val -> return (floats env (env2sel env val), env)
+        Zero -> return (floats env "0.0", env)
+        One -> return (floats env "1.0", env)
+        Ones -> gen_int (ints env "-1", env)
+        Not a -> gen_not (a, env)
+        Abs a -> gen_call1("llvm.fabs." ++ (env2vec env), a, env);
+        Or (a, b) -> gen_iop2 ("or", a, b, env)
+        And (a, b) -> gen_iop2 ("and", a, b, env)
+        Xor (a, b) -> gen_iop2 ("xor", a, b, env)
+        FSqrt a -> gen_call1 ( if env_dbg env then "dbg_fsqrt_" ++ (env2vec env) else "llvm.sqrt." ++ (env2vec env), a, env)
+        FAdd (a, b) -> if env_dbg env then gen_call2 ("dbg_fadd_" ++ (env2vec env), a, b, env) else gen_fop2 ("fadd", a, b, env)
+        FSub (a, b) -> if env_dbg env then gen_call2 ("dbg_fsub_" ++ (env2vec env), a, b, env) else gen_fop2 ("fsub", a, b, env)
+        FMul (a, b) -> if env_dbg env then gen_call2 ("dbg_fmul_" ++ (env2vec env), a, b, env) else gen_fop2 ("fmul", a, b, env)
+        FDivSig (a, b) -> if env_dbg env then gen_call2 ("dbg_fdiv_sig_" ++ (env2vec env), a, b, env) else gen_fop2 ("fdiv", a, b, env)
+        FDivExp (a, b) -> if env_dbg env then gen_call2 ("dbg_fdiv_exp_" ++ (env2vec env), a, b, env) else gen_fop2 ("fdiv", a, b, env)
+        FCmpOEQ (a, b) -> gen_fcmp ("fcmp oeq", a, b, env)
+        FCmpOLT (a, b) -> gen_fcmp ("fcmp olt", a, b, env)
+        FCmpOGT (a, b) -> gen_fcmp ("fcmp ogt", a, b, env)
+        FCmpUNE (a, b) -> gen_fcmp ("fcmp une", a, b, env)
+        CopySign (a, b) -> gen_call2 ("llvm.copysign." ++ (env2vec env), a, b, env)
+        Call (fn, a, b) -> gen_call (fn, a, b, env)
+        Let (id, val) -> llvm_let id val env
+        Var id -> llvm_var id env
+        Seq (a, b) -> llvm_seq a b env
+-}
 
 -- generate code for an arbitrary expression
 gen_expr :: (Expr, Env) -> IO (String, Env)
@@ -794,14 +863,12 @@ gen_expr (FCmpOGT (a, b), env) = gen_fcmp ("fcmp ogt", a, b, env)
 gen_expr (FCmpUNE (a, b), env) = gen_fcmp ("fcmp une", a, b, env)
 gen_expr (CopySign (a, b), env) = gen_call2 ("llvm.copysign." ++ (env2vec env), a, b, env)
 gen_expr (Call (fn, a, b),  env) = gen_call (fn, a, b, env)
-gen_expr (Let (id, val),  env) = llvm_let id val env
-gen_expr (Var id, env) = llvm_var id env
 gen_expr (Seq (a, b), env) = llvm_seq a b env
 
 -- llvm code for let expressions
 llvm_let :: String -> Expr -> Env -> IO (String, Env)
 llvm_let id val env =
-    do (x, env) <- gen_expr (val, env)
+    do (x, env) <- llvm_expr (val, env)
        let env' = env_bind env (id, x) in
          return (x, env')
 
@@ -813,14 +880,14 @@ llvm_var id env =
 -- llvm code for sequences instructions
 llvm_seq :: Expr -> Expr -> Env -> IO (String, Env)
 llvm_seq a b env =
-  do (x, env) <- gen_expr (a, env)
-     (y, env) <- gen_expr (b, env)
+  do (x, env) <- llvm_expr (a, env)
+     (y, env) <- llvm_expr (b, env)
      return (y, env)
 
 gen_call :: (Expr, Expr, Expr, Env) -> IO (String, Env)
 gen_call (fn, a, b, env) =
-  do (ra, env) <- gen_expr (a, env)
-     (rb, env) <- gen_expr (b, env)
+  do (ra, env) <- llvm_expr (a, env)
+     (rb, env) <- llvm_expr (b, env)
      let (env',r) = alloc env in
        let (env'',func) = name env' fn in
          let flt = env2flt env'' in 
@@ -837,7 +904,7 @@ gen_int (int, env) =
 -- generate a bitwise not
 gen_not :: (Expr, Env) -> IO (String, Env)
 gen_not (a, env) =
-  do (ra, env) <- gen_expr (a, env)
+  do (ra, env) <- llvm_expr (a, env)
      let (env',[ra',rt,ro]) = allocs env 3 in
        do putStr $ ra'++" = bitcast "++(env2flt env')++" "++ra++" to "++(env2int env')++"\n"
           putStr $ rt++" = xor "++(env2int env')++" "++ra'++", "++(ones env')++"\n"
@@ -847,8 +914,8 @@ gen_not (a, env) =
 -- generate code for a two-operand integer operation
 gen_iop2 :: (String, Expr, Expr, Env) -> IO (String, Env)
 gen_iop2 (op, a, b, env) =
-  do (ra, env) <- gen_expr (a, env)
-     (rb, env) <- gen_expr (b, env)
+  do (ra, env) <- llvm_expr (a, env)
+     (rb, env) <- llvm_expr (b, env)
      let (env',[ra',rb',rt,ro]) = allocs env 4 in
        do putStr $ ra'++" = bitcast "++(env2flt env)++" "++ra++" to "++(env2int env)++"\n"
           putStr $ rb'++" = bitcast "++(env2flt env)++" "++rb++" to "++(env2int env)++"\n"
@@ -859,8 +926,8 @@ gen_iop2 (op, a, b, env) =
 -- generate code for a two-operand floating-point operation
 gen_fop2 :: (String, Expr, Expr, Env) -> IO (String, Env)
 gen_fop2 (op, a, b, env) =
-  do (ra, env) <- gen_expr (a, env)
-     (rb, env) <- gen_expr (b, env)
+  do (ra, env) <- llvm_expr (a, env)
+     (rb, env) <- llvm_expr (b, env)
      let (env',ro) = alloc env in
        do putStr $ ro++" = "++op++" "++(env2flt env)++" "++ra++", "++rb++"\n"
           return (ro, env')
@@ -868,8 +935,8 @@ gen_fop2 (op, a, b, env) =
 -- generate code for a floating-point comparison
 gen_fcmp :: (String, Expr, Expr, Env) -> IO (String, Env)
 gen_fcmp (cmp, a, b, env) =
-  do (ra, env) <- gen_expr (a, env)
-     (rb, env) <- gen_expr (b, env)
+  do (ra, env) <- llvm_expr (a, env)
+     (rb, env) <- llvm_expr (b, env)
      let (env', [rt,rs,ro]) = allocs env 3 in
        do putStr $ rt++" = "++cmp++" "++(env2flt env')++" "++ra++", "++rb++"\n"
           putStr $ rs++" = select "++(env2bool env')++" "++rt++", "++(env2int env')++" "++(ones env')++", "++(env2int env')++" "++(zeros env')++"\n"
@@ -879,7 +946,7 @@ gen_fcmp (cmp, a, b, env) =
 -- create a function call with one argument
 gen_call1 :: (String, Expr, Env) -> IO (String, Env)
 gen_call1 (fn, a, env) =
-  do (ra, env) <- gen_expr (a, env)
+  do (ra, env) <- llvm_expr (a, env)
      let (env', r) = alloc env in
        do putStr $ r++" = call "++(env2flt env')++" @"++fn++"("++(env2flt env')++" "++ra++")\n"
           return (r, env')
@@ -887,8 +954,8 @@ gen_call1 (fn, a, env) =
 -- create a function call with one argument
 gen_call2 :: (String, Expr, Expr, Env) -> IO (String, Env)
 gen_call2 (fn, a, b, env) =
-  do (ra, env) <- gen_expr (a, env)
-     (rb, env) <- gen_expr (b, env)
+  do (ra, env) <- llvm_expr (a, env)
+     (rb, env) <- llvm_expr (b, env)
      let (env', r) = alloc env in
        let ty = env2flt env' in
          do putStr $ r++" = call "++ty++" @"++fn++"("++ty++" "++ra++", "++ty++" "++rb++")\n"

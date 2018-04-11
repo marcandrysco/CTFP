@@ -158,40 +158,21 @@ DBG_GEN2(fdiv_sig_f64, double, /, COND_DIVSIG);
 DBG_GEN2(fdiv_exp_f64, double, /, COND_DIVEXP);
 DBG_GEN1(fsqrt_f64, double, sqrt, COND_SQRT);
 
-DBG_VEC2(fadd_v2f32, v2f32, fadd_f32, 2);
-DBG_VEC2(fsub_v2f32, v2f32, fsub_f32, 2);
-DBG_VEC2(fmul_v2f32, v2f32, fmul_f32, 2);
-DBG_VEC2(fdiv_sig_v2f32, v2f32, fdiv_sig_f32, 2);
-DBG_VEC2(fdiv_exp_v2f32, v2f32, fdiv_exp_f32, 2);
-DBG_VEC1(fsqrt_v2f32, v2f32, fsqrt_f32, 2);
+#define DBG_VEC_ALL(BIT, WID) \
+	DBG_VEC2(fadd_v##WID##f##BIT, v##WID##f##BIT, fadd_f##BIT, WID); \
+	DBG_VEC2(fsub_v##WID##f##BIT, v##WID##f##BIT, fsub_f##BIT, WID); \
+	DBG_VEC2(fmul_v##WID##f##BIT, v##WID##f##BIT, fmul_f##BIT, WID); \
+	DBG_VEC2(fdiv_sig_v##WID##f##BIT, v##WID##f##BIT, fdiv_sig_f##BIT, WID); \
+	DBG_VEC2(fdiv_exp_v##WID##f##BIT, v##WID##f##BIT, fdiv_exp_f##BIT, WID); \
+	DBG_VEC1(fsqrt_v##WID##f##BIT, v##WID##f##BIT, fsqrt_f##BIT, WID); \
 
-DBG_VEC2(fadd_v4f32, v4f32, fadd_f32, 4);
-DBG_VEC2(fsub_v4f32, v4f32, fsub_f32, 4);
-DBG_VEC2(fmul_v4f32, v4f32, fmul_f32, 4);
-DBG_VEC2(fdiv_sig_v4f32, v4f32, fdiv_sig_f32, 4);
-DBG_VEC2(fdiv_exp_v4f32, v4f32, fdiv_exp_f32, 4);
-DBG_VEC1(fsqrt_v4f32, v4f32, fsqrt_f32, 4);
-
-DBG_VEC2(fadd_v2f64, v2f64, fadd_f64, 2);
-DBG_VEC2(fsub_v2f64, v2f64, fsub_f64, 2);
-DBG_VEC2(fmul_v2f64, v2f64, fmul_f64, 2);
-DBG_VEC2(fdiv_sig_v2f64, v2f64, fdiv_sig_f64, 2);
-DBG_VEC2(fdiv_exp_v2f64, v2f64, fdiv_exp_f64, 2);
-DBG_VEC1(fsqrt_v2f64, v2f64, fsqrt_f64, 2);
-
-DBG_VEC2(fadd_v4f64, v4f64, fadd_f64, 4);
-DBG_VEC2(fsub_v4f64, v4f64, fsub_f64, 4);
-DBG_VEC2(fmul_v4f64, v4f64, fmul_f64, 4);
-DBG_VEC2(fdiv_sig_v4f64, v4f64, fdiv_sig_f64, 4);
-DBG_VEC2(fdiv_exp_v4f64, v4f64, fdiv_exp_f64, 4);
-DBG_VEC1(fsqrt_v4f64, v4f64, fsqrt_f64, 4);
-
-DBG_VEC2(fadd_v8f64, v8f64, fadd_f64, 8);
-DBG_VEC2(fsub_v8f64, v8f64, fsub_f64, 8);
-DBG_VEC2(fmul_v8f64, v8f64, fmul_f64, 8);
-DBG_VEC2(fdiv_sig_v8f64, v8f64, fdiv_sig_f64, 8);
-DBG_VEC2(fdiv_exp_v8f64, v8f64, fdiv_exp_f64, 8);
-DBG_VEC1(fsqrt_v8f64, v8f64, fsqrt_f64, 8);
+DBG_VEC_ALL(32, 2);
+DBG_VEC_ALL(32, 4);
+DBG_VEC_ALL(32, 8);
+DBG_VEC_ALL(32, 16);
+DBG_VEC_ALL(64, 2);
+DBG_VEC_ALL(64, 4);
+DBG_VEC_ALL(64, 8);
 
 #define ARRSIZE(arr) (sizeof(arr) / sizeof(arr[0]))
 
@@ -343,6 +324,7 @@ int main(int argc, char **argv)
 			printf("RESTRICT sqrt %g = %g (expected %g)\n", x, ctfp_restrict_sqrt_f32v1(x), simul_restrict_sqrt_f32(x));
 	}
 
+	if(1)
 	for(i = 0; i < 1000000; i++) {
 		float x = rand_f32(), y = rand_f32();
 

@@ -2,6 +2,9 @@ CPU=ivybridge
 #CPU=skylake
 #CPU=barcelona
 
+#a: gen
+	#./gen
+
 #all: prover
 all: ctfp.bc ctfp-llvm.so ctfp-clean.so
 
