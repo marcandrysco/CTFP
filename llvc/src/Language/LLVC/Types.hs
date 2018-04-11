@@ -246,8 +246,17 @@ pTrue, pFalse :: Pred
 pTrue  = POr []
 pFalse = PAnd []
 
-subst :: Pred -> [(Var, Arg b)] -> Pred
-subst = undefined 
+subst :: (UX.Located a) => [(Var, Arg a)] -> Pred -> Pred
+subst su             = go 
+  where 
+    m                = M.fromList [ (x, UX.sourceSpan <$> a) | (x, a) <- su ] 
+    goa a@(EVar x _) = M.lookupDefault a x m 
+    goa a            = a 
+    go (PAtom o as)  = PAtom o (goa <$> as)
+    go (PNot p)      = PNot (go p) 
+    go (PAnd ps)     = PAnd (go <$> ps)
+    go (POr  ps)     = POr  (go <$> ps)
+
 
 -------------------------------------------------------------------------------
 -- | 'Bare' aliases 

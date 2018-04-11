@@ -27,7 +27,9 @@ vcFun :: (Located a) => Env -> FnDef a -> VC
 vcFun env fd@(FnDef { fnBody = Just fb })
   =  mconcatMap declare      (fnArgs fd) 
   <> mconcatMap (vcAsgn env) (fnAsgns fb)
-  <> check      (subst (fnPost fd) [(retVar, snd (fnRet fb))]  ) 
+  <> check      (subst su    (fnPost fd)) 
+  where 
+    su = [(retVar, snd (fnRet fb))]
 vcFun _ _ 
   =  mempty 
 
@@ -43,8 +45,8 @@ vcAsgn env ((x, _), ECall fn tys tx l)
 contractAt :: (Located a) => Env -> Fn -> Var -> [TypedArg a] -> a -> (Pred, Pred)
 contractAt env fn rv tys l = (pre, post) 
   where 
-    pre                    = subst (ctPre  ct) su 
-    post                   = subst (ctPost ct) su 
+    pre                    = subst su (ctPre  ct)
+    post                   = subst su (ctPost ct)
     su                     = zip formals actuals 
     actuals                = EVar rv l : (snd <$> tys) 
     formals                = retVar    : ctParams ct
