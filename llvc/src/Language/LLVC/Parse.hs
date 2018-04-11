@@ -29,8 +29,9 @@ parseWith p f s = case runParser (whole p) f s of
                     Left err -> panic (show err) (posSpan . NE.head . errorPos $ err)
                     Right e  -> e
 
-type BareTypedExpr = TypedExpr SourceSpan 
+type BareTypedArg  = TypedArg  SourceSpan 
 type BareProgram   = Program   SourceSpan 
+type BareArg       = Arg       SourceSpan 
 type BareDef       = FnDef     SourceSpan 
 type BareExpr      = Expr      SourceSpan 
 type BareBody      = FnBody    SourceSpan 
@@ -102,12 +103,16 @@ retP = do
   e       <- exprP 
   return (t, e) 
 
+argP :: Parser BareArg 
+argP 
+  =  uncurry EVar <$> identifier "%" 
+ <|> uncurry ELit <$> integer 
+
+
 exprP :: Parser BareExpr 
 exprP 
-  =  eVarP 
- <|> eCallP 
+  =  eCallP 
  <|> fcmpP 
- <|> eLitP 
  <|> selectP 
  <|> bitcastP 
  <|> binExprP 
@@ -116,8 +121,8 @@ exprP
 binExprP :: Parser BareExpr 
 binExprP = do 
   (o, sp) <- binOpP 
-  te1     <- typedExprP <* comma 
-  e2      <- exprP 
+  te1     <- typedArgP <* comma 
+  e2      <- argP 
   return   $ mkBinOp o te1 e2 sp 
 
 binOpP :: Parser (BinOp, SourceSpan) 
@@ -129,7 +134,7 @@ binOpP =  (BvAnd, ) <$> rWord "and"
 bitcastP :: Parser BareExpr 
 bitcastP = do 
   sp    <- rWord "bitcast"
-  te    <- typedExprP 
+  te    <- typedArgP 
   _     <- rWord "to"
   t     <- typeP 
   return $ mkBitcast te t sp 
@@ -137,31 +142,25 @@ bitcastP = do
 selectP :: Parser BareExpr 
 selectP = do 
   sp    <- rWord "select"
-  te1   <- typedExprP <* comma 
-  te2   <- typedExprP <* comma 
-  te3   <- typedExprP 
+  te1   <- typedArgP <* comma 
+  te2   <- typedArgP <* comma 
+  te3   <- typedArgP 
   return $ mkSelect te1 te2 te3 sp 
 
-typedExprP :: Parser BareTypedExpr 
-typedExprP = (,) <$> typeP <*> exprP
+typedArgP :: Parser BareTypedArg  
+typedArgP = (,) <$> typeP <*> argP
 
 fcmpP :: Parser BareExpr 
 fcmpP = do 
   sp    <- rWord "fcmp" 
   r     <- relP 
   t     <- typeP 
-  e1    <- exprP <* comma 
-  e2    <- exprP 
+  e1    <- argP <* comma 
+  e2    <- argP 
   return $ mkFcmp r t e1 e2 sp
 
 relP :: Parser Rel 
 relP = rWord "olt" >> return Olt
-
-eVarP :: Parser BareExpr
-eVarP =  uncurry EVar <$> identifier "%" 
-
-eLitP :: Parser BareExpr 
-eLitP = uncurry ELit <$> integer 
 
 eCallP :: Parser BareExpr 
 eCallP = do 

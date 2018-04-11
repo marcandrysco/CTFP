@@ -62,20 +62,26 @@ instance UX.PPrint Fn where
 -------------------------------------------------------------------------------
 -- | 'Expr' correspond to the RHS of LLVM assignments 
 -------------------------------------------------------------------------------
-data Expr a 
-  = ELit  Integer               a
-  | EVar  Var                   a -- ^ Bare variable e.g. '%a'
-  | ECall Fn [TypedExpr a] Type a -- ^ Function name, args, result type 
+data Arg a 
+  = ELit Integer a 
+  | EVar Var     a 
   deriving (Eq, Ord, Show, Functor)
 
+data Expr a 
+  = ECall Fn [TypedArg a] Type a -- ^ Function name, args, result type 
+  deriving (Eq, Ord, Show, Functor)
+
+type TypedArg  a = (Type, Arg  a)
 type TypedExpr a = (Type, Expr a)
 
+instance UX.PPrint (Arg a) where 
+  pprint (ELit n _) = show n 
+  pprint (EVar x _) = x 
+
 instance UX.PPrint (Expr a) where 
-  pprint (ELit n _)         = show n 
-  pprint (EVar x _)         = x 
   pprint (ECall fn tes t _) = ppCall fn tes t 
 
-ppCall :: Fn -> [TypedExpr a] -> Type -> UX.Text 
+ppCall :: Fn -> [TypedArg a] -> Type -> UX.Text 
 ppCall (FnFunc f) tes t   
   = printf "call %s %s (%s)" (UX.pprint t) f (pprints tes) 
 ppCall (FnBin o) [te1, (_, e2)] _ 
@@ -88,24 +94,13 @@ ppCall FnBitcast [te] t
   = printf "bitcast %s to %s" (UX.pprint te) (UX.pprint t) 
 ppCall f tes _ 
   = UX.panic ("ppCall: TBD" ++ UX.pprint f ++ pprints tes) UX.junkSpan
-instance UX.PPrint (TypedExpr a) where 
+
+instance UX.PPrint a => UX.PPrint (Type, a) where 
   pprint (t, e) = printf "%s %s" (UX.pprint t) (UX.pprint e)
 
 -- instance UX.PPrint a => UX.PPrint [a] where 
 pprints :: (UX.PPrint a) => [a] -> UX.Text
 pprints = L.intercalate ", " . fmap UX.pprint 
-
--- | 'Pred' are boolean combinations of 'Expr' used to define contracts 
-data Pred a 
-  = PEq    !(Expr a) !(Expr a)  
-  | PNot   !(Pred a) 
-  | PAnd   [Pred a] 
-  | POr    [Pred a] 
-  deriving (Eq, Ord, Show, Functor)
-
-pTrue, pFalse :: Pred a 
-pTrue  = POr []
-pFalse = PAnd []
 
 -------------------------------------------------------------------------------
 -- | A 'Program' is a list of Function Definitions  
@@ -157,27 +152,29 @@ instance UX.PPrint (Program a) where
 class Labeled thing where 
   getLabel :: thing a -> a 
 
-instance Labeled Expr where 
+instance Labeled Arg where 
   getLabel (ELit _ z)      = z 
   getLabel (EVar _ z)      = z 
+
+instance Labeled Expr where 
   getLabel (ECall _ _ _ z) = z 
   
 -------------------------------------------------------------------------------
 -- | Constructors 
 -------------------------------------------------------------------------------
 
-mkFcmp :: Rel -> Type -> Expr a -> Expr a -> a -> Expr a 
+mkFcmp :: Rel -> Type -> Arg a -> Arg a -> a -> Expr a 
 mkFcmp r t e1 e2 = ECall (FnFcmp r) [(t, e1), (t, e2)] (I 1)
 
-mkSelect :: (Show a) => TypedExpr a -> TypedExpr a -> TypedExpr a -> a -> Expr a 
+mkSelect :: (Show a) => TypedArg a -> TypedArg a -> TypedArg a -> a -> Expr a 
 mkSelect x@(t1, _) y@(t2, _) z@(t3, _) l 
   | t1 == I 1 && t2 == t3 = ECall FnSelect [x, y, z] t2 l 
   | otherwise             = error $ "Malformed Select: " ++ show [x, y, z]
 
-mkBitcast :: TypedExpr a -> Type -> a -> Expr a 
+mkBitcast :: TypedArg a -> Type -> a -> Expr a 
 mkBitcast te = ECall FnBitcast [te]
 
-mkBinOp :: BinOp -> TypedExpr a -> Expr a -> a -> Expr a 
+mkBinOp :: BinOp -> TypedArg a -> Arg a -> a -> Expr a 
 mkBinOp o (t, e1) e2 = ECall (FnBin o) [(t, e1), (t, e2)] t 
 
 mkCall :: Var -> [(Var, Type)] -> Type -> a -> Expr a 
@@ -202,8 +199,8 @@ defn f xts b t l = FnDef
   , fnArgs = xts 
   , fnOut  = t 
   , fnBody = Just b 
-  , fnPre  = pTrue
-  , fnPost = pTrue
+  , fnPre  = pTrue 
+  , fnPost = pTrue 
   , fnLab  = l 
   }
 
@@ -211,4 +208,19 @@ args :: [Var]
 args = ["%arg" ++ show i | i <- [0..] :: [Integer]] 
 
 
+-------------------------------------------------------------------------------
+-- | Predicates 
+-------------------------------------------------------------------------------
+
+-- | 'Pred' are boolean combinations of 'Expr' used to define contracts 
+data Pred a 
+  = PAtom  BinOp [Expr a]  
+  | PNot   (Pred a)
+  | PAnd   [Pred a]
+  | POr    [Pred a]
+  deriving (Eq, Ord, Show, Functor)
+
+pTrue, pFalse :: Pred a 
+pTrue  = POr []
+pFalse = PAnd []
 
