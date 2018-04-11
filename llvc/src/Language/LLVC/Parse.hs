@@ -22,7 +22,7 @@ parseFile f = parse f <$> readFile f
 --------------------------------------------------------------------------------
 parse :: FilePath -> Text -> BareProgram 
 ----------------------------------------------------------------------------------
-parse = parseWith prog
+parse = parseWith programP
 
 parseWith  :: Parser a -> FilePath -> Text -> a
 parseWith p f s = case runParser (whole p) f s of
@@ -30,11 +30,11 @@ parseWith p f s = case runParser (whole p) f s of
                     Right e  -> e
 
 --------------------------------------------------------------------------------
--- | Top-Level Expression Parser
+-- | Top-Level Program Parser
 --------------------------------------------------------------------------------
 
-prog :: Parser BareProgram 
-prog = do 
+programP :: Parser BareProgram 
+programP = do 
   ds    <- many fnDefnP 
   return $ M.fromList [(fnName d, d) | Just d <- ds] 
 
@@ -165,6 +165,44 @@ typeP =  (rWord "float" >> return Float)
      <|> (rWord "i32"   >> return (I 32)) 
      <|> (rWord "i1"    >> return (I  1)) 
      <?> "type"
+
+--------------------------------------------------------------------------------
+-- | Contract Parser 
+--------------------------------------------------------------------------------
+predP :: Parser Pred 
+predP = parens pred0P 
+
+pred0P :: Parser Pred 
+pred0P =  PAnd  <$> (rWord "and" *> many predP)
+      <|> POr   <$> (rWord "or"  *> many predP) 
+      <|> PNot  <$> (rWord "not" *>      predP) 
+      <|> pAtomP 
+
+pAtomP :: Parser Pred 
+pAtomP 
+  =  atom1 "fp.eq"    FpEq 
+ <|> atom1 "fp.lt"    FpLt 
+ <|> atom1 "fp.abs"   FpAbs
+ <|> atom1 "to_fp_32" ToFp32 
+ <|> atom3 "ite"      Ite 
+
+atom1 :: Text -> Op -> Parser Pred 
+atom1 kw o = (\x1 -> PAtom o [x1]) 
+          <$> (rWord kw *> pArgP)
+
+atom2 :: Text -> Op -> Parser Pred 
+atom2 kw o = (\x1 x2 -> PAtom o [x1, x2]) 
+          <$> (rWord kw *> pArgP) 
+          <*> pArgP 
+
+atom3 :: Text -> Op -> Parser Pred 
+atom3 kw o = (\x1 x2 x3 -> PAtom o [x1, x2, x3]) 
+          <$> (rWord kw *> pArgP) 
+          <*> pArgP 
+          <*> pArgP
+
+pArgP :: Parser Pred 
+pArgP = undefined 
 
 --------------------------------------------------------------------------------
 -- | Tokenisers and Whitespace

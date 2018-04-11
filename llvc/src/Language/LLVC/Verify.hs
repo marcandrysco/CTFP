@@ -63,17 +63,13 @@ contractAt env fn rv tys l = (pre, post)
 -------------------------------------------------------------------------------
 -- | Contracts for all the `Fn` stuff.
 -------------------------------------------------------------------------------
-data Contract = Contract 
+data Contract = Ct
   { ctParams :: ![Var] 
-  , ctResult :: !Var 
   , ctPre    :: !Pred
   , ctPost   :: !Pred
   } deriving (Eq, Show)
 
 type Env = M.HashMap Fn Contract 
-
-mkEnv :: Program a -> Env 
-mkEnv = undefined 
 
 contract :: Env -> Fn -> SourceSpan -> Contract
 contract env fn l = Mb.fromMaybe err (M.lookup fn env)
@@ -81,5 +77,33 @@ contract env fn l = Mb.fromMaybe err (M.lookup fn env)
     err           = panic msg l 
     msg           = "Cannot find contract for: " ++ show fn
 
-primContracts :: M.HashMap Fn Contract
-primContracts = undefined
+mkEnv :: Program a -> Env 
+mkEnv p   = M.fromList (prims ++ defs) 
+  where 
+    prims = primitiveContracts 
+    defs  = [ (FnFunc v, defContract d)  | (v, d) <- M.toList p ]  
+
+defContract :: FnDef a -> Contract 
+defContract = undefined
+
+-- | We could parse these in too, in due course.
+primitiveContracts :: [(Fn, Contract)]
+primitiveContracts =  
+  [ (FnFcmp Olt , undefined
+    )
+  , (FnBin BvXor, undefined 
+    )
+  , (FnBin BvAnd, undefined 
+    )
+  , (FnBin FAdd , undefined 
+    )
+  , (FnSelect   , undefined
+    )
+  , (FnBitcast  , undefined)
+
+  , (FnFunc "@llvm.fabs.f32", onlyPost 1 undefined)
+
+  ] 
+
+onlyPost :: Int -> Pred -> Contract 
+onlyPost n = Ct (paramVar <$> [0..(n-1)]) pTrue 

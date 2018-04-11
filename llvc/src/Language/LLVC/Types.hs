@@ -180,7 +180,7 @@ mkCall f xts t sp = ECall (FnFunc f) tes t sp
 decl :: Var -> [Type] -> Type -> a -> FnDef a 
 decl f ts t l = FnDef 
   { fnName = f 
-  , fnArgs = zip primArgs ts 
+  , fnArgs = zip paramVars ts 
   , fnOut  = t 
   , fnBody = Nothing 
   , fnPre  = pTrue
@@ -199,12 +199,14 @@ defn f xts b t l = FnDef
   , fnLab  = l 
   }
 
-primArgs :: [Var]
-primArgs = ["%arg" ++ show i | i <- [0..] :: [Integer]] 
+paramVars :: [Var]
+paramVars = paramVar <$> [0..] 
+
+paramVar :: Int -> Var 
+paramVar i = "%arg" ++ show i 
 
 retVar :: Var 
 retVar = "%ret"
-
 
 -------------------------------------------------------------------------------
 -- | Predicates 
@@ -231,12 +233,13 @@ instance UX.PPrint Op where
   pprint FpEq   = "fp.eq" 
   pprint FpAbs  = "fp.abs" 
   pprint FpLt   = "fp.lt" 
-  pprint Ite    = "Ite" 
   pprint ToFp32 = "to_fp_32" 
+  pprint Ite    = "ite" 
 
 -- | 'Pred' are boolean combinations of 'Expr' used to define contracts 
 data Pred 
-  = PAtom  Op [BareArg]  
+  = PArg   !BareArg
+  | PAtom  !Op ![Pred] 
   | PNot   !Pred 
   | PAnd   [Pred]
   | POr    [Pred]
@@ -252,7 +255,8 @@ subst su             = go
     m                = M.fromList [ (x, UX.sourceSpan <$> a) | (x, a) <- su ] 
     goa a@(EVar x _) = M.lookupDefault a x m 
     goa a            = a 
-    go (PAtom o as)  = PAtom o (goa <$> as)
+    go (PArg a)      = PArg (goa a)
+    go (PAtom o ps)  = PAtom o (go <$> ps)
     go (PNot p)      = PNot (go p) 
     go (PAnd ps)     = PAnd (go <$> ps)
     go (POr  ps)     = POr  (go <$> ps)
