@@ -6,6 +6,7 @@ module Language.LLVC.Verify where
 -- import           Text.Printf (printf) 
 -- import qualified Language.LLVC.UX    as UX
 import           Data.Monoid
+import           Language.LLVC.Utils 
 import           Language.LLVC.Smt   
 import           Language.LLVC.Types 
 
@@ -18,16 +19,28 @@ vcFun :: Program a -> FnDef a -> VC
 vcFun env fd@(FnDef { fnBody = Just fb })
   =  mconcatMap declare      (fnArgs fd) 
   <> mconcatMap (vcAsgn env) (fnAsgns fb)
-  <> check      (subst (fnPost fd) retVar (snd (fnRet fb))) 
+  <> check      (subst (fnPost fd) [(retVar, snd (fnRet fb))]  ) 
 vcFun _ _ 
   =  mempty 
 
-mconcatMap :: (Monoid b) => (a -> b) -> [a] -> b 
-mconcatMap f = mconcat . fmap f
+vcAsgn :: Program a -> ((Var, a), Expr a) -> VC 
+vcAsgn env ((x, _), ECall fn tys tx l) 
+                = declare (x, tx) 
+               <> check  pre 
+               <> assert post 
+  where 
+    (pre, post) = contractAt env fn x tys l 
+    -- tx          = resultType env fn   tys t  
 
--------------------------------------------------------------------------------
-contractAt :: Program a -> Fn -> Var -> [TypedArg a] -> (Pred a, Pred a)
-contractAt = undefined
+contractAt :: Program a -> Fn -> Var -> [TypedArg a] -> a -> (Pred a, Pred a)
+contractAt env fn rv tys l = (pre, post) 
+  where 
+    pre                    = subst (ctPre  ct) su 
+    post                   = subst (ctPost ct) su 
+    su                     = zip formals actuals 
+    actuals                = EVar rv l : (snd <$> tys) 
+    formals                = retVar    : ctParams ct
+    ct                     = contract env fn 
 
 -- resultType :: Program a -> Fn -> [TypedArg a] -> Type -> Type 
 -- resultType _ _ _ t           = t 
@@ -39,11 +52,13 @@ contractAt = undefined
 
 -------------------------------------------------------------------------------
 
-vcAsgn :: Program a -> ((Var, a), Expr a) -> VC 
-vcAsgn env ((x, _), ECall fn tys tx _) 
-                = declare (x, tx) 
-               <> check  pre 
-               <> assert post 
-  where 
-    (pre, post) = contractAt env fn x tys 
-    -- tx          = resultType env fn   tys t  
+
+contract :: Program a -> Fn -> Contract a 
+contract env fn = undefined 
+
+data Contract a = Contract 
+  { ctParams :: ![Var] 
+  , ctResult :: !Var 
+  , ctPre    :: !(Pred a)
+  , ctPost   :: !(Pred a)
+  } deriving (Eq, Ord, Show)

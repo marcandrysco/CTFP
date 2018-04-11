@@ -1,12 +1,14 @@
 {-# LANGUAGE DeriveFunctor        #-}
 {-# LANGUAGE FlexibleInstances    #-}
 {-# LANGUAGE FlexibleContexts     #-}
+{-# LANGUAGE DeriveGeneric        #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
 module Language.LLVC.Types where 
 
 -- import qualified Data.Maybe          as Mb
-
+import Data.Hashable
+import GHC.Generics
 import qualified Data.List           as L 
 import qualified Data.HashMap.Strict as M 
 import qualified Language.LLVC.UX    as UX 
@@ -28,26 +30,17 @@ type Var   = UX.Text
 -------------------------------------------------------------------------------
 data Fn 
   = FnFcmp    Rel               -- ^ 'fcmp' olt 
-  | FnBin     BinOp             -- ^ binary operation 
+  | FnBin     Op                -- ^ binary operation 
   | FnSelect                    -- ^ ternary 'select' 
   | FnBitcast                   -- ^ 'bitcast' 
   | FnFunc    Var               -- ^ something that is 'call'ed 
-  deriving (Eq, Ord, Show)
-
-data BinOp
-  = BvXor 
-  | BvAnd 
-  | FAdd 
-  deriving (Eq, Ord, Show)
+  deriving (Eq, Ord, Show, Generic)
 
 data Rel 
   = Olt 
-  deriving (Eq, Ord, Show)
+  deriving (Eq, Ord, Show, Generic) 
 
-instance UX.PPrint BinOp where 
-  pprint BvXor = "xor"
-  pprint BvAnd = "and"
-  pprint FAdd  = "fadd" 
+instance Hashable Fn 
 
 instance UX.PPrint Rel where 
   pprint Olt = "olt"
@@ -174,8 +167,8 @@ mkSelect x@(t1, _) y@(t2, _) z@(t3, _) l
 mkBitcast :: TypedArg a -> Type -> a -> Expr a 
 mkBitcast te = ECall FnBitcast [te]
 
-mkBinOp :: BinOp -> TypedArg a -> Arg a -> a -> Expr a 
-mkBinOp o (t, e1) e2 = ECall (FnBin o) [(t, e1), (t, e2)] t 
+mkOp :: Op -> TypedArg a -> Arg a -> a -> Expr a 
+mkOp o (t, e1) e2 = ECall (FnBin o) [(t, e1), (t, e2)] t 
 
 mkCall :: Var -> [(Var, Type)] -> Type -> a -> Expr a 
 mkCall f xts t sp = ECall (FnFunc f) tes t sp
@@ -185,7 +178,7 @@ mkCall f xts t sp = ECall (FnFunc f) tes t sp
 decl :: Var -> [Type] -> Type -> a -> FnDef a 
 decl f ts t l = FnDef 
   { fnName = f 
-  , fnArgs = zip args ts 
+  , fnArgs = zip primArgs ts 
   , fnOut  = t 
   , fnBody = Nothing 
   , fnPre  = pTrue
@@ -204,8 +197,8 @@ defn f xts b t l = FnDef
   , fnLab  = l 
   }
 
-args :: [Var]
-args = ["%arg" ++ show i | i <- [0..] :: [Integer]] 
+primArgs :: [Var]
+primArgs = ["%arg" ++ show i | i <- [0..] :: [Integer]] 
 
 retVar :: Var 
 retVar = "%ret"
@@ -215,9 +208,32 @@ retVar = "%ret"
 -- | Predicates 
 -------------------------------------------------------------------------------
 
+-- | 'Op' are the builtin operations we will use with SMT (and which can)
+--   appear in the contracts.
+data Op 
+  = FpEq 
+  | FpAbs 
+  | FpLt 
+  | Ite 
+  | ToFp32    -- ((_ to_fp 8 24) RNE r3)  
+  | BvXor
+  | BvAnd 
+  | FAdd 
+  deriving (Eq, Ord, Show)
+
+instance UX.PPrint Op where 
+  pprint BvXor  = "xor"
+  pprint BvAnd  = "and"
+  pprint FAdd   = "fadd" 
+  pprint FpEq   = "fp.eq" 
+  pprint FpAbs  = "fp.abs" 
+  pprint FpLt   = "fp.lt" 
+  pprint Ite    = "Ite" 
+  pprint ToFp32 = "to_fp_32" 
+
 -- | 'Pred' are boolean combinations of 'Expr' used to define contracts 
 data Pred a 
-  = PAtom  BinOp [Arg a]  
+  = PAtom  Op [Arg a]  
   | PNot   (Pred a)
   | PAnd   [Pred a]
   | POr    [Pred a]
@@ -227,6 +243,6 @@ pTrue, pFalse :: Pred a
 pTrue  = POr []
 pFalse = PAnd []
 
-subst :: Pred a -> Var -> Arg a -> Pred a 
+subst :: Pred a -> [(Var, Arg b)] -> Pred a 
 subst = undefined 
 

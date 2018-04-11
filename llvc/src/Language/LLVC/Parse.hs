@@ -108,7 +108,6 @@ argP
   =  uncurry EVar <$> identifier "%" 
  <|> uncurry ELit <$> integer 
 
-
 exprP :: Parser BareExpr 
 exprP 
   =  eCallP 
@@ -118,15 +117,15 @@ exprP
  <|> binExprP 
  <?> "expression"
 
-binExprP :: Parser BareExpr 
+binExprP :: Parser BareExpr
 binExprP = do 
-  (o, sp) <- binOpP 
+  (o, sp) <- llOpP 
   te1     <- typedArgP <* comma 
   e2      <- argP 
-  return   $ mkBinOp o te1 e2 sp 
+  return   $ mkOp o te1 e2 sp 
 
-binOpP :: Parser (BinOp, SourceSpan) 
-binOpP =  (BvAnd, ) <$> rWord "and" 
+llOpP :: Parser (Op, SourceSpan) 
+llOpP =   (BvAnd, ) <$> rWord "and" 
       <|> (BvXor, ) <$> rWord "xor" 
       <|> (FAdd , ) <$> rWord "fadd" 
       <?>  "binary-op"
