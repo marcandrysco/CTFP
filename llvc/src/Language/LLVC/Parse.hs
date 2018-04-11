@@ -96,11 +96,11 @@ assignP = (,) <$> identifier "%" <* symbol "=" <*> exprP
 argTypesP :: Parser [(Var, Type)] 
 argTypesP = parens (sepBy argTypeP comma) 
 
-retP :: Parser (Type, BareExpr)
+retP :: Parser (Type, BareArg)
 retP = do 
   _       <- rWord "ret" 
   t       <- typeP 
-  e       <- exprP 
+  e       <- argP 
   return (t, e) 
 
 argP :: Parser BareArg 

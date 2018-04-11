@@ -109,8 +109,8 @@ pprints = L.intercalate ", " . fmap UX.pprint
 type Program a = M.HashMap Var (FnDef a)  -- ^ A list of function declarations
 
 data FnBody a = FnBody 
-  { fnAsgns :: [((Var, a), Expr a)]        -- ^ Assignments for each variable
-  , fnRet   :: !(TypedExpr a)              -- ^ Return value
+  { fnAsgns :: [((Var, a), Expr a)]  -- ^ Assignments for each variable
+  , fnRet   :: !(TypedArg a)         -- ^ Return value
   }
   deriving (Eq, Ord, Show, Functor)
 
@@ -207,6 +207,9 @@ defn f xts b t l = FnDef
 args :: [Var]
 args = ["%arg" ++ show i | i <- [0..] :: [Integer]] 
 
+retVar :: Var 
+retVar = "%ret"
+
 
 -------------------------------------------------------------------------------
 -- | Predicates 
@@ -214,7 +217,7 @@ args = ["%arg" ++ show i | i <- [0..] :: [Integer]]
 
 -- | 'Pred' are boolean combinations of 'Expr' used to define contracts 
 data Pred a 
-  = PAtom  BinOp [Expr a]  
+  = PAtom  BinOp [Arg a]  
   | PNot   (Pred a)
   | PAnd   [Pred a]
   | POr    [Pred a]
@@ -223,4 +226,7 @@ data Pred a
 pTrue, pFalse :: Pred a 
 pTrue  = POr []
 pFalse = PAnd []
+
+subst :: Pred a -> Var -> Arg a -> Pred a 
+subst = undefined 
 
