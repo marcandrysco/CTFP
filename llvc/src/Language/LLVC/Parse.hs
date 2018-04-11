@@ -1,4 +1,6 @@
-module Language.LLVC.Parse ( parse, parseFile ) where
+{-# LANGUAGE TupleSections   #-}
+
+module Language.LLVC.Parse where -- ( parse, parseFile ) where
 
 import           Control.Monad (void)
 import qualified Data.HashMap.Strict        as M 
@@ -6,7 +8,7 @@ import           Text.Megaparsec hiding (parse)
 import           Data.List.NonEmpty         as NE
 import qualified Text.Megaparsec.Char.Lexer as L
 import           Text.Megaparsec.Char
-import           Text.Megaparsec.Expr
+-- import           Text.Megaparsec.Expr
 import           Language.LLVC.Types
 import           Language.LLVC.UX 
 
@@ -20,160 +22,195 @@ parseFile f = parse f <$> readFile f
 --------------------------------------------------------------------------------
 parse :: FilePath -> Text -> BareProgram 
 ----------------------------------------------------------------------------------
-parse = parseWith prog
+parse = parseWith programP
 
 parseWith  :: Parser a -> FilePath -> Text -> a
 parseWith p f s = case runParser (whole p) f s of
                     Left err -> panic (show err) (posSpan . NE.head . errorPos $ err)
                     Right e  -> e
 
--- https://mrkkrp.github.io/megaparsec/tutorials/parsing-simple-imperative-language.html
-instance Located (ParseError a b) where
-  sourceSpan = posSpan . NE.head . errorPos
-
-instance (Show a, Show b) => PPrint (ParseError a b) where
-  pprint = show
-
-type BareProgram = Program SourceSpan 
-type BareDef     = FnDef   SourceSpan 
-
 --------------------------------------------------------------------------------
--- | Top-Level Expression Parser
+-- | Top-Level Program Parser
 --------------------------------------------------------------------------------
 
-prog :: Parser BareProgram 
-prog = do 
+programP :: Parser BareProgram 
+programP = do 
   ds    <- many fnDefnP 
-  return $ M.fromList [(fnName d, d) | d <- ds] 
+  return $ M.fromList [(fnName d, d) | Just d <- ds] 
 
-fnDefnP :: Parser BareDef 
+fnDefnP :: Parser (Maybe BareDef) 
 fnDefnP 
-  =  (rWord "declare" >> declareP) 
- <|> (rWord "define"  >> defineP)
+  =  (rWord "declare"   >> (Just <$> declareP)) 
+ <|> (rWord "define"    >> (Just <$> defineP))
+ <|> (rWord "attributes" >> attribDef >> return Nothing) 
  <?> "declaration" 
+
+attribDef :: Parser ()
+attribDef = attrP >> symbol "=" >> braces (many attributeP) >> return ()
+  where 
+    attributeP 
+        =  rWord "nounwind"
+       <|> rWord "readnone"
+       <|> rWord "alwaysinline"
+       <?> "attribute-keyword"
+
+attrP :: Parser () 
+attrP = symbol "#" >> integer >> return ()
+
 
 declareP :: Parser BareDef 
 declareP = do 
   outTy      <- typeP 
   (name, sp) <- identifier "@" 
   inTys      <- parens (sepBy typeP comma) <* many attrP
-  return (decl name inTys outTy sp)  
+  return      $ decl name inTys outTy sp
 
 defineP :: Parser BareDef 
-defineP = undefined 
+defineP = do 
+  outTy      <- rWord "weak" *> typeP
+  (name, sp) <- identifier "@" 
+  dArgs      <- argTypesP <* many attrP
+  body       <- braces bodyP 
+  return      $ defn name dArgs body outTy sp
+
+argTypeP :: Parser (Var, Type)
+argTypeP = do 
+  t <- typeP 
+  x <- varP "%" 
+  return (x, t)
+
+bodyP :: Parser BareBody
+bodyP = FnBody <$> many assignP <*> retP 
+
+assignP :: Parser (BareVar, BareExpr) 
+assignP = (,) <$> identifier "%" <* symbol "=" <*> exprP
+
+argTypesP :: Parser [(Var, Type)] 
+argTypesP = parens (sepBy argTypeP comma) 
+
+retP :: Parser (Type, BareArg)
+retP = do 
+  _       <- rWord "ret" 
+  t       <- typeP 
+  e       <- argP 
+  return (t, e) 
+
+argP :: Parser BareArg 
+argP 
+  =  uncurry EVar <$> identifier "%" 
+ <|> uncurry ELit <$> integer 
+
+exprP :: Parser BareExpr 
+exprP 
+  =  eCallP 
+ <|> fcmpP 
+ <|> selectP 
+ <|> bitcastP 
+ <|> binExprP 
+ <?> "expression"
+
+binExprP :: Parser BareExpr
+binExprP = do 
+  (o, sp) <- llOpP 
+  te1     <- typedArgP <* comma 
+  e2      <- argP 
+  return   $ mkOp o te1 e2 sp 
+
+llOpP :: Parser (Op, SourceSpan) 
+llOpP =   (BvAnd, ) <$> rWord "and" 
+      <|> (BvXor, ) <$> rWord "xor" 
+      <|> (FpAdd, ) <$> rWord "fadd" 
+      <?>  "binary-op"
+
+bitcastP :: Parser BareExpr 
+bitcastP = do 
+  sp    <- rWord "bitcast"
+  te    <- typedArgP 
+  _     <- rWord "to"
+  t     <- typeP 
+  return $ mkBitcast te t sp 
+
+selectP :: Parser BareExpr 
+selectP = do 
+  sp    <- rWord "select"
+  te1   <- typedArgP <* comma 
+  te2   <- typedArgP <* comma 
+  te3   <- typedArgP 
+  return $ mkSelect te1 te2 te3 sp 
+
+typedArgP :: Parser BareTypedArg  
+typedArgP = (,) <$> typeP <*> argP
+
+fcmpP :: Parser BareExpr 
+fcmpP = do 
+  sp    <- rWord "fcmp" 
+  r     <- relP 
+  t     <- typeP 
+  e1    <- argP <* comma 
+  e2    <- argP 
+  return $ mkFcmp r t e1 e2 sp
+
+relP :: Parser Rel 
+relP = rWord "olt" >> return Olt
+
+eCallP :: Parser BareExpr 
+eCallP = do 
+  t       <- rWord "call" *> typeP 
+  (f, sp) <- identifier "@"
+  xts     <- argTypesP 
+  return   $ mkCall f xts t sp 
 
 typeP :: Parser Type 
-typeP 
-  =  (rWord "float" >> return Float)  
- <|> (rWord "i32"   >> return (I 32)) 
- <|> (rWord "i1"    >> return (I  1)) 
- <?> "type"
-
-attrP :: Parser () 
-attrP = symbol "#" >> integer >> return ()
-
-
-{- 
-expr :: Parser Bare
-expr = makeExprParser expr0 binops
-
-expr0 :: Parser Bare
-expr0 =  try primExpr
-     <|> try letExpr
-     <|> try ifExpr
-     <|> try getExpr
-     <|> try appExpr
-     <|> try tupExpr
-     <|> try constExpr
-     <|> idExpr
-
-exprs :: Parser [Bare]
-exprs = parens (sepBy1 expr comma)
+typeP =  (rWord "float" >> return Float)  
+     <|> (rWord "i32"   >> return (I 32)) 
+     <|> (rWord "i1"    >> return (I  1)) 
+     <?> "type"
 
 --------------------------------------------------------------------------------
--- | Individual Sub-Expression Parsers
+-- | Contract Parser 
 --------------------------------------------------------------------------------
-decl :: Parser BareDecl
-decl = withSpan' $ do
-  rWord "def"
-  f  <- binder
-  xs <- parens (sepBy binder comma) <* colon
-  e  <- expr
-  return (Decl f xs e)
+predP :: Parser Pred 
+predP = parens pred0P 
 
-getExpr :: Parser Bare
-getExpr = withSpan' (GetItem <$> funExpr <*> brackets expr)
+pred0P :: Parser Pred 
+pred0P =  PAnd  <$> (rWord "and" *> many predP)
+      <|> POr   <$> (rWord "or"  *> many predP) 
+      <|> PNot  <$> (rWord "not" *>      predP) 
+      <|> pAtomP 
 
-appExpr :: Parser Bare
-appExpr = withSpan' (App <$> (fst <$> identifier) <*> exprs)
+pAtomP :: Parser Pred 
+pAtomP 
+  =  atom1 "fp.abs"   FpAbs
+ <|> atom1 "to_fp_32" ToFp32 
+ <|> atom2 "="        Eq 
+ <|> atom2 "fp.eq"    FpEq 
+ <|> atom2 "fp.lt"    FpLt 
+ <|> atom2 "fp_add"   FpAdd 
+ <|> atom2 "bvor"     BvOr 
+ <|> atom2 "bvxor"    BvXor
+ <|> atom2 "bvand"    BvAnd 
+ <|> atom3 "ite"      Ite 
 
-funExpr :: Parser Bare
-funExpr = try idExpr <|> tupExpr
+atom1 :: Text -> Op -> Parser Pred 
+atom1 kw o = (\x1 -> PAtom o [x1]) 
+          <$> (rWord kw *> pArgP)
 
-tupExpr :: Parser Bare
-tupExpr = withSpan' (mkTuple <$> exprs)
+atom2 :: Text -> Op -> Parser Pred 
+atom2 kw o = (\x1 x2 -> PAtom o [x1, x2]) 
+          <$> (rWord kw *> pArgP) 
+          <*> pArgP 
 
-mkTuple :: [Bare] -> SourceSpan -> Bare
-mkTuple [e] _ = e
-mkTuple es  l = Tuple es l
+atom3 :: Text -> Op -> Parser Pred 
+atom3 kw o = (\x1 x2 x3 -> PAtom o [x1, x2, x3]) 
+          <$> (rWord kw *> pArgP) 
+          <*> pArgP 
+          <*> pArgP
 
-binops :: [[Operator Parser Bare]]
-binops =
-  [ [ InfixL (symbol "*"  *> pure (op Times))
-    ]
-  , [ InfixL (symbol "+"  *> pure (op Plus))
-    , InfixL (symbol "-"  *> pure (op Minus))
-    ]
-  , [ InfixL (symbol "==" *> pure (op Equal))
-    , InfixL (symbol ">"  *> pure (op Greater))
-    , InfixL (symbol "<"  *> pure (op Less))
-    ]
-  ]
-  where
-    op o e1 e2 = Prim2 o e1 e2 (stretch [e1, e2])
+pArgP :: Parser Pred 
+pArgP =  PArg <$> argP 
+     <|> parens pred0P 
 
-idExpr :: Parser Bare
-idExpr = uncurry Id <$> identifier
 
-constExpr :: Parser Bare
-constExpr
-   =  (uncurry Number <$> integer)
-  <|> (Boolean True   <$> rWord "true")
-  <|> (Boolean False  <$> rWord "false")
-
-primExpr :: Parser Bare
-primExpr = withSpan' (Prim1 <$> primOp <*> parens expr)
-
-primOp :: Parser Prim1
-primOp
-  =  try (rWord "add1"    *> pure Add1)
- <|> try (rWord "sub1"    *> pure Sub1)
- <|> try (rWord "isNum"   *> pure IsNum)
- <|> try (rWord "isBool"  *> pure IsBool)
- <|> try (rWord "isTuple" *> pure IsTuple)
- <|>     (rWord "print"  *> pure Print)
-
-letExpr :: Parser Bare
-letExpr = withSpan' $ do
-  rWord "let"
-  bs <- sepBy1 bind comma
-  rWord "in"
-  e  <- expr
-  return (bindsExpr bs e)
-
-bind :: Parser (BareBind, Bare)
-bind = (,) <$> binder <* symbol "=" <*> expr
-
-ifExpr :: Parser Bare
-ifExpr = withSpan' $ do
-  rWord "if"
-  b  <- expr
-  e1 <- between colon elsecolon expr
-  e2 <- expr
-  return (If b e1 e2)
-  where
-   elsecolon = rWord "else" *> colon
--}
 --------------------------------------------------------------------------------
 -- | Tokenisers and Whitespace
 --------------------------------------------------------------------------------
@@ -199,8 +236,6 @@ comma = symbol ","
 colon :: Parser String
 colon = symbol ":"
 
-
-
 -- | 'parens' parses something between parenthesis.
 parens :: Parser a -> Parser a
 parens = betweenS "(" ")"
@@ -211,8 +246,7 @@ brackets = betweenS "[" "]"
 
 -- | 'braces' parses something between {...}
 braces :: Parser a -> Parser a
-braces = betweenS "[" "]"
-
+braces = betweenS "{" "}"
 
 betweenS :: String -> String -> Parser a -> Parser a
 betweenS l r = between (symbol l) (symbol r)
@@ -223,7 +257,10 @@ lexeme p = L.lexeme sc (withSpan p)
 
 -- | 'integer' parses an integer.
 integer :: Parser (Integer, SourceSpan)
-integer = lexeme L.decimal
+-- integer = lexeme L.decimal
+integer = lexeme (   (symbol "0x" *> L.hexadecimal) 
+                  <|> L.signed sc L.decimal
+                 ) 
 
 -- | `rWord`
 rWord   :: String -> Parser SourceSpan
@@ -254,10 +291,6 @@ withSpan p = do
   x  <- p
   p2 <- getPosition
   return (x, SS p1 p2)
-
--- | `binder` parses BareBind, used for let-binds and function parameters.
--- binder :: Parser BareBind
--- binder = uncurry Bind <$> identifier
 
 varP :: Text -> Parser Var
 varP s = fst <$> identifier s 

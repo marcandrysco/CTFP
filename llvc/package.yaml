@@ -24,11 +24,14 @@ dependencies:
 
 library:
   source-dirs: src
+  ghc-options:
+    - -Wall 
   dependencies:
     - cmdargs
     - process
     - directory
     - filepath
+    - hashable 
     - containers
     - unordered-containers
     - megaparsec
@@ -38,11 +41,13 @@ executables:
     main:                Main.hs
     source-dirs:         app
     ghc-options:
+    - -Wall 
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
     - llvc
+    - filepath
 
 tests:
   llvc-test:
