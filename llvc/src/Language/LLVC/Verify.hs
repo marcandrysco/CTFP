@@ -1,14 +1,15 @@
 {-# LANGUAGE TypeSynonymInstances #-}
-{-# LANGUAGE RecordWildCards      #-}
 {-# LANGUAGE FlexibleInstances    #-}
 
 module Language.LLVC.Verify where 
 
+import Prelude hiding (pred)
 -- import           Text.Printf (printf) 
 -- import qualified Language.LLVC.UX    as UX
 import qualified Data.Maybe          as Mb 
 import qualified Data.HashMap.Strict as M 
 import           Data.Monoid
+import qualified Language.LLVC.Parse as Parse 
 import           Language.LLVC.UX 
 import           Language.LLVC.Utils 
 import           Language.LLVC.Smt   
@@ -81,21 +82,33 @@ mkEnv p   = M.fromList (prims ++ defs)
 -- | We could parse these in too, in due course.
 primitiveContracts :: [(Fn, Contract)]
 primitiveContracts =  
-  [ (FnFcmp Olt , undefined
+  [ (FnFcmp Olt 
+    , postCond 2 "(= %ret (fp.lt %arg0 %arg1))" 
     )
-  , (FnBin BvXor, undefined 
+  , ( FnBin BvXor
+    , postCond 2 "(= %ret (bvor %arg0 %arg1))" 
     )
-  , (FnBin BvAnd, undefined 
+  , ( FnBin BvAnd
+    , postCond 2 "(= %ret (bvand %arg0 %arg1))" 
     )
-  , (FnBin FAdd , undefined 
+  , (FnBin FAdd 
+    , postCond 2 "(= %ret (fp_add %arg0 %arg1))" 
     )
-  , (FnSelect   , undefined
+  , ( FnSelect   
+    , postCond 3 "(= %ret (ite %arg0 %arg1 %arg2))" 
     )
-  , (FnBitcast  , undefined)
+  , ( FnBitcast  
+    , postCond 1 "(fp.eq %ret (to_fp_32 %arg0))" )
 
-  , (FnFunc "@llvm.fabs.f32", onlyPost 1 undefined)
-
+  , ( FnFunc "@llvm.fabs.f32"
+    , postCond 1 "(fp.eq %ret (fp.abs %arg0))" )
   ] 
 
-onlyPost :: Int -> Pred -> Contract 
-onlyPost n = Ct (paramVar <$> [0..(n-1)]) pTrue 
+postCond :: Int -> Text -> Contract 
+postCond n = Ct (paramVar <$> [0..(n-1)]) pTrue . pred 
+
+pred :: Text -> Pred 
+pred = Parse.parseWith Parse.predP "builtin"
+
+-- putStrLn $ printf "The value of %d in hex is: 0x%08x" i i
+-- putStrLn $ printf "The value of %d in binary is: %b"  i i

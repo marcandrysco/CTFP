@@ -58,8 +58,9 @@ instance UX.PPrint Fn where
 -- | 'Expr' correspond to the RHS of LLVM assignments 
 -------------------------------------------------------------------------------
 data Arg a 
-  = ELit Integer a 
-  | EVar Var     a 
+  = ELit  !Integer       a 
+  | ETLit !Integer !Type a 
+  | EVar  !Var           a 
   deriving (Eq, Ord, Show, Functor)
 
 data Expr a 
@@ -70,8 +71,9 @@ type TypedArg  a = (Type, Arg  a)
 type TypedExpr a = (Type, Expr a)
 
 instance UX.PPrint (Arg a) where 
-  pprint (ELit n _) = show n 
-  pprint (EVar x _) = x 
+  pprint (ELit  n _  ) = show n 
+  pprint (ETLit n _ _) = show n 
+  pprint (EVar  x _  ) = x 
 
 instance UX.PPrint (Expr a) where 
   pprint (ECall fn tes t _) = ppCall fn tes t 
@@ -96,6 +98,7 @@ instance UX.PPrint a => UX.PPrint (Type, a) where
 -- instance UX.PPrint a => UX.PPrint [a] where 
 pprints :: (UX.PPrint a) => [a] -> UX.Text
 pprints = L.intercalate ", " . fmap UX.pprint 
+
 
 -------------------------------------------------------------------------------
 -- | A 'Program' is a list of Function Definitions  
@@ -156,8 +159,9 @@ class Labeled thing where
   getLabel :: thing a -> a 
 
 instance Labeled Arg where 
-  getLabel (ELit _ z)      = z 
-  getLabel (EVar _ z)      = z 
+  getLabel (ELit  _ z)   = z 
+  getLabel (ETLit _ _ z) = z 
+  getLabel (EVar _ z)    = z 
 
 instance Labeled Expr where 
   getLabel (ECall _ _ _ z) = z 
@@ -171,8 +175,12 @@ mkFcmp r t e1 e2 = ECall (FnFcmp r) [(t, e1), (t, e2)] (I 1)
 
 mkSelect :: (Show a) => TypedArg a -> TypedArg a -> TypedArg a -> a -> Expr a 
 mkSelect x@(t1, _) y@(t2, _) z@(t3, _) l 
-  | t1 == I 1 && t2 == t3 = ECall FnSelect [x, y, z] t2 l 
+  | t1 == I 1 && t2 == t3 = ECall FnSelect [x, tLit y, tLit z] t2 l 
   | otherwise             = error $ "Malformed Select: " ++ show [x, y, z]
+
+tLit :: TypedArg a -> TypedArg a 
+tLit (t, ELit n l) = (t, ETLit n t l) 
+tLit z            = z 
 
 mkBitcast :: TypedArg a -> Type -> a -> Expr a 
 mkBitcast te = ECall FnBitcast [te]

@@ -5,7 +5,7 @@ module Language.LLVC.Smt where
 
 import           Text.Printf (printf) 
 import           Data.Monoid
-import qualified Data.List           as L
+-- import qualified Data.List           as L
 import qualified Language.LLVC.UX    as UX
 import           Language.LLVC.Types 
 
@@ -27,8 +27,10 @@ instance ToSmt Op where
   toSmt Ite    = "ite" 
 
 instance ToSmt (Arg a) where 
-  toSmt (ELit n _) = show n 
-  toSmt (EVar x _) = toSmt x 
+  toSmt (ETLit n (I 32) _) = printf "0x%08x" n 
+  toSmt (ETLit n _ _)      = show n 
+  toSmt (ELit n    _)      = show n 
+  toSmt (EVar x    _)      = toSmt x 
 
 instance ToSmt Pred where 
   toSmt (PArg a)     = toSmt a 
@@ -38,7 +40,7 @@ instance ToSmt Pred where
   toSmt (POr  ps)    = printf "(or %s)"  (toSmts ps)
 
 toSmts :: (ToSmt a) => [a] -> Smt
-toSmts = L.intercalate " " . fmap toSmt
+toSmts = unwords . fmap toSmt
 
 instance ToSmt Type where 
   toSmt Float  = "Float32" 
@@ -91,9 +93,11 @@ checkSat = cmd "(check-sat)"
 preamble :: VC 
 preamble = mconcat $ cmd <$> 
   [ "(set-logic QF_FPBV)"
-  -- , "(define-sort Int1    () Bool)"
+  , "(define-sort Int1    () Bool)"
   , "(define-sort Int32   () (_ BitVec 32))"
   , "(define-sort Float32 () (_ FloatingPoint  8 24))"
+  , "(define-fun  to_fp_32 ((Int32 a)) Float32  ((_ to_fp 8 24) RNE a)"
+  , "(define-fun  fp_add ((Float32 a) (Float32 b)) Float32 (fp.add RNE a b)"
   ]
 
 cmd :: UX.Text -> VC
