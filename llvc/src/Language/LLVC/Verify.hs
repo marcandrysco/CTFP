@@ -29,15 +29,21 @@ mconcatMap f = mconcat . fmap f
 contractAt :: Program a -> Fn -> Var -> [TypedArg a] -> (Pred a, Pred a)
 contractAt = undefined
 
-varType :: Program a -> Fn -> [TypedArg a] -> Type -> Type 
-varType = undefined
+-- resultType :: Program a -> Fn -> [TypedArg a] -> Type -> Type 
+-- resultType _ _ _ t           = t 
+-- resultType _ (FnFunc _) _ t  = t 
+-- resultType _ (FnBin _) _  t  = t 
+-- resultType _ (FnFcmp _) _ t  = t 
+-- resultType _ FnSelect _ t    = t 
+-- resultType _ FnBitcast _ t   = t 
+
 -------------------------------------------------------------------------------
 
 vcAsgn :: Program a -> ((Var, a), Expr a) -> VC 
-vcAsgn env ((x, _), ECall fn tys t _) 
+vcAsgn env ((x, _), ECall fn tys tx _) 
                 = declare (x, tx) 
                <> check  pre 
                <> assert post 
   where 
     (pre, post) = contractAt env fn x tys 
-    tx          = varType    env fn   tys t  
+    -- tx          = resultType env fn   tys t  

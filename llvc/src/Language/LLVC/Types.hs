@@ -27,11 +27,11 @@ type Var   = UX.Text
 -- | 'Fn' correspond to the different kinds of "operations"
 -------------------------------------------------------------------------------
 data Fn 
-  = FnFcmp    Rel               -- ^ fcmp olt 
-  | FnBin      BinOp              -- ^ bitwise operation 
-  | FnSelect    
-  | FnBitcast 
-  | FnFunc    Var 
+  = FnFcmp    Rel               -- ^ 'fcmp' olt 
+  | FnBin     BinOp             -- ^ binary operation 
+  | FnSelect                    -- ^ ternary 'select' 
+  | FnBitcast                   -- ^ 'bitcast' 
+  | FnFunc    Var               -- ^ something that is 'call'ed 
   deriving (Eq, Ord, Show)
 
 data BinOp
