@@ -2,6 +2,7 @@
 
 Stuff.
 
+
 ```ll
 define weak float @ctfp_restrict_add_f32v1(float %a, float %b) #2 {
     ; (declare-const a Float32)
@@ -38,6 +39,8 @@ define weak float @ctfp_restrict_add_f32v1(float %a, float %b) #2 {
   ret float %11
 }
 ```
+
+(fp.eq %9 (to_fp_32 %8))
 
 
 ```

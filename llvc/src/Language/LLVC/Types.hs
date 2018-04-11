@@ -111,23 +111,31 @@ data FnBody a = FnBody
 
 data FnDef a = FnDef 
   { fnName :: !Var                   -- ^ Name
-  , fnArgs :: ![(Var, Type)]         -- ^ Parameters and their types 
+  , fnArgs :: ![Type]                -- ^ Parameters and their types 
   , fnOut  :: !Type                  -- ^ Output type 
+  , fnCon  :: !Contract              -- ^ Specification 
   , fnBody :: Maybe (FnBody a)       -- ^ 'Nothing' for 'declare', 'Just fb' for 'define' 
-  , fnPre  :: !Pred                  -- ^ Precondition / "requires" clause               
-  , fnPost :: !Pred                  -- ^ Postcondition / "ensures" clause               
-  , fnLab  :: a                      
+  , fnLab  :: a                     
   }
   deriving (Eq, Show, Functor)
+
+data Contract = Ct
+  { ctParams :: ![Var]               -- ^ Parameter names 
+  , ctPre    :: !Pred                -- ^ Precondition / "requires" clause               
+  , ctPost   :: !Pred                -- ^ Postcondition / "ensures" clause               
+  } deriving (Eq, Show)
 
 instance UX.PPrint (FnDef a) where 
   pprint fd        = printf "%s %s %s(%s) %s" dS oS (fnName fd) aS bS
     where
       oS           = UX.pprint (fnOut fd)
       (dS, bS, aS) = case fnBody fd of 
-                       Nothing -> ("declare", "\n"       , pprints (snd <$> fnArgs fd))
-                       Just b  -> ("define" , UX.pprint b, pprints (fnArgs fd) )
-         
+                       Nothing -> ("declare", "\n"       , pprints (fnArgs fd))
+                       Just b  -> ("define" , UX.pprint b, pprints (fnArgTys fd) )
+                      
+fnArgTys    :: FnDef a -> [(Var, Type)]
+fnArgTys fd = zip (ctParams (fnCon fd)) (fnArgs fd)
+
 instance UX.PPrint (Var, Type) where 
   pprint (x, t) = printf "%s %s" (UX.pprint t) x 
 
@@ -180,24 +188,33 @@ mkCall f xts t sp = ECall (FnFunc f) tes t sp
 decl :: Var -> [Type] -> Type -> a -> FnDef a 
 decl f ts t l = FnDef 
   { fnName = f 
-  , fnArgs = zip paramVars ts 
+  , fnArgs = ts 
   , fnOut  = t 
   , fnBody = Nothing 
-  , fnPre  = pTrue
-  , fnPost = pTrue
+  , fnCon  = trivialContract (take n paramVars) 
   , fnLab  = l 
   }
+  where n  = length ts 
+
+trivialContract :: [Var] -> Contract 
+trivialContract xs = Ct 
+  { ctParams = xs 
+  , ctPre    = pTrue 
+  , ctPost   = pTrue 
+  }
+
 
 defn :: Var -> [(Var, Type)] -> FnBody a -> Type -> a -> FnDef a 
 defn f xts b t l = FnDef 
   { fnName = f 
-  , fnArgs = xts 
+  , fnArgs = ts 
   , fnOut  = t 
   , fnBody = Just b 
-  , fnPre  = pTrue 
-  , fnPost = pTrue 
+  , fnCon  = trivialContract xs 
   , fnLab  = l 
   }
+  where 
+   (xs,ts) = unzip xts 
 
 paramVars :: [Var]
 paramVars = paramVar <$> [0..] 

@@ -1,4 +1,5 @@
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE RecordWildCards      #-}
 {-# LANGUAGE FlexibleInstances    #-}
 
 module Language.LLVC.Verify where 
@@ -25,11 +26,12 @@ vc p    = mconcatMap (vcFun env) (M.elems p)
 
 vcFun :: (Located a) => Env -> FnDef a -> VC 
 vcFun env fd@(FnDef { fnBody = Just fb })
-  =  mconcatMap declare      (fnArgs fd) 
-  <> mconcatMap (vcAsgn env) (fnAsgns fb)
-  <> check      (subst su    (fnPost fd)) 
+  =  mconcatMap declare      (fnArgTys fd) 
+  <> mconcatMap (vcAsgn env) (fnAsgns  fb)
+  <> check      (subst su    (fnPost   fd)) 
   where 
-    su = [(retVar, snd (fnRet fb))]
+    su     = [(retVar, snd (fnRet fb))]
+    fnPost = ctPost . fnCon 
 vcFun _ _ 
   =  mempty 
 
@@ -40,7 +42,6 @@ vcAsgn env ((x, _), ECall fn tys tx l)
                <> assert post 
   where 
     (pre, post) = contractAt env fn x tys l 
-    -- tx          = resultType env fn   tys t  
 
 contractAt :: (Located a) => Env -> Fn -> Var -> [TypedArg a] -> a -> (Pred, Pred)
 contractAt env fn rv tys l = (pre, post) 
@@ -63,12 +64,6 @@ contractAt env fn rv tys l = (pre, post)
 -------------------------------------------------------------------------------
 -- | Contracts for all the `Fn` stuff.
 -------------------------------------------------------------------------------
-data Contract = Ct
-  { ctParams :: ![Var] 
-  , ctPre    :: !Pred
-  , ctPost   :: !Pred
-  } deriving (Eq, Show)
-
 type Env = M.HashMap Fn Contract 
 
 contract :: Env -> Fn -> SourceSpan -> Contract
@@ -81,10 +76,7 @@ mkEnv :: Program a -> Env
 mkEnv p   = M.fromList (prims ++ defs) 
   where 
     prims = primitiveContracts 
-    defs  = [ (FnFunc v, defContract d)  | (v, d) <- M.toList p ]  
-
-defContract :: FnDef a -> Contract 
-defContract = undefined
+    defs  = [ (FnFunc v, fnCon d)  | (v, d) <- M.toList p ]  
 
 -- | We could parse these in too, in due course.
 primitiveContracts :: [(Fn, Contract)]

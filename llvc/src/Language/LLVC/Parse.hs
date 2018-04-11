@@ -180,10 +180,10 @@ pred0P =  PAnd  <$> (rWord "and" *> many predP)
 
 pAtomP :: Parser Pred 
 pAtomP 
-  =  atom1 "fp.eq"    FpEq 
- <|> atom1 "fp.lt"    FpLt 
- <|> atom1 "fp.abs"   FpAbs
+  =  atom1 "fp.abs"   FpAbs
  <|> atom1 "to_fp_32" ToFp32 
+ <|> atom2 "fp.eq"    FpEq 
+ <|> atom2 "fp.lt"    FpLt 
  <|> atom3 "ite"      Ite 
 
 atom1 :: Text -> Op -> Parser Pred 
@@ -202,7 +202,9 @@ atom3 kw o = (\x1 x2 x3 -> PAtom o [x1, x2, x3])
           <*> pArgP
 
 pArgP :: Parser Pred 
-pArgP = undefined 
+pArgP =  PArg <$> argP 
+     <|> parens pred0P 
+
 
 --------------------------------------------------------------------------------
 -- | Tokenisers and Whitespace
