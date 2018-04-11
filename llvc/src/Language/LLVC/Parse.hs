@@ -119,7 +119,7 @@ binExprP = do
 llOpP :: Parser (Op, SourceSpan) 
 llOpP =   (BvAnd, ) <$> rWord "and" 
       <|> (BvXor, ) <$> rWord "xor" 
-      <|> (FAdd , ) <$> rWord "fadd" 
+      <|> (FpAdd, ) <$> rWord "fadd" 
       <?>  "binary-op"
 
 bitcastP :: Parser BareExpr 
@@ -182,8 +182,13 @@ pAtomP :: Parser Pred
 pAtomP 
   =  atom1 "fp.abs"   FpAbs
  <|> atom1 "to_fp_32" ToFp32 
+ <|> atom2 "="        Eq 
  <|> atom2 "fp.eq"    FpEq 
  <|> atom2 "fp.lt"    FpLt 
+ <|> atom2 "fp_add"   FpAdd 
+ <|> atom2 "bvor"     BvOr 
+ <|> atom2 "bvxor"    BvXor
+ <|> atom2 "bvand"    BvAnd 
  <|> atom3 "ite"      Ite 
 
 atom1 :: Text -> Op -> Parser Pred 

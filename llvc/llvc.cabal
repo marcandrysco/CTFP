@@ -2,7 +2,7 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 80f99f8d63861e423d1b1e3903e22a0daefbfe6d0c3e1b114e1f386395e5d3b9
+-- hash: d3db82ea545ef849a3cc488be1712de25ad5207e3ef65ae8be1c3a3b6d82e13e
 
 name:           llvc
 version:        0.1.0.0
@@ -58,6 +58,7 @@ executable llvc
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
+    , filepath
     , llvc
   other-modules:
       Paths_llvc

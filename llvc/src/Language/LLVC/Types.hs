@@ -243,23 +243,27 @@ data Op
   = FpEq 
   | FpAbs 
   | FpLt 
-  | Ite 
+  | FpAdd 
   | ToFp32    -- ((_ to_fp 8 24) RNE r3)  
+  | BvOr
   | BvXor
   | BvAnd 
-  | FAdd 
+  | Ite 
+  | Eq
   deriving (Eq, Ord, Show, Generic)
 
 
 instance UX.PPrint Op where 
+  pprint BvOr   = "or"
   pprint BvXor  = "xor"
   pprint BvAnd  = "and"
-  pprint FAdd   = "fadd" 
+  pprint FpAdd  = "fadd" 
   pprint FpEq   = "fp.eq" 
   pprint FpAbs  = "fp.abs" 
   pprint FpLt   = "fp.lt" 
   pprint ToFp32 = "to_fp_32" 
   pprint Ite    = "ite" 
+  pprint Eq     = "=" 
 
 -- | 'Pred' are boolean combinations of 'Expr' used to define contracts 
 data Pred 

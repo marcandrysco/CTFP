@@ -19,7 +19,7 @@ exec = getArgs >>= mapM_ llvc
 llvc :: FilePath -> IO () 
 llvc f = do 
   p <- parseFile f 
-  writeQuery (f </> ".smt2") (vc p) 
+  writeQuery (f <.> "smt2") (vc p) 
 
 esHandle :: Handle -> IO a -> [UserError] -> IO a
 esHandle h exitF es = renderErrors es >>= hPutStrLn h >> exitF

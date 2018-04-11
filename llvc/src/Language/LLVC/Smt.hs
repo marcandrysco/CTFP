@@ -36,15 +36,17 @@ instance ToSmt VC where
 instance ToSmt Op where 
   toSmt BvXor  = "bvxor"
   toSmt BvAnd  = "bvand"
-  toSmt FAdd   = "FIXME-FAdd" 
+  toSmt BvOr   = "bvor"
+  toSmt FpAdd  = "fp_add" 
   toSmt FpEq   = "fp.eq" 
   toSmt FpAbs  = "fp.abs" 
   toSmt FpLt   = "fp.lt" 
   toSmt ToFp32 = "to_fp_32" 
   toSmt Ite    = "ite" 
+  toSmt Eq     = "=" 
 
 instance ToSmt (Arg a) where 
-  toSmt (ETLit n (I 32) _) = printf "0x%08x" n 
+  toSmt (ETLit n (I 32) _) = "FIXME:" ++ show n -- printf "0x%08x" n 
   toSmt (ETLit n _ _)      = show n 
   toSmt (ELit n    _)      = show n 
   toSmt (EVar x    _)      = toSmt x 

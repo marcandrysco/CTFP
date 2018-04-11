@@ -47,6 +47,7 @@ executables:
     - -with-rtsopts=-N
     dependencies:
     - llvc
+    - filepath
 
 tests:
   llvc-test:
