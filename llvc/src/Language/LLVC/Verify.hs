@@ -94,6 +94,7 @@ primitiveContracts =
     )
   , ( FnBitcast  
     , postCond 1 "(fp.eq %ret (to_fp_32 %arg0))" )
+
   , ( FnFunc "@llvm.fabs.f32"
     , postCond 1 "(fp.eq %ret (fp.abs %arg0))" )
   ] 
