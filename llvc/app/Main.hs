@@ -1,5 +1,6 @@
 module Main where
 
+import Control.Monad (forM_) 
 import Control.Exception
 import System.Environment 
 import System.FilePath 
@@ -18,8 +19,9 @@ exec = getArgs >>= mapM_ llvc
 
 llvc :: FilePath -> IO () 
 llvc f = do 
-  p <- parseFile f 
-  writeQuery (f <.> "smt2") (vc p) 
+  p  <- parseFile f 
+  forM_ (vcs p) $ \(fn, vc) -> 
+    writeQuery (f <.> tail fn <.> "smt2") vc
 
 esHandle :: Handle -> IO a -> [UserError] -> IO a
 esHandle h exitF es = renderErrors es >>= hPutStrLn h >> exitF

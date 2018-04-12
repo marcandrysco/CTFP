@@ -5,6 +5,10 @@ module Language.LLVC.Smt
   ( -- * Opaque SMT Query type 
     VC
 
+  -- * Initializing 
+  , comment
+  , preamble 
+
     -- * Constructing Queries
   , declare
   , check
@@ -23,7 +27,8 @@ import qualified Language.LLVC.UX    as UX
 import qualified Data.HashMap.Strict as M 
 
 writeQuery :: FilePath -> VC -> IO () 
-writeQuery f vc = writeFile f (toSmt (preamble <> vc))
+writeQuery f vc = writeFile f (toSmt vc) 
+-- (preamble <> vc))
 
 -------------------------------------------------------------------------------
 -- | Serializing API
@@ -36,16 +41,18 @@ instance ToSmt VC where
   toSmt (VC cmds) = unlines [ c | Cmd c <- cmds] 
 
 instance ToSmt Op where 
-  toSmt BvXor  = "bvxor"
-  toSmt BvAnd  = "bvand"
-  toSmt BvOr   = "bvor"
-  toSmt FpAdd  = "fp_add" 
-  toSmt FpEq   = "fp.eq" 
-  toSmt FpAbs  = "fp.abs" 
-  toSmt FpLt   = "fp.lt" 
-  toSmt ToFp32 = "to_fp_32" 
-  toSmt Ite    = "ite" 
-  toSmt Eq     = "=" 
+  toSmt BvAnd     = "bvand"
+  toSmt BvOr      = "bvor"
+  toSmt BvXor     = "bvxor"
+  toSmt FpAdd     = "fp_add" 
+  toSmt FpEq      = "fp.eq" 
+  toSmt FpAbs     = "fp.abs" 
+  toSmt FpLt      = "fp.lt" 
+  -- toSmt ToFp32 = "to_fp_32" 
+  toSmt ToFp32    = "(_ to_fp 8 24) RNE"
+  toSmt Ite       = "ite" 
+  toSmt Eq        = "=" 
+  toSmt (SmtOp x) = x 
 
 instance ToSmt (Arg a) where 
   toSmt (ETLit n (I 32) _) = sigIntHex n (I 32) 
@@ -56,15 +63,18 @@ instance ToSmt (Arg a) where
 
 convTable :: M.HashMap (Integer, Type) String
 convTable = M.fromList 
-  [ ((0x3980000000000000, Float), "addmin") ]
+  [ ((0x3980000000000000, Float), "addmin") 
+  , ((-1                , I 32) , "#xffffffff")
+  ]
  
 sigIntHex :: Integer -> Type -> Smt 
 sigIntHex n t     = M.lookupDefault res (n, t) convTable 
   where 
     res 
-      | 0 <= n    = s 
-      | otherwise = printf "(- 0 %s)" s
-    s             = "#x" ++ Utils.integerHex (abs n)
+      | 0 <= n    = "#x" ++ pad ++ nStr 
+      | otherwise = UX.panic ("sigIntHex: negative" ++ show n) UX.junkSpan 
+    nStr          = Utils.integerHex (abs n)
+    pad           = replicate (8 - length nStr) '0' 
   
   
 
@@ -110,6 +120,9 @@ instance Monoid VC where
 -- | Basic Commands 
 -------------------------------------------------------------------------------
 
+comment :: UX.Text -> VC 
+comment s = cmd $ printf "; %s" s
+
 declare :: (Var, Type) -> VC 
 declare (x, t) = cmd $ printf "(declare-const %s %s)" (toSmt x) (toSmt t)
 
@@ -136,6 +149,9 @@ preamble = mconcat $ cmd <$>
   -- , "(define-sort Float32 () (_ FloatingPoint  8 24))"
   , "(define-fun to_fp_32 ((a Int32)) Float32  ((_ to_fp 8 24) RNE a))"
   , "(define-fun fp_add ((a Float32) (b Float32)) Float32 (fp.add RNE a b))"
+  -- CONSTANTS
+  , "(define-const addmin Float32 ((_ to_fp 8 24) #x0c000000))"  
+  , "(define-const zero Float32 ((_ to_fp 8 24) #x00000000))"
   ]
 
 cmd :: UX.Text -> VC

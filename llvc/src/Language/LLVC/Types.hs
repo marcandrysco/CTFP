@@ -32,7 +32,7 @@ data Fn
   = FnFcmp    Rel               -- ^ 'fcmp' olt 
   | FnBin     Op                -- ^ binary operation 
   | FnSelect                    -- ^ ternary 'select' 
-  | FnBitcast                   -- ^ 'bitcast' 
+  | FnBitcast Type Type         -- ^ 'bitcast' 
   | FnFunc    Var               -- ^ something that is 'call'ed 
   deriving (Eq, Ord, Show, Generic)
 
@@ -49,11 +49,11 @@ instance UX.PPrint Rel where
   pprint Olt = "olt"
 
 instance UX.PPrint Fn where 
-  pprint (FnFcmp r) = printf "fcmp %s" (UX.pprint r)
-  pprint (FnBin  o) = UX.pprint o
-  pprint FnSelect   = "select" 
-  pprint FnBitcast  = "bitcast" 
-  pprint (FnFunc f) = f
+  pprint (FnFcmp r)     = printf "fcmp %s" (UX.pprint r)
+  pprint (FnBin  o)     = UX.pprint o
+  pprint FnSelect       = "select" 
+  pprint (FnBitcast {}) = "bitcast" 
+  pprint (FnFunc f)     = f
 
 -------------------------------------------------------------------------------
 -- | 'Expr' correspond to the RHS of LLVM assignments 
@@ -88,7 +88,7 @@ ppCall (FnFcmp r) [te1, (_, e2)] _
   = printf "fcmp %s %s, %s" (UX.pprint r) (UX.pprint te1) (UX.pprint e2) 
 ppCall FnSelect tes _ 
   = printf "select %s" (pprints tes)
-ppCall FnBitcast [te] t 
+ppCall (FnBitcast _ _) [te] t 
   = printf "bitcast %s to %s" (UX.pprint te) (UX.pprint t) 
 ppCall f tes _ 
   = UX.panic ("ppCall: TBD" ++ UX.pprint f ++ pprints tes) UX.junkSpan
@@ -184,10 +184,10 @@ tLit (t, ELit n l) = (t, ETLit n t l)
 tLit z            = z 
 
 mkBitcast :: TypedArg a -> Type -> a -> Expr a 
-mkBitcast te = ECall FnBitcast [te]
+mkBitcast (t, e) t' = ECall (FnBitcast t t') [(t, e)] t'
 
 mkOp :: Op -> TypedArg a -> Arg a -> a -> Expr a 
-mkOp o (t, e1) e2 = ECall (FnBin o) [(t, e1), (t, e2)] t 
+mkOp o (t, e1) e2 = ECall (FnBin o) [tLit (t, e1), tLit (t, e2)] t 
 
 mkCall :: Var -> [(Var, Type)] -> Type -> a -> Expr a 
 mkCall f xts t sp = ECall (FnFunc f) tes t sp
@@ -251,20 +251,22 @@ data Op
   | BvAnd 
   | Ite 
   | Eq
+  | SmtOp !Var
   deriving (Eq, Ord, Show, Generic)
 
 
 instance UX.PPrint Op where 
-  pprint BvOr   = "or"
-  pprint BvXor  = "xor"
-  pprint BvAnd  = "and"
-  pprint FpAdd  = "fadd" 
-  pprint FpEq   = "fp.eq" 
-  pprint FpAbs  = "fp.abs" 
-  pprint FpLt   = "fp.lt" 
-  pprint ToFp32 = "to_fp_32" 
-  pprint Ite    = "ite" 
-  pprint Eq     = "=" 
+  pprint BvOr      = "or"
+  pprint BvXor     = "xor"
+  pprint BvAnd     = "and"
+  pprint FpAdd     = "fadd" 
+  pprint FpEq      = "fp.eq" 
+  pprint FpAbs     = "fp.abs" 
+  pprint FpLt      = "fp.lt" 
+  pprint ToFp32    = "to_fp_32" 
+  pprint Ite       = "ite" 
+  pprint Eq        = "=" 
+  pprint (SmtOp x) = x
 
 -- | 'Pred' are boolean combinations of 'Expr' used to define contracts 
 data Pred 

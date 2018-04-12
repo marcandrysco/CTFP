@@ -1,9 +1,9 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE FlexibleInstances    #-}
 
-module Language.LLVC.Verify (vc) where 
+module Language.LLVC.Verify (vcs) where 
 
-import Prelude hiding (pred)
+import           Prelude hiding (pred)
 import qualified Data.Maybe          as Mb 
 import qualified Data.HashMap.Strict as M 
 import           Data.Monoid
@@ -14,22 +14,24 @@ import           Language.LLVC.Smt
 import           Language.LLVC.Types 
 
 -------------------------------------------------------------------------------
-vc :: (Located a) => Program a -> VC 
+vcs :: (Located a) => Program a -> [(Var, VC)] 
 -------------------------------------------------------------------------------
-vc p    = mconcatMap (vcFun env) (M.elems p) 
+vcs p   = [ (f, vcFun env fd fb)
+          | (f, fd) <- M.toList p 
+          , fb      <- Mb.maybeToList (fnBody fd)
+          ] 
   where 
     env = mkEnv p 
 
-vcFun :: (Located a) => Env -> FnDef a -> VC 
-vcFun env fd@(FnDef { fnBody = Just fb })
-  =  mconcatMap declare      (fnArgTys fd) 
-  <> mconcatMap (vcAsgn env) (fnAsgns  fb)
-  <> check      (subst su    (fnPost   fd)) 
+vcFun :: (Located a) => Env -> FnDef a -> FnBody a -> VC 
+vcFun env fd fb = comment    ("VC for: " ++  fnName fd)
+               <> preamble
+               <> mconcatMap declare      (fnArgTys fd) 
+               <> mconcatMap (vcAsgn env) (fnAsgns  fb)
+               <> check      (subst su    (fnPost   fd)) 
   where 
-    su     = [(retVar, snd (fnRet fb))]
-    fnPost = ctPost . fnCon 
-vcFun _ _ 
-  =  mempty 
+    su          = [(retVar, snd (fnRet fb))]
+    fnPost      = ctPost . fnCon 
 
 vcAsgn :: (Located a) => Env  -> ((Var, a), Expr a) -> VC 
 vcAsgn env ((x, _), ECall fn tys tx l) 
@@ -81,7 +83,10 @@ primitiveContracts =
     , postCond 2 "(= %ret (fp.lt %arg0 %arg1))" 
     )
   , ( FnBin BvXor
-    , postCond 2 "(= %ret (bvor %arg0 %arg1))" 
+    , postCond 2 "(= %ret (bvxor %arg0 %arg1))" 
+    )
+  , ( FnBin BvOr
+    , postCond 2 "(= %ret (bvor  %arg0 %arg1))" 
     )
   , ( FnBin BvAnd
     , postCond 2 "(= %ret (bvand %arg0 %arg1))" 
@@ -92,8 +97,10 @@ primitiveContracts =
   , ( FnSelect   
     , postCond 3 "(= %ret (ite %arg0 %arg1 %arg2))" 
     )
-  , ( FnBitcast  
+  , ( FnBitcast (I 32) Float 
     , postCond 1 "(fp.eq %ret (to_fp_32 %arg0))" )
+  , ( FnBitcast Float (I 32) 
+    , postCond 1 "(= %ret (to_ieee_bv  %arg0))" )
 
   , ( FnFunc "@llvm.fabs.f32"
     , postCond 1 "(fp.eq %ret (fp.abs %arg0))" )
