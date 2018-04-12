@@ -1,10 +1,12 @@
 module Language.LLVC.Utils where
 
+
+import           Numeric   (showHex, showIntAtBase)
 import qualified Data.Map  as M
 import qualified Data.List as L
 import           Data.Monoid
 import           Data.Maybe (fromMaybe)
-import           Data.Char (isSpace)
+import           Data.Char (isSpace, intToDigit)
 import           Control.Exception
 import           Control.Monad
 import           Text.Printf
@@ -83,3 +85,12 @@ getRange :: Int -> Int -> [a] -> [a]
 getRange i1 i2
   = take (i2 - i1 + 1)
   . drop (i1 - 1)
+
+integerHex :: Integer -> String 
+integerHex i = showHex i "" 
+
+integerBinary :: Integer -> String 
+integerBinary i = showIntAtBase 2 intToDigit i "" 
+
+-- putStrLn $ showHex 12 "" -- prints "c"
+-- putStrLn $ showIntAtBase 2 intToDigit 12 "" -- prints "1100"

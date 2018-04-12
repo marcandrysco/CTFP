@@ -100,7 +100,7 @@ primitiveContracts =
   ] 
 
 postCond :: Int -> Text -> Contract 
-postCond n = Ct (paramVar <$> [0..(n-1)]) pTrue . pred 
+postCond n = Ct (paramVar <$> [0..(n-1)]) PTrue . pred 
 
 pred :: Text -> Pred 
 pred = Parse.parseWith Parse.predP "foobaz-builtin"

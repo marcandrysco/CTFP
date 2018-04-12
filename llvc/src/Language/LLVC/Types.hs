@@ -17,7 +17,7 @@ import           Text.Printf (printf)
 data Type 
   = Float 
   | I Int                      -- ^ Int of a given size 1, 16, 32 etc.
-  deriving (Eq, Ord, Show)
+  deriving (Eq, Ord, Show, Generic)
 
 instance UX.PPrint Type where 
   pprint Float = "float"
@@ -40,6 +40,7 @@ data Rel
   = Olt 
   deriving (Eq, Ord, Show, Generic) 
 
+instance Hashable Type 
 instance Hashable Op 
 instance Hashable Rel 
 instance Hashable Fn 
@@ -171,7 +172,7 @@ instance Labeled Expr where
 -------------------------------------------------------------------------------
 
 mkFcmp :: Rel -> Type -> Arg a -> Arg a -> a -> Expr a 
-mkFcmp r t e1 e2 = ECall (FnFcmp r) [(t, e1), (t, e2)] (I 1)
+mkFcmp r t e1 e2 = ECall (FnFcmp r) [tLit (t, e1), tLit (t, e2)] (I 1)
 
 mkSelect :: (Show a) => TypedArg a -> TypedArg a -> TypedArg a -> a -> Expr a 
 mkSelect x@(t1, _) y@(t2, _) z@(t3, _) l 
@@ -207,8 +208,8 @@ decl f ts t l = FnDef
 trivialContract :: [Var] -> Contract 
 trivialContract xs = Ct 
   { ctParams = xs 
-  , ctPre    = pTrue 
-  , ctPost   = pTrue 
+  , ctPre    = PTrue 
+  , ctPost   = PTrue 
   }
 
 
@@ -272,11 +273,8 @@ data Pred
   | PNot   !Pred 
   | PAnd   [Pred]
   | POr    [Pred]
+  | PTrue 
   deriving (Eq, Show, Generic) 
-
-pTrue, pFalse :: Pred
-pTrue  = POr []
-pFalse = PAnd []
 
 subst :: (UX.Located a) => [(Var, Arg a)] -> Pred -> Pred
 subst su             = go 
@@ -289,6 +287,7 @@ subst su             = go
     go (PNot p)      = PNot (go p) 
     go (PAnd ps)     = PAnd (go <$> ps)
     go (POr  ps)     = POr  (go <$> ps)
+    go (PTrue)       = PTrue 
 
 
 -------------------------------------------------------------------------------

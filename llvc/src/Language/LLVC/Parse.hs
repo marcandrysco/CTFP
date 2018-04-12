@@ -173,9 +173,10 @@ predP :: Parser Pred
 predP = parens pred0P 
 
 pred0P :: Parser Pred 
-pred0P =  PAnd  <$> (rWord "and" *> many predP)
-      <|> POr   <$> (rWord "or"  *> many predP) 
-      <|> PNot  <$> (rWord "not" *>      predP) 
+pred0P =  const PTrue <$> rWord "true" 
+      <|> PAnd        <$> (rWord "and" *> many predP)
+      <|> POr         <$> (rWord "or"  *> many predP) 
+      <|> PNot        <$> (rWord "not" *>      predP) 
       <|> pAtomP 
 
 pAtomP :: Parser Pred 

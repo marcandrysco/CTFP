@@ -17,8 +17,10 @@ module Language.LLVC.Smt
 
 import           Text.Printf (printf) 
 import           Data.Monoid
-import qualified Language.LLVC.UX    as UX
 import           Language.LLVC.Types 
+import qualified Language.LLVC.Utils as Utils
+import qualified Language.LLVC.UX    as UX
+import qualified Data.HashMap.Strict as M 
 
 writeQuery :: FilePath -> VC -> IO () 
 writeQuery f vc = writeFile f (toSmt (preamble <> vc))
@@ -46,10 +48,25 @@ instance ToSmt Op where
   toSmt Eq     = "=" 
 
 instance ToSmt (Arg a) where 
-  toSmt (ETLit n (I 32) _) = "FIXME:" ++ show n -- printf "0x%08x" n 
+  toSmt (ETLit n (I 32) _) = sigIntHex n (I 32) 
+  toSmt (ETLit n Float _)  = printf "((_ to_fp 8 24) RNE %s)" (sigIntHex n Float)
   toSmt (ETLit n _ _)      = show n 
   toSmt (ELit n    _)      = show n 
   toSmt (EVar x    _)      = toSmt x 
+
+convTable :: M.HashMap (Integer, Type) String
+convTable = M.fromList 
+  [ ((0x3980000000000000, Float), "addmin") ]
+ 
+sigIntHex :: Integer -> Type -> Smt 
+sigIntHex n t     = M.lookupDefault res (n, t) convTable 
+  where 
+    res 
+      | 0 <= n    = s 
+      | otherwise = printf "(- 0 %s)" s
+    s             = "#x" ++ Utils.integerHex (abs n)
+  
+  
 
 instance ToSmt Pred where 
   toSmt (PArg a)     = toSmt a 
@@ -57,6 +74,7 @@ instance ToSmt Pred where
   toSmt (PNot p)     = printf "(not %s)" (toSmt p)
   toSmt (PAnd ps)    = printf "(and %s)" (toSmts ps)
   toSmt (POr  ps)    = printf "(or %s)"  (toSmts ps)
+  toSmt PTrue        =        "true"     
 
 toSmts :: (ToSmt a) => [a] -> Smt
 toSmts = unwords . fmap toSmt
@@ -99,7 +117,8 @@ assert :: Pred -> VC
 assert p = cmd $ printf "(assert %s)" (toSmt p)
 
 check :: Pred -> VC 
-check p = withBracket (assert (PNot p) <> checkSat) 
+check PTrue = mempty 
+check p     = withBracket (assert (PNot p) <> checkSat) 
 
 withBracket :: VC -> VC 
 withBracket vc = push <> vc <> pop 
