@@ -99,10 +99,12 @@ instance ToSmt Var where
   toSmt = sanitizeVar
 
 sanitizeVar :: Var -> Smt 
-sanitizeVar cs = tx <$> cs 
-  where 
-    tx '%' = '_'
-    tx c   = c 
+sanitizeVar ('%':cs) = 'r' : (sanitizeChar <$> cs) 
+sanitizeVar cs       = sanitizeChar <$> cs 
+
+sanitizeChar :: Char -> Char 
+sanitizeChar '%' = '_'
+sanitizeChar c   = c 
 
 -------------------------------------------------------------------------------
 -- | Command API
@@ -127,7 +129,8 @@ declare :: (Var, Type) -> VC
 declare (x, t) = cmd $ printf "(declare-const %s %s)" (toSmt x) (toSmt t)
 
 assert :: Pred -> VC 
-assert p = cmd $ printf "(assert %s)" (toSmt p)
+assert PTrue = mempty 
+assert p     = cmd $ printf "(assert %s)" (toSmt p)
 
 check :: Pred -> VC 
 check PTrue = mempty 

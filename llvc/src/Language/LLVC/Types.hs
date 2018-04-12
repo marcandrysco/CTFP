@@ -147,7 +147,9 @@ instance UX.PPrint (FnBody a) where
   pprint (FnBody xes te)  = unlines ("{" : fmap ppAsgn xes ++ [ppRet te, "}"]) 
     where 
       ppRet               = printf "  ret %s"     . UX.pprint  
-      ppAsgn ((x,_), e)   = printf "  %s = %s"  x (UX.pprint e)
+
+ppAsgn :: ((Var, a), Expr b) -> UX.Text
+ppAsgn ((x,_), e)   = printf "  %s = %s"  x (UX.pprint e)
 
 instance UX.PPrint (Program a) where 
   pprint p = L.intercalate "\n\n" (UX.pprint <$> M.elems p)
@@ -194,32 +196,32 @@ mkCall f xts t sp = ECall (FnFunc f) tes t sp
   where 
     tes           = [ (tx, EVar x sp) | (x, tx) <- xts]
 
-decl :: Var -> [Type] -> Type -> a -> FnDef a 
-decl f ts t l = FnDef 
+decl :: Var -> [Type] -> Type -> Pred -> Pred -> a -> FnDef a 
+decl f ts t pre post l = FnDef 
   { fnName = f 
   , fnArgs = ts 
   , fnOut  = t 
   , fnBody = Nothing 
-  , fnCon  = trivialContract (take n paramVars) 
+  , fnCon  = contract (take n paramVars) pre post 
   , fnLab  = l 
   }
   where n  = length ts 
 
-trivialContract :: [Var] -> Contract 
-trivialContract xs = Ct 
+contract :: [Var] -> Pred -> Pred -> Contract 
+contract xs pre post = Ct 
   { ctParams = xs 
-  , ctPre    = PTrue 
-  , ctPost   = PTrue 
+  , ctPre    = pre  
+  , ctPost   = post 
   }
 
 
-defn :: Var -> [(Var, Type)] -> FnBody a -> Type -> a -> FnDef a 
-defn f xts b t l = FnDef 
+defn :: Var -> [(Var, Type)] -> FnBody a -> Type -> Pred -> Pred -> a -> FnDef a 
+defn f xts b t pre post l = FnDef 
   { fnName = f 
   , fnArgs = ts 
   , fnOut  = t 
   , fnBody = Just b 
-  , fnCon  = trivialContract xs 
+  , fnCon  = contract xs pre post 
   , fnLab  = l 
   }
   where 

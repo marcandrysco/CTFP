@@ -11,7 +11,7 @@ import qualified Language.LLVC.Parse as Parse
 import           Language.LLVC.UX 
 import           Language.LLVC.Utils 
 import           Language.LLVC.Smt   
-import           Language.LLVC.Types 
+import           Language.LLVC.Types hiding (contract) 
 
 -------------------------------------------------------------------------------
 vcs :: (Located a) => Program a -> [(Var, VC)] 
@@ -34,8 +34,9 @@ vcFun env fd fb = comment    ("VC for: " ++  fnName fd)
     fnPost      = ctPost . fnCon 
 
 vcAsgn :: (Located a) => Env  -> ((Var, a), Expr a) -> VC 
-vcAsgn env ((x, _), ECall fn tys tx l) 
-                = declare (x, tx) 
+vcAsgn env asgn@((x, _), ECall fn tys tx l) 
+                = comment (ppAsgn asgn)
+               <> declare (x, tx) 
                <> check  pre 
                <> assert post 
   where 
@@ -98,7 +99,8 @@ primitiveContracts =
     , postCond 3 "(= %ret (ite %arg0 %arg1 %arg2))" 
     )
   , ( FnBitcast (I 32) Float 
-    , postCond 1 "(fp.eq %ret (to_fp_32 %arg0))" )
+    , postCond 1 "(= %ret (to_fp_32 %arg0))" )
+
   , ( FnBitcast Float (I 32) 
     , postCond 1 "(= %ret (to_ieee_bv  %arg0))" )
 

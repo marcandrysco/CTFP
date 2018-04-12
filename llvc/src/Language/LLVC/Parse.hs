@@ -63,15 +63,24 @@ declareP = do
   outTy      <- typeP 
   (name, sp) <- identifier "@" 
   inTys      <- parens (sepBy typeP comma) <* many attrP
-  return      $ decl name inTys outTy sp
+  pre        <- requiresP 
+  post       <- ensuresP 
+  return      $ decl name inTys outTy pre post sp
 
 defineP :: Parser BareDef 
 defineP = do 
-  outTy      <- rWord "weak" *> typeP
-  (name, sp) <- identifier "@" 
-  dArgs      <- argTypesP <* many attrP
-  body       <- braces bodyP 
-  return      $ defn name dArgs body outTy sp
+  outTy           <- rWord "weak" *> typeP
+  (name, sp)      <- identifier "@" 
+  dArgs           <- argTypesP <* many attrP
+  (pre,post,body) <- braces ((,,) <$> requiresP <*> ensuresP <*> bodyP) 
+  return           $ defn name dArgs body outTy pre post sp
+
+requiresP, ensuresP :: Parser Pred
+requiresP = annotationP "requires"
+ensuresP  = annotationP "ensures"
+
+annotationP :: String -> Parser Pred
+annotationP kw = symbol ";@" >> rWord kw >> predP
 
 argTypeP :: Parser (Var, Type)
 argTypeP = do 
@@ -171,11 +180,13 @@ typeP =  (rWord "float" >> return Float)
 -- | Contract Parser 
 --------------------------------------------------------------------------------
 predP :: Parser Pred 
-predP = parens pred0P 
+predP =  parens pred0P 
+     <|> const PTrue        <$> rWord "true" 
+     <|> const (PNot PTrue) <$> rWord "false" 
+     <?> "pred"
 
 pred0P :: Parser Pred 
-pred0P =  const PTrue <$> rWord "true" 
-      <|> PAnd        <$> (rWord "and" *> many predP)
+pred0P =  PAnd        <$> (rWord "and" *> many predP)
       <|> POr         <$> (rWord "or"  *> many predP) 
       <|> PNot        <$> (rWord "not" *>      predP) 
       <|> pAtomP 
@@ -282,6 +293,7 @@ keywords =
   , "bitcast", "to"
   , "and", "or"
   , "ret"
+  , "true", "false"
   ]
 
 withSpan' :: Parser (SourceSpan -> a) -> Parser a
