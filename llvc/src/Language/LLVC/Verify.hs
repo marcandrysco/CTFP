@@ -104,8 +104,8 @@ primitiveContracts =
   , ( FnBitcast Float (I 32) 
     , postCond 1 "(= %ret (to_ieee_bv  %arg0))" )
 
-  , ( FnFunc "@llvm.fabs.f32"
-    , postCond 1 "(fp.eq %ret (fp.abs %arg0))" )
+--  , ( FnFunc "@llvm.fabs.f32"
+--    , postCond 1 "(fp.eq %ret (fp.abs %arg0))" )
   ] 
 
 postCond :: Int -> Text -> Contract 

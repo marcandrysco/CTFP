@@ -155,6 +155,9 @@ preamble = mconcat $ cmd <$>
   -- CONSTANTS
   , "(define-const addmin Float32 ((_ to_fp 8 24) #x0c000000))"  
   , "(define-const zero Float32 ((_ to_fp 8 24) #x00000000))"
+  , "(define-fun copysign ((a Float32) (b Float32)) Float32\ 
+     \  (to_fp_32 (bvor (bvand (to_ieee_bv a) #x7fffffff)\ 
+     \                  (bvand (to_ieee_bv b) #x80000000))))"
   ]
 
 cmd :: UX.Text -> VC

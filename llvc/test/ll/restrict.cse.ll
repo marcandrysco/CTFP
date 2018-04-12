@@ -1,12 +1,13 @@
 ; Function Attrs: nounwind readnone
 declare float @llvm.fabs.f32(float) #0
 ;@ requires true 
-;@ ensures  true 
+;@ ensures  (fp.eq %ret (fp.abs %arg0))
 
 ; Function Attrs: nounwind readnone
 declare float @llvm.copysign.f32(float, float) #0
 ;@ requires true 
-;@ ensures  true 
+;@ ensures  (= %ret (copysign %arg0 %arg1)) 
+
 
 
 ; Function Attrs: alwaysinline
