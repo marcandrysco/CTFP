@@ -31,6 +31,12 @@ filterGoals All       xs = xs
 filterGoals (Some fs) xs = filter ((`elem` fs) . fst) xs 
 
 checkVC :: FilePath -> (Text, VC) -> IO () 
+checkVC f (fn, vc) = 
+  runQuery f smtF vc
+  where 
+    smtF = f <.> tail fn <.> "smt2"
+{- 
+checkVC :: FilePath -> (Text, VC) -> IO () 
 checkVC f (fn, vc) = do 
   let smtF = f <.> tail fn <.> "smt2"
   -- let logF = f <.> "log"
@@ -41,6 +47,7 @@ checkVC f (fn, vc) = do
   _ <- Utils.executeShellCommand Nothing cmd 100  
   hFlush stdout
   return ()
+-}
 
 esHandle :: Handle -> IO a -> [UserError] -> IO a
 esHandle h exitF es = renderErrors es >>= hPutStrLn h >> exitF

@@ -61,8 +61,8 @@ instance ToSmt VC where
   toSmt (VC cmds) = unlines (toSmt <$> cmds) 
 
 instance ToSmt Cmd where 
-  toSmt (Say s)    = s 
-  toSmt (Hear s _) = s 
+  toSmt (Say s)      = s 
+  toSmt (Hear s _ _) = s 
 
 instance ToSmt Op where 
   toSmt BvAnd     = "bvand"
@@ -137,7 +137,7 @@ sanitizeChar c   = c
 type    Smt = UX.Text
 newtype VC  = VC [Cmd] 
 data Cmd    = Say  !Smt 
-            | Hear !Smt !UX.SourceSpan
+            | Hear !Smt !Response !UX.SourceSpan
 
 instance Monoid VC where 
   mempty                  = VC [] 
@@ -171,7 +171,7 @@ push     = say  "(push 1)"
 pop      = say  "(pop 1)"
 
 checkSat :: UX.SourceSpan -> VC
-checkSat l = VC [ Hear "(check-sat)" l ]
+checkSat l = VC [ Hear "(check-sat)" Unsat l ]
 
 say :: UX.Text -> VC
 say s = VC [ Say s ]
@@ -179,11 +179,42 @@ say s = VC [ Say s ]
 -------------------------------------------------------------------------------
 -- | VC "Execution" API 
 -------------------------------------------------------------------------------
+runQuery :: FilePath -> VC -> IO [UX.SourceSpan]
+runQuery f (VC cmds) = do 
+  me <- makeContext f
+  rs <- mapM (command me) cmds 
+  return [ l | Fail l <- rs]
 
-runQuery :: VC -> IO [UX.SourceSpan]
-runQuery = error "TODO:runQuery"
+--------------------------------------------------------------------------------
+command              :: Context -> Cmd -> IO Response
+--------------------------------------------------------------------------------
+command me !cmd       = talk cmd >> hear cmd
+  where
+    talk              = smtWrite me . T.pack . toSmt 
+    hear (Hear _ s l) = smtRead me >>= (\s' -> return $ if s == s' then Ok else Fail l)
+    hear _            = return Ok
 
+
+
+data Response 
+  = Ok 
+  | Sat 
+  | Unsat 
+  | Fail !UX.SourceSpan 
+  deriving (Eq)
+
+--------------------------------------------------------------------------------
+data Context = Ctx
+  { ctxPid     :: !ProcessHandle
+  , ctxCin     :: !Handle
+  , ctxCout    :: !Handle
+  , ctxLog     :: !(Maybe Handle)
+  }
+
+
+--------------------------------------------------------------------------------
 makeContext :: FilePath -> IO Context
+--------------------------------------------------------------------------------
 makeContext f = do 
   me       <- makeProcess 
   prelude  <- readPrelude 
@@ -195,6 +226,15 @@ makeContext f = do
   where
     smtFile = f <.> "smt2" 
 
+makeProcess :: IO Context
+makeProcess = do 
+  (hOut, hIn, _ ,pid) <- runInteractiveCommand "z3" 
+  return Ctx { ctxPid     = pid
+             , ctxCin     = hIn
+             , ctxCout    = hOut
+             , ctxLog     = Nothing
+             }
+
 smtWrite :: Context -> T.Text -> IO ()
 smtWrite me !s = smtWriteRaw me s
 
@@ -202,7 +242,9 @@ smtRead :: Context -> IO Response
 smtRead me = strResponse . T.unpack <$> smtReadRaw me
 
 strResponse :: String -> Response 
-strResponse = undefined 
+strResponse "sat"   = Sat 
+strResponse "unsat" = Unsat 
+strResponse s       = error ("SMT: Unexpected response: " ++ s)
 
 smtWriteRaw      :: Context -> T.Text -> IO ()
 smtWriteRaw me !s = {-# SCC "smtWriteRaw" #-} do
@@ -215,32 +257,4 @@ smtReadRaw me    = {-# SCC "smtReadRaw" #-} TIO.hGetLine (ctxCin me)
 hPutStrLnNow     :: Handle -> T.Text -> IO ()
 hPutStrLnNow h !s = TIO.hPutStrLn h s >> hFlush h
 
-
---------------------------------------------------------------------------------
-command              :: Context -> Cmd -> IO Response
---------------------------------------------------------------------------------
-command me !cmd     = say cmd >> hear cmd
-  where
-    say             = smtWrite me . T.pack . toSmt 
-    hear (Hear _ l) = undefined -- smtRead me
-    hear _          = return Ok
-
-makeProcess :: IO Context
-makeProcess = do 
-  (hOut, hIn, _ ,pid) <- runInteractiveCommand "z3" 
-  return Ctx { ctxPid     = pid
-             , ctxCin     = hIn
-             , ctxCout    = hOut
-             , ctxLog     = Nothing
-             }
-
-data Response 
-  = Ok 
-  | Fail !UX.SourceSpan 
-
-data Context = Ctx
-  { ctxPid     :: !ProcessHandle
-  , ctxCin     :: !Handle
-  , ctxCout    :: !Handle
-  , ctxLog     :: !(Maybe Handle)
-  }
+ 
