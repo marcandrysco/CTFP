@@ -29,15 +29,16 @@ type Var   = UX.Text
 -- | 'Fn' correspond to the different kinds of "operations"
 -------------------------------------------------------------------------------
 data Fn 
-  = FnFcmp    Rel               -- ^ 'fcmp' olt 
-  | FnBin     Op                -- ^ binary operation 
-  | FnSelect                    -- ^ ternary 'select' 
-  | FnBitcast Type Type         -- ^ 'bitcast' 
-  | FnFunc    Var               -- ^ something that is 'call'ed 
+  = FnCmp     Type Rel     -- ^ 'fcmp' olt 
+  | FnBin     Op           -- ^ binary operation 
+  | FnSelect               -- ^ ternary 'select' 
+  | FnBitcast Type Type    -- ^ 'bitcast' 
+  | FnFunc    Var          -- ^ something that is 'call'ed 
   deriving (Eq, Ord, Show, Generic)
 
 data Rel 
   = Olt 
+  | Slt  
   deriving (Eq, Ord, Show, Generic) 
 
 instance Hashable Type 
@@ -47,10 +48,12 @@ instance Hashable Fn
 
 instance UX.PPrint Rel where 
   pprint Olt = "olt"
+  pprint Slt = "slt"
 
 instance UX.PPrint Fn where 
-  pprint (FnFcmp r)     = printf "fcmp %s" (UX.pprint r)
-  pprint (FnBin  o)     = UX.pprint o
+  pprint (FnCmp Float r) = printf "fcmp %s" (UX.pprint r)
+  pprint (FnCmp (I _) r) = printf "icmp %s" (UX.pprint r)
+  pprint (FnBin  o)      = UX.pprint o
   pprint FnSelect       = "select" 
   pprint (FnBitcast {}) = "bitcast" 
   pprint (FnFunc f)     = f
@@ -59,9 +62,10 @@ instance UX.PPrint Fn where
 -- | 'Expr' correspond to the RHS of LLVM assignments 
 -------------------------------------------------------------------------------
 data Arg a 
-  = ELit  !Integer       a 
-  | ETLit !Integer !Type a 
-  | EVar  !Var           a 
+  = ELit  !Integer       a    -- ^ integer 
+  | ETLit !Integer !Type a    -- ^ integer interpreted at a type
+  | EVar  !Var           a    -- ^ variable 
+  | ECon  !UX.Text       a    -- ^ smt-string-literal e.g. #x00000005
   deriving (Eq, Ord, Show, Functor)
 
 data Expr a 
@@ -75,17 +79,23 @@ instance UX.PPrint (Arg a) where
   pprint (ELit  n _  ) = show n 
   pprint (ETLit n _ _) = show n 
   pprint (EVar  x _  ) = x 
+  pprint (ECon  s _  ) = s 
 
 instance UX.PPrint (Expr a) where 
   pprint (ECall fn tes t _) = ppCall fn tes t 
+
+ppCmp :: Type -> Rel -> UX.Text 
+ppCmp Float Olt = "fcmp olt"
+ppCmp (I _) Slt = "icmp slt"
+ppCmp t     r   = error $ "ppCmp: " ++ show (t, r)
 
 ppCall :: Fn -> [TypedArg a] -> Type -> UX.Text 
 ppCall (FnFunc f) tes t   
   = printf "call %s %s (%s)" (UX.pprint t) f (pprints tes) 
 ppCall (FnBin o) [te1, (_, e2)] _ 
   = printf "%s %s, %s" (UX.pprint o) (UX.pprint te1) (UX.pprint e2) 
-ppCall (FnFcmp r) [te1, (_, e2)] _ 
-  = printf "fcmp %s %s, %s" (UX.pprint r) (UX.pprint te1) (UX.pprint e2) 
+ppCall (FnCmp t r) [te1, (_, e2)] _ 
+  = printf "%s %s, %s" (ppCmp t r) (UX.pprint te1) (UX.pprint e2) 
 ppCall FnSelect tes _ 
   = printf "select %s" (pprints tes)
 ppCall (FnBitcast _ _) [te] t 
@@ -165,6 +175,7 @@ instance Labeled Arg where
   getLabel (ELit  _ z)   = z 
   getLabel (ETLit _ _ z) = z 
   getLabel (EVar _ z)    = z 
+  getLabel (ECon _ z)    = z 
 
 instance Labeled Expr where 
   getLabel (ECall _ _ _ z) = z 
@@ -173,8 +184,8 @@ instance Labeled Expr where
 -- | Constructors 
 -------------------------------------------------------------------------------
 
-mkFcmp :: Rel -> Type -> Arg a -> Arg a -> a -> Expr a 
-mkFcmp r t e1 e2 = ECall (FnFcmp r) [tLit (t, e1), tLit (t, e2)] (I 1)
+mkCmp :: Rel -> Type -> Arg a -> Arg a -> a -> Expr a 
+mkCmp r t e1 e2 = ECall (FnCmp t r) [tLit (t, e1), tLit (t, e2)] (I 1)
 
 mkSelect :: (Show a) => TypedArg a -> TypedArg a -> TypedArg a -> a -> Expr a 
 mkSelect x@(t1, _) y@(t2, _) z@(t3, _) l 

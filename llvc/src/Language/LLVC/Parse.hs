@@ -69,7 +69,8 @@ declareP = do
 
 defineP :: Parser BareDef 
 defineP = do 
-  outTy           <- rWord "weak" *> typeP
+  _               <- many (rWord "weak")
+  outTy           <- typeP
   (name, sp)      <- identifier "@" 
   dArgs           <- argTypesP <* many attrP
   (pre,post,body) <- braces ((,,) <$> requiresP <*> ensuresP <*> bodyP) 
@@ -107,12 +108,14 @@ retP = do
 argP :: Parser BareArg 
 argP 
   =  uncurry EVar <$> identifier "%" 
+ <|> uncurry ECon <$> identifier "#"
  <|> uncurry ELit <$> integer 
+
 
 exprP :: Parser BareExpr 
 exprP 
   =  eCallP 
- <|> fcmpP 
+ <|> cmpP 
  <|> selectP 
  <|> bitcastP 
  <|> binExprP 
@@ -151,17 +154,19 @@ selectP = do
 typedArgP :: Parser BareTypedArg  
 typedArgP = (,) <$> typeP <*> argP
 
-fcmpP :: Parser BareExpr 
-fcmpP = do 
-  sp    <- rWord "fcmp" 
+cmpP :: Parser BareExpr 
+cmpP = do 
+  sp    <- rWord "fcmp" <|> rWord "icmp"
   r     <- relP 
   t     <- typeP 
   e1    <- argP <* comma 
   e2    <- argP 
-  return $ mkFcmp r t e1 e2 sp
-
+  return $ mkCmp r t e1 e2 sp
+ 
 relP :: Parser Rel 
-relP = rWord "olt" >> return Olt
+relP =  (rWord "olt" >> return Olt)
+    <|> (rWord "slt" >> return Slt) 
+    <?> "relation"
 
 eCallP :: Parser BareExpr 
 eCallP = do 

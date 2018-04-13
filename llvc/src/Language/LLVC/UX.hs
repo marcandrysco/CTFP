@@ -40,6 +40,7 @@ import           Data.List.NonEmpty         as NE
 import           Text.Megaparsec
 import           Text.Printf (printf)
 import           Language.LLVC.Utils
+import           System.Directory (doesFileExist)
 
 
 type Text = String
@@ -99,7 +100,12 @@ spanInfo s = (f s, l1 s, c1 s, l2 s, c2 s)
 --------------------------------------------------------------------------------
 readFileSpan :: SourceSpan -> IO String
 --------------------------------------------------------------------------------
-readFileSpan sp = getSpan sp <$> readFile (spanFile sp)
+readFileSpan sp = do 
+  let f = spanFile sp 
+  exists <- doesFileExist f 
+  if exists 
+    then getSpan sp <$> readFile f 
+    else return ("Missing file: " ++ f)
 
 spanFile :: SourceSpan -> FilePath
 spanFile = sourceName . ssBegin

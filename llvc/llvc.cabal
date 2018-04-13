@@ -2,7 +2,7 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: d3db82ea545ef849a3cc488be1712de25ad5207e3ef65ae8be1c3a3b6d82e13e
+-- hash: 6fd52f8c21883d0cec0ab1775ddf93573a5d51bab11b689b419ddc2aa08d3029
 
 name:           llvc
 version:        0.1.0.0
@@ -20,6 +20,9 @@ cabal-version:  >= 1.10
 extra-source-files:
     ChangeLog.md
     README.md
+
+data-files:
+    include/prelude.smt2
 
 source-repository head
   type: git
@@ -58,8 +61,15 @@ executable llvc
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
+    , cmdargs
+    , containers
+    , directory
     , filepath
+    , hashable
     , llvc
+    , megaparsec
+    , process
+    , unordered-containers
   other-modules:
       Paths_llvc
   default-language: Haskell2010
@@ -72,7 +82,15 @@ test-suite llvc-test
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
+    , cmdargs
+    , containers
+    , directory
+    , filepath
+    , hashable
     , llvc
+    , megaparsec
+    , process
+    , unordered-containers
   other-modules:
       Paths_llvc
   default-language: Haskell2010

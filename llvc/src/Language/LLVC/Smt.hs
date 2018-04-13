@@ -7,7 +7,7 @@ module Language.LLVC.Smt
 
   -- * Initializing 
   , comment
-  , preamble 
+  -- , preamble 
 
     -- * Constructing Queries
   , declare
@@ -25,10 +25,16 @@ import           Language.LLVC.Types
 import qualified Language.LLVC.Utils as Utils
 import qualified Language.LLVC.UX    as UX
 import qualified Data.HashMap.Strict as M 
+import qualified Paths_llvc 
 
 writeQuery :: FilePath -> VC -> IO () 
-writeQuery f vc = writeFile f (toSmt vc) 
+writeQuery f vc = do 
+  prelude  <- readPrelude 
+  writeFile f $ prelude ++ toSmt vc 
 -- (preamble <> vc))
+
+readPrelude :: IO UX.Text 
+readPrelude = readFile =<< Paths_llvc.getDataFileName "include/prelude.smt2"
 
 -------------------------------------------------------------------------------
 -- | Serializing API
@@ -60,6 +66,7 @@ instance ToSmt (Arg a) where
   toSmt (ETLit n _ _)      = show n 
   toSmt (ELit n    _)      = show n 
   toSmt (EVar x    _)      = toSmt x 
+  toSmt (ECon x    _)      = x 
 
 convTable :: M.HashMap (Integer, Type) String
 convTable = M.fromList 
@@ -144,17 +151,20 @@ push     = cmd "(push 1)"
 pop      = cmd "(pop 1)"
 checkSat = cmd "(check-sat)" 
 
-preamble :: VC 
-preamble = mconcat $ cmd <$> 
+_preamble :: VC 
+_preamble = mconcat $ cmd <$> 
   [ "(set-logic QF_FPBV)"
   , "(define-sort Int1    () Bool)"
   , "(define-sort Int32   () (_ BitVec 32))"
   -- , "(define-sort Float32 () (_ FloatingPoint  8 24))"
   , "(define-fun to_fp_32 ((a Int32)) Float32  ((_ to_fp 8 24) RNE a))"
   , "(define-fun fp_add ((a Float32) (b Float32)) Float32 (fp.add RNE a b))"
-  -- CONSTANTS
   , "(define-const addmin Float32 ((_ to_fp 8 24) #x0c000000))"  
   , "(define-const zero Float32 ((_ to_fp 8 24) #x00000000))"
+
+  , "(define-fun lt ((a Int32) (b Int32)) Bool (bvslt a b))" 
+  , "(define-fun rng ((n Int32) (x Int32)) Bool (or (= 0 x) (<= n x)))" 
+  , "(define-fun trunc ((n Int32) (x Int32)) Int32 (ite (< x n) 0 x))"
   , "(define-fun copysign ((a Float32) (b Float32)) Float32\ 
      \  (to_fp_32 (bvor (bvand (to_ieee_bv a) #x7fffffff)\ 
      \                  (bvand (to_ieee_bv b) #x80000000))))"

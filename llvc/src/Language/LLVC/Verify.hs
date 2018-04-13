@@ -25,13 +25,14 @@ vcs p   = [ (f, vcFun env fd fb)
 
 vcFun :: (Located a) => Env -> FnDef a -> FnBody a -> VC 
 vcFun env fd fb = comment    ("VC for: " ++  fnName fd)
-               <> preamble
                <> mconcatMap declare      (fnArgTys fd) 
+               <> assert                  pre
                <> mconcatMap (vcAsgn env) (fnAsgns  fb)
-               <> check      (subst su    (fnPost   fd)) 
+               <> check      (subst su    post) 
   where 
     su          = [(retVar, snd (fnRet fb))]
-    fnPost      = ctPost . fnCon 
+    pre         = ctPre  (fnCon fd)        
+    post        = ctPost (fnCon fd)
 
 vcAsgn :: (Located a) => Env  -> ((Var, a), Expr a) -> VC 
 vcAsgn env asgn@((x, _), ECall fn tys tx l) 
@@ -80,8 +81,11 @@ mkEnv p   = M.fromList (prims ++ defs)
 -- | We could parse these in too, in due course.
 primitiveContracts :: [(Fn, Contract)]
 primitiveContracts =  
-  [ (FnFcmp Olt 
+  [ ( FnCmp Float Olt 
     , postCond 2 "(= %ret (fp.lt %arg0 %arg1))" 
+    )
+  , ( FnCmp (I 32) Slt 
+    , postCond 2 "(= %ret (lt %arg0 %arg1))" 
     )
   , ( FnBin BvXor
     , postCond 2 "(= %ret (bvxor %arg0 %arg1))" 

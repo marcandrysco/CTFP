@@ -49,13 +49,17 @@ trim = f . f  where f = reverse . dropWhile isSpace
 trimEnd :: String -> String
 trimEnd = reverse . dropWhile isSpace . reverse  
 
-executeShellCommand :: FilePath -> String -> Int -> IO ExitCode
-executeShellCommand logF cmd n = fromMaybe (ExitFailure 100) <$> body
+executeShellCommand :: Maybe FilePath -> String -> Int -> IO ExitCode
+executeShellCommand logMb cmd n = fromMaybe (ExitFailure 100) <$> body
   where
-    body = timeout n . withFile logF AppendMode $ \h -> do
+    body = timeout n . {- withFile logF AppendMode -} withH $ \h -> do
              let p       = (shell cmd) {std_out = UseHandle h, std_err = UseHandle h}
              (_,_,_,ph) <- createProcess p
              waitForProcess ph
+    withH = case logMb of 
+              Just logF -> withFile logF AppendMode
+              Nothing   -> \act -> act stdout
+
 
 data Phase = Start | Stop deriving (Show)
 

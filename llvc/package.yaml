@@ -21,20 +21,23 @@ description:         Please see the README on Github at <https://github.com/ucsd
 
 dependencies:
 - base >= 4.7 && < 5
+- cmdargs
+- process
+- directory
+- filepath
+- hashable 
+- containers
+- unordered-containers
+- megaparsec
 
+data-files:
+- include/prelude.smt2
+ 
 library:
   source-dirs: src
   ghc-options:
     - -Wall 
-  dependencies:
-    - cmdargs
-    - process
-    - directory
-    - filepath
-    - hashable 
-    - containers
-    - unordered-containers
-    - megaparsec
+
 
 executables:
   llvc:
@@ -47,7 +50,6 @@ executables:
     - -with-rtsopts=-N
     dependencies:
     - llvc
-    - filepath
 
 tests:
   llvc-test:
