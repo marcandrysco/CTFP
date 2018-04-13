@@ -23,12 +23,16 @@ module Language.LLVC.Smt
   ) 
   where 
 
-import qualified Data.Text                as T
-import qualified Data.Text.Lazy.Builder   as LT
+import qualified Data.Text    as T
+import qualified Data.Text.IO as TIO
+-- import qualified Data.Text.Lazy           as LT
+-- import qualified Data.Text.Lazy.Builder   as LT
 -- import           Text.PrettyPrint.HughesPJ
     
-import           System.IO                (Handle)
+import           System.IO                as IO -- (openFile, Handle)
 import           System.Process
+import           System.Directory 
+import           System.FilePath 
 
 import           Text.Printf (printf) 
 import           Data.Monoid
@@ -179,34 +183,28 @@ say s = VC [ Say s ]
 runQuery :: VC -> IO [UX.SourceSpan]
 runQuery = error "TODO:runQuery"
 
-makeContext   :: Config -> FilePath -> IO Context
-makeContext cfg f
-  = do me       <- makeProcess cfg
-       prelude  <- readPrelude 
-       createDirectoryIfMissing True $ takeDirectory smtFile
-       hLog     <- openFile smtFile WriteMode
-       let me'   = me { ctxLog = Just hLog }
-       mapM_ (smtWrite me') prelude
-       return me'
-    where
-       smtFile = f <.> "smt2" 
+makeContext :: FilePath -> IO Context
+makeContext f = do 
+  me       <- makeProcess 
+  prelude  <- readPrelude 
+  createDirectoryIfMissing True $ takeDirectory smtFile
+  hLog     <- IO.openFile smtFile WriteMode
+  let me'   = me { ctxLog = Just hLog }
+  smtWrite me' (T.pack prelude)
+  return me'
+  where
+    smtFile = f <.> "smt2" 
 
-smtWrite :: Context -> Raw -> IO ()
+smtWrite :: Context -> T.Text -> IO ()
 smtWrite me !s = smtWriteRaw me s
 
 smtRead :: Context -> IO Response
-smtRead me = {-# SCC "smtRead" #-} do
-  when (ctxVerbose me) $ LTIO.putStrLn "SMT READ"
-  ln  <- smtReadRaw me
-  res <- A.parseWith (smtReadRaw me) responseP ln
-  case A.eitherResult res of
-    Left e  -> Misc.errorstar $ "SMTREAD:" ++ e
-    Right r -> do
-      maybe (return ()) (\h -> hPutStrLnNow h $ format "; SMT Says: {}" (Only $ show r)) (ctxLog me)
-      when (ctxVerbose me) $ LTIO.putStrLn $ format "SMT Says: {}" (Only $ show r)
-      return r
+smtRead me = strResponse . T.unpack <$> smtReadRaw me
 
-smtWriteRaw      :: Context -> Raw -> IO ()
+strResponse :: String -> Response 
+strResponse = undefined 
+
+smtWriteRaw      :: Context -> T.Text -> IO ()
 smtWriteRaw me !s = {-# SCC "smtWriteRaw" #-} do
   hPutStrLnNow (ctxCout me) s
   maybe (return ()) (`hPutStrLnNow` s) (ctxLog me)
@@ -214,37 +212,26 @@ smtWriteRaw me !s = {-# SCC "smtWriteRaw" #-} do
 smtReadRaw       :: Context -> IO T.Text
 smtReadRaw me    = {-# SCC "smtReadRaw" #-} TIO.hGetLine (ctxCin me)
 
-hPutStrLnNow     :: Handle -> LT.Text -> IO ()
-hPutStrLnNow h !s = LTIO.hPutStrLn h s >> hFlush h
+hPutStrLnNow     :: Handle -> T.Text -> IO ()
+hPutStrLnNow h !s = TIO.hPutStrLn h s >> hFlush h
 
-type SmtParser a = Parser T.Text a
-
-responseP :: SmtParser Response
-responseP = {-# SCC "responseP" #-} A.char '(' *> sexpP
-         <|> A.string "sat"     *> return Sat
-         <|> A.string "unsat"   *> return Unsat
-         <|> A.string "unknown" *> return Unknown
 
 --------------------------------------------------------------------------------
 command              :: Context -> Cmd -> IO Response
 --------------------------------------------------------------------------------
-command me !cmd       = say cmd >> hear cmd
+command me !cmd     = say cmd >> hear cmd
   where
-    env               = ctxSymEnv me
-    say               = smtWrite me . Builder.toLazyText . runSmt2 env
-    hear CheckSat     = smtRead me
-    hear (GetValue _) = smtRead me
-    hear _            = return Ok
+    say             = smtWrite me . T.pack . toSmt 
+    hear (Hear _ l) = undefined -- smtRead me
+    hear _          = return Ok
 
 makeProcess :: IO Context
 makeProcess = do 
   (hOut, hIn, _ ,pid) <- runInteractiveCommand "z3" 
-  loud <- isLoud
   return Ctx { ctxPid     = pid
              , ctxCin     = hIn
              , ctxCout    = hOut
              , ctxLog     = Nothing
-             , ctxVerbose = loud
              }
 
 data Response 
@@ -256,5 +243,4 @@ data Context = Ctx
   , ctxCin     :: !Handle
   , ctxCout    :: !Handle
   , ctxLog     :: !(Maybe Handle)
-  , ctxVerbose :: !Bool
   }
