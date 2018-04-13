@@ -97,7 +97,9 @@ primitiveContracts =
     , postCond 2 "(= %ret (bvand %arg0 %arg1))" 
     )
   , (FnBin FpAdd 
-    , postCond 2 "(= %ret (fp_add %arg0 %arg1))" 
+    , mkContract 2 
+        "(and (fp_rng addmin %arg0) (fp_rng addmin %arg1))"
+        "(= %ret (fp_add %arg0 %arg1))" 
     )
   , ( FnSelect   
     , postCond 3 "(= %ret (ite %arg0 %arg1 %arg2))" 
@@ -113,10 +115,19 @@ primitiveContracts =
   ] 
 
 postCond :: Int -> Text -> Contract 
-postCond n = Ct (paramVar <$> [0..(n-1)]) PTrue . pred 
+postCond n = mkContract n "true" 
+
+mkContract :: Int -> Text -> Text -> Contract 
+mkContract n tPre tPost = Ct 
+  { ctParams = paramVar <$> [0..(n-1)]
+  , ctPre    = pred tPre 
+  , ctPost   = pred tPost 
+  } 
+
+-- Ct (paramVar <$> [0..(n-1)]) PTrue . pred 
 
 pred :: Text -> Pred 
-pred = Parse.parseWith Parse.predP "foobaz-builtin"
+pred = Parse.parseWith Parse.predP "primitive-contracts" 
 
 -- putStrLn $ printf "The value of %d in hex is: 0x%08x" i i
 -- putStrLn $ printf "The value of %d in binary is: %b"  i i

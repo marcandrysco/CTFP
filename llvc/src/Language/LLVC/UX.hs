@@ -133,7 +133,7 @@ getSpanMulti l1 l2
 highlight :: Int -> Int -> Int -> String -> String
 highlight l c1 c2 s = unlines
   [ cursorLine l s
-  , replicate (12 + c1) ' ' ++ replicate (c2 - c1) '^'
+  , replicate (12 + c1) ' ' ++ replicate (1 + c2 - c1) '^'
   ]
 
 highlights :: Int -> [String] -> String

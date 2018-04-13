@@ -107,9 +107,11 @@ retP = do
 
 argP :: Parser BareArg 
 argP 
-  =  uncurry EVar <$> identifier "%" 
- <|> uncurry ECon <$> identifier "#"
+  =  uncurry ECon <$> identifier "#"
  <|> uncurry ELit <$> integer 
+ <|> uncurry EVar <$> identifier "%" 
+ <|> uncurry EVar <$> smtId 
+ <?> "smt-argument"
 
 
 exprP :: Parser BareExpr 
@@ -319,12 +321,19 @@ varP :: Text -> Parser Var
 varP s = fst <$> identifier s 
 
 identifier :: Text -> Parser (String, SourceSpan)
-identifier s = lexeme (p >>= check)
+identifier s = lexeme (p >>= checkId)
   where
     p       = (++) <$> symbol s <*> many identChar 
-    check x = if x `elem` keywords
-                then fail $ "keyword " ++ show x ++ " cannot be an identifier"
-                else return x
+
+smtId :: Parser (String, SourceSpan)
+smtId = lexeme (p >>= checkId)
+  where 
+    p = (:) <$> lowerChar <*> many identChar 
+
+checkId :: Text -> Parser Text
+checkId x 
+  | x `elem` keywords = fail $ "keyword " ++ show x ++ " cannot be an identifier"
+  | otherwise         = return x
 
 identChar :: Parser Char
 identChar = oneOf ok <?> "identifier-char"
