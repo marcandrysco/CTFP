@@ -220,7 +220,7 @@ pAtomP
  <|> atomOp 
  
 atomOp :: Parser Pred 
-atomOp = PAtom <$> (SmtOp <$> varP "") <*> many pArgP 
+atomOp = PAtom <$> (SmtOp . fst <$> smtId) <*> many pArgP 
 
 atom1 :: Text -> Op -> Parser Pred 
 atom1 kw o = (\x1 -> PAtom o [x1]) 

@@ -29,6 +29,7 @@ dependencies:
 - containers
 - unordered-containers
 - megaparsec
+- text
 
 data-files:
 - include/prelude.smt2

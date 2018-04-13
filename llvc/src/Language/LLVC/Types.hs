@@ -186,6 +186,9 @@ instance Labeled Arg where
 instance Labeled Expr where 
   getLabel (ECall _ _ _ z) = z 
   
+instance Labeled FnDef where 
+  getLabel = fnLab 
+
 -------------------------------------------------------------------------------
 -- | Constructors 
 -------------------------------------------------------------------------------

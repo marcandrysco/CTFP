@@ -25,24 +25,25 @@ vcs p   = [ (f, vcFun env fd fb)
 
 vcFun :: (Located a) => Env -> FnDef a -> FnBody a -> VC 
 vcFun env fd fb = comment    ("VC for: " ++  fnName fd)
-               <> mconcatMap declare      (fnArgTys fd) 
-               <> assert                  pre
+               <> mconcatMap (declare l)  (fnArgTys fd) 
+               <> assert     l             pre
                <> mconcatMap (vcStmt env) (fnStmts  fb)
-               <> check      (subst su    post) 
+               <> check      l (subst su    post) 
   where 
     su          = [(retVar, snd (fnRet fb))]
     pre         = ctPre  (fnCon fd)        
     post        = ctPost (fnCon fd)
+    l           = sourceSpan (getLabel fd)
 
 
 vcStmt :: (Located a) => Env -> Stmt a -> VC 
-vcStmt _ (SAssert p _) 
-  = check p
+vcStmt _ (SAssert p l) 
+  = check l p 
 vcStmt env asgn@(SAsgn x (ECall fn tys tx l) _)
   =  comment (pprint asgn)
-  <> declare (x, tx) 
-  <> check  pre 
-  <> assert post 
+  <> declare l (x, tx) 
+  <> check  l pre
+  <> assert l post 
   where 
     (pre, post) = contractAt env fn x tys l 
 

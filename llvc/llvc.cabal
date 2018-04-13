@@ -2,7 +2,7 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 6fd52f8c21883d0cec0ab1775ddf93573a5d51bab11b689b419ddc2aa08d3029
+-- hash: e5bfa68c7d9743ec4d8f7e827a21e1b91c858b979a0d27f8286addcb7ed1abc2
 
 name:           llvc
 version:        0.1.0.0
@@ -41,6 +41,7 @@ library
     , hashable
     , megaparsec
     , process
+    , text
     , unordered-containers
   exposed-modules:
       Language.LLVC.Parse
@@ -69,6 +70,7 @@ executable llvc
     , llvc
     , megaparsec
     , process
+    , text
     , unordered-containers
   other-modules:
       Paths_llvc
@@ -90,6 +92,7 @@ test-suite llvc-test
     , llvc
     , megaparsec
     , process
+    , text
     , unordered-containers
   other-modules:
       Paths_llvc

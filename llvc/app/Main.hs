@@ -17,12 +17,18 @@ main :: IO ()
 main = exec `catch` esHandle stderr exitFailure
 
 exec :: IO ()
-exec = getArgs >>= mapM_ llvc 
+exec = getGoal >>= llvc 
 
-llvc :: FilePath -> IO () 
-llvc f = do 
-  p  <- parseFile f 
-  forM_ (vcs p) (checkVC f)
+llvc :: FileGoal -> IO () 
+llvc (f, g) = do 
+  p     <- parseFile f 
+  let gs = filterGoals g (vcs p)  
+  forM_ gs (checkVC f)
+
+filterGoals :: Goal -> [(Text, VC)] -> [(Text, VC)]
+filterGoals None      _   = [] 
+filterGoals All       xs = xs 
+filterGoals (Some fs) xs = filter ((`elem` fs) . fst) xs 
 
 checkVC :: FilePath -> (Text, VC) -> IO () 
 checkVC f (fn, vc) = do 
@@ -36,8 +42,6 @@ checkVC f (fn, vc) = do
   hFlush stdout
   return ()
 
-
-
 esHandle :: Handle -> IO a -> [UserError] -> IO a
 esHandle h exitF es = renderErrors es >>= hPutStrLn h >> exitF
 
@@ -46,3 +50,24 @@ verify f = do
   putStrLn ("LLVC: checking " ++ show f) 
   return ()
 
+----
+
+type FileGoal = (FilePath, Goal) 
+
+getGoal :: IO FileGoal 
+getGoal = argsGoal <$> getArgs
+
+argsGoal :: [String] -> FileGoal 
+argsGoal (f:rest) = (f, goal rest) 
+argsGoal _        = error "usage: 'llvc FILE {*, function-name}'" 
+
+goal :: [String] -> Goal 
+goal []      = None 
+goal ("*":_) = All 
+goal fs      = Some fs 
+
+data Goal 
+  = Some [Text]   -- ^ Check a single function's VC
+  | All           -- ^ Check all  functions' VC
+  | None          -- ^ Don't check, just generate VCs 
+  deriving (Eq, Show)
