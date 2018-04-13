@@ -117,8 +117,13 @@ pprints = L.intercalate ", " . fmap UX.pprint
 
 type Program a = M.HashMap Var (FnDef a)  -- ^ A list of function declarations
 
+data Stmt a 
+  = SAsgn   !Var (Expr a) a          -- ^ Assignments for each variable
+  | SAssert !Pred         a          -- ^ Assertion to be checked at a point.
+  deriving (Eq, Show, Functor)
+
 data FnBody a = FnBody 
-  { fnAsgns :: [((Var, a), Expr a)]  -- ^ Assignments for each variable
+  { fnStmts :: ![Stmt a]             -- ^ Statements 
   , fnRet   :: !(TypedArg a)         -- ^ Return value
   }
   deriving (Eq, Show, Functor)
@@ -154,12 +159,13 @@ instance UX.PPrint (Var, Type) where
   pprint (x, t) = printf "%s %s" (UX.pprint t) x 
 
 instance UX.PPrint (FnBody a) where 
-  pprint (FnBody xes te)  = unlines ("{" : fmap ppAsgn xes ++ [ppRet te, "}"]) 
+  pprint (FnBody stmts te)  = unlines ("{" : fmap UX.pprint stmts ++ [ppRet te, "}"]) 
     where 
-      ppRet               = printf "  ret %s"     . UX.pprint  
+      ppRet                 = printf "  ret %s"     . UX.pprint  
 
-ppAsgn :: ((Var, a), Expr b) -> UX.Text
-ppAsgn ((x,_), e)   = printf "  %s = %s"  x (UX.pprint e)
+instance UX.PPrint (Stmt a) where 
+  pprint (SAsgn x e _) = printf "  %s = %s"    x (UX.pprint e)
+  pprint (SAssert _ _) = ";@ assert TODO"  -- (UX.pprint p)  
 
 instance UX.PPrint (Program a) where 
   pprint p = L.intercalate "\n\n" (UX.pprint <$> M.elems p)
@@ -281,6 +287,8 @@ instance UX.PPrint Op where
   pprint Eq        = "=" 
   pprint (SmtOp x) = x
 
+
+
 -- | 'Pred' are boolean combinations of 'Expr' used to define contracts 
 data Pred 
   = PArg   !BareArg
@@ -311,6 +319,7 @@ subst su             = go
 
 type BareTypedArg  = TypedArg  UX.SourceSpan 
 type BareProgram   = Program   UX.SourceSpan 
+type BareStmt      = Stmt      UX.SourceSpan 
 type BareArg       = Arg       UX.SourceSpan 
 type BareDef       = FnDef     UX.SourceSpan 
 type BareExpr      = Expr      UX.SourceSpan 

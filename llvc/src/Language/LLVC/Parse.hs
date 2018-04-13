@@ -90,10 +90,17 @@ argTypeP = do
   return (x, t)
 
 bodyP :: Parser BareBody
-bodyP = FnBody <$> many assignP <*> retP 
+bodyP = FnBody <$> many stmtP <*> retP 
 
-assignP :: Parser (BareVar, BareExpr) 
-assignP = (,) <$> identifier "%" <* symbol "=" <*> exprP
+stmtP :: Parser BareStmt 
+stmtP 
+  =  flip SAssert <$> (symbol ";@" *> rWord "assert") <*> predP
+ <|> mkAsgn       <$> (identifier "%" <* symbol "=")  <*> exprP
+  where 
+    mkAsgn (x,l) e = SAsgn x e l 
+
+-- assignP :: Parser (BareVar, BareExpr) 
+-- assignP = (,) <$> identifier "%" <* symbol "=" <*> exprP
 
 argTypesP :: Parser [(Var, Type)] 
 argTypesP = parens (sepBy argTypeP comma) 

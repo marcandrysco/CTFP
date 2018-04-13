@@ -54,7 +54,6 @@ instance ToSmt Op where
   toSmt FpEq      = "fp.eq" 
   toSmt FpAbs     = "fp.abs" 
   toSmt FpLt      = "fp.lt" 
-  -- toSmt ToFp32 = "to_fp_32" 
   toSmt ToFp32    = "(_ to_fp 8 24) RNE"
   toSmt Ite       = "ite" 
   toSmt Eq        = "=" 
