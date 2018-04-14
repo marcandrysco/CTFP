@@ -62,14 +62,6 @@ contractAt env fn rv tys l = (pre, post)
     formals                = retVar    : ctParams ct
     ct                     = contract env fn (sourceSpan l) 
 
--- resultType :: Program a -> Fn -> [TypedArg a] -> Type -> Type 
--- resultType _ _ _ t           = t 
--- resultType _ (FnFunc _) _ t  = t 
--- resultType _ (FnBin _) _  t  = t 
--- resultType _ (FnFcmp _) _ t  = t 
--- resultType _ FnSelect _ t    = t 
--- resultType _ FnBitcast _ t   = t 
-
 -------------------------------------------------------------------------------
 -- | Contracts for all the `Fn` stuff.
 -------------------------------------------------------------------------------
@@ -119,8 +111,6 @@ primitiveContracts =
   , ( FnBitcast Float (I 32) 
     , postCond 1 "(= %ret (to_ieee_bv  %arg0))" )
 
---  , ( FnFunc "@llvm.fabs.f32"
---    , postCond 1 "(fp.eq %ret (fp.abs %arg0))" )
   ] 
 
 postCond :: Int -> Text -> Contract 
@@ -132,7 +122,6 @@ mkContract n tPre tPost = Ct
   , ctPre    = pred tPre 
   , ctPost   = pred tPost 
   } 
-
 
 pred :: Text -> Pred 
 pred = Parse.parseWith Parse.predP "primitive-contracts" 

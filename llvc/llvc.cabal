@@ -2,7 +2,7 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 055afb197c75468d810acd161c0ac838385dd6d1778a689377aad8d17cb94a8a
+-- hash: 4413e456c1128433ecbe709910a45c523141949ddb74bbd2e2194efaefc6b5b5
 
 name:           llvc
 version:        0.1.0.0
@@ -34,6 +34,7 @@ library
   ghc-options: -Wall
   build-depends:
       ansi-terminal
+    , attoparsec
     , base >=4.7 && <5
     , cmdargs
     , containers
@@ -63,6 +64,7 @@ executable llvc
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       ansi-terminal
+    , attoparsec
     , base >=4.7 && <5
     , cmdargs
     , containers
@@ -86,6 +88,7 @@ test-suite llvc-test
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       ansi-terminal
+    , attoparsec
     , base >=4.7 && <5
     , cmdargs
     , containers

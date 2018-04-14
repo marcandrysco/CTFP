@@ -1,6 +1,6 @@
 module Main where
 
-import qualified Data.List as L
+-- import qualified Data.List as L
 import           Control.Exception
 import           System.Environment 
 import           System.FilePath 
@@ -20,26 +20,20 @@ main = (getGoal >>= llvc)
           `catch` 
              esHandle Utils.Crash exitFailure
 
- 
-
 llvc :: FileGoal -> IO () 
 llvc (f, g) = do 
-  putStrLn $ "\nllvc: checking " ++ show f 
+  -- putStrLn $ "\nllvc: checking " ++ show f 
   p       <- parseFile f 
   let gs   = filterGoals g (vcs p)  
-  putStrLn $ "\nGoals: " ++ L.intercalate ", " (fst <$> gs) ++ "\n" 
+  -- putStrLn $ "\nGoals: " ++ L.intercalate ", " (fst <$> gs) ++ "\n" 
   errs    <- concat <$> mapM (checkVC f) gs 
   case errs of 
     [] -> esHandle Utils.Safe   exitSuccess [] 
     _  -> esHandle Utils.Unsafe exitFailure errs
 
-filterGoals :: Goal -> [(Text, VC)] -> [(Text, VC)]
-filterGoals None      _   = [] 
-filterGoals All       xs = xs 
-filterGoals (Some fs) xs = filter ((`elem` fs) . fst) xs 
-
 checkVC :: FilePath -> (Text, VC) -> IO [UserError] 
 checkVC f (fn, vc) = do 
+  putStrLn $ "llvc checking: " ++ fn
   let smtF = f <.> tail fn <.> "smt2"
   runQuery smtF vc
 
@@ -49,6 +43,10 @@ esHandle status exitF es = Utils.exitStatus status >> renderErrors es >>= putStr
 ----
 
 type FileGoal = (FilePath, Goal) 
+
+filterGoals :: Goal -> [(Text, VC)] -> [(Text, VC)]
+filterGoals All       xs = xs
+filterGoals (Some fs) xs = filter ((`elem` fs) . fst) xs 
 
 getGoal :: IO FileGoal 
 getGoal = argsGoal <$> getArgs
@@ -64,5 +62,4 @@ goal fs      = Some fs
 data Goal 
   = Some [Text]   -- ^ Check a single function's VC
   | All           -- ^ Check all  functions' VC
-  | None          -- ^ Don't check, just generate VCs 
   deriving (Eq, Show)

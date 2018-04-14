@@ -24,6 +24,7 @@ module Language.LLVC.UX
 
   -- * Throwing & Handling Errors
   , mkError
+  , extError
   , abort
   , panic
   , renderErrors
@@ -170,6 +171,7 @@ type Result a = Either [UserError] a
 data UserError = Error
   { eMsg  :: !Text
   , eSpan :: !SourceSpan
+  , eExt  :: !Text
   }
   deriving (Show, Typeable)
 
@@ -188,7 +190,7 @@ instance (Show a, Show b) => PPrint (ParseError a b) where
 --------------------------------------------------------------------------------
 panic :: String -> SourceSpan -> a
 --------------------------------------------------------------------------------
-panic msg sp = throw [Error msg sp]
+panic msg sp = throw [Error msg sp ""]
 
 --------------------------------------------------------------------------------
 abort :: UserError -> b
@@ -198,7 +200,12 @@ abort e = throw [e]
 --------------------------------------------------------------------------------
 mkError :: Text -> SourceSpan -> UserError
 --------------------------------------------------------------------------------
-mkError = Error
+mkError s l = Error s l ""
+
+--------------------------------------------------------------------------------
+extError :: UserError -> Text -> UserError 
+--------------------------------------------------------------------------------
+extError e s = e { eExt = s }
 
 renderErrors :: [UserError] -> IO Text
 renderErrors es = do
@@ -209,4 +216,4 @@ renderError :: UserError -> IO Text
 renderError e = do
   let sp   = sourceSpan e
   snippet <- readFileSpan sp
-  return   $ printf "%s: %s\n\n%s" (pprint sp) (eMsg e) snippet
+  return   $ printf "%s: %s\n\n%s\n\n%s" (pprint sp) (eMsg e) snippet (eExt e)
