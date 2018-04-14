@@ -17,6 +17,7 @@ import           System.IO
 import           System.Process
 import           System.Timeout
 import           System.Console.CmdArgs.Verbosity (whenLoud)
+import           System.Console.ANSI
 import           Debug.Trace (trace)
 
 --------------------------------------------------------------------------------
@@ -31,8 +32,6 @@ f >-> g = f >=> safe g
 mconcatMap :: (Monoid b) => (a -> b) -> [a] -> b 
 --------------------------------------------------------------------------------
 mconcatMap f = mconcat . fmap f
-
-
 
 groupBy :: (Ord k) => (a -> k) -> [a] -> [(k, [a])]
 groupBy f = M.toList . L.foldl' (\m x -> inserts (f x) x m) M.empty
@@ -98,3 +97,19 @@ integerBinary i = showIntAtBase 2 intToDigit i ""
 
 -- putStrLn $ showHex 12 "" -- prints "c"
 -- putStrLn $ showIntAtBase 2 intToDigit 12 "" -- prints "1100"
+
+withColor :: Color -> IO () -> IO ()
+withColor c act = do 
+  setSGR [ SetConsoleIntensity BoldIntensity, SetColor Foreground Vivid c]
+  act
+  setSGR [ Reset]
+
+data ExitStatus 
+  = Safe 
+  | Unsafe 
+  | Crash 
+
+exitStatus :: ExitStatus -> IO () 
+exitStatus Safe   = withColor Green  $ putStrLn "Yay! Safe!"
+exitStatus Unsafe = withColor Red    $ putStrLn "Yikes, errors found!"
+exitStatus Crash  = withColor Yellow $ putStrLn "Oops, crash!"

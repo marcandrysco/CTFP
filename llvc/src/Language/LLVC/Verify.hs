@@ -25,8 +25,8 @@ vcs p   = [ (f, vcFun env fd fb)
 
 vcFun :: (Located a) => Env -> FnDef a -> FnBody a -> VC 
 vcFun env fd fb = comment    ("VC for: " ++  fnName fd)
-               <> mconcatMap (declare l)  (fnArgTys fd) 
-               <> assert     l             pre
+               <> mconcatMap declare      (fnArgTys fd) 
+               <> assert                   pre
                <> mconcatMap (vcStmt env) (fnStmts  fb)
                <> check      l' (subst su    post) 
   where 
@@ -34,19 +34,23 @@ vcFun env fd fb = comment    ("VC for: " ++  fnName fd)
     retExp      = snd (fnRet fb)
     pre         = ctPre  (fnCon fd)        
     post        = ctPost (fnCon fd)
-    l           = sourceSpan (getLabel fd)
-    l'          = sourceSpan (getLabel retExp)
+    -- l           = sourceSpan (getLabel fd)
+    l'          = mkError "Failed ensures check!" 
+                $ sourceSpan (getLabel retExp)
 
 vcStmt :: (Located a) => Env -> Stmt a -> VC 
 vcStmt _ (SAssert p l) 
-  = check l p 
+  = check err p 
+  where 
+    err = mkError "Failed assert" (sourceSpan l)
 vcStmt env asgn@(SAsgn x (ECall fn tys tx l) _)
   =  comment (pprint asgn)
-  <> declare l (x, tx) 
-  <> check  l pre
-  <> assert l post 
+  <> declare (x, tx) 
+  <> check err pre
+  <> assert    post 
   where 
     (pre, post) = contractAt env fn x tys l 
+    err         = mkError "Failed requires check" (sourceSpan l)
 
 contractAt :: (Located a) => Env -> Fn -> Var -> [TypedArg a] -> a -> (Pred, Pred)
 contractAt env fn rv tys l = (pre, post) 

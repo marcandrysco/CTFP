@@ -33,6 +33,7 @@ module Language.LLVC.UX
   , PPrint (..)
   ) where
 
+import           Data.Function (on) 
 import           Control.Exception
 import           Data.Typeable
 import qualified Data.List as L
@@ -64,7 +65,7 @@ data SourceSpan = SS
   { ssBegin :: !SourcePos
   , ssEnd   :: !SourcePos
   }
-  deriving (Eq, Show)
+  deriving (Eq, Ord, Show)
 
 instance Monoid SourceSpan where
   mempty  = junkSpan
@@ -201,8 +202,8 @@ mkError = Error
 
 renderErrors :: [UserError] -> IO Text
 renderErrors es = do
-  errs  <- mapM renderError es
-  return $ L.intercalate "\n" ("Errors found!" : errs)
+  errs  <- mapM renderError (L.sortBy (compare `on` eSpan) es)
+  return $ L.intercalate "\n" (" " : errs)
 
 renderError :: UserError -> IO Text
 renderError e = do

@@ -30,6 +30,7 @@ dependencies:
 - unordered-containers
 - megaparsec
 - text
+- ansi-terminal
 
 data-files:
 - include/prelude.smt2

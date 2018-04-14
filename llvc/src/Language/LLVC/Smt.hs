@@ -44,11 +44,11 @@ import qualified Paths_llvc
 
 writeQuery :: FilePath -> VC -> IO () 
 writeQuery f vc = do 
-  prelude  <- readPrelude 
+  prelude  <- T.unpack <$> readPrelude 
   writeFile f $ prelude ++ toSmt vc 
 
-readPrelude :: IO UX.Text 
-readPrelude = readFile =<< Paths_llvc.getDataFileName "include/prelude.smt2"
+readPrelude :: IO T.Text 
+readPrelude = TIO.readFile =<< Paths_llvc.getDataFileName "include/prelude.smt2"
 
 -------------------------------------------------------------------------------
 -- | Serializing API
@@ -137,7 +137,7 @@ sanitizeChar c   = c
 type    Smt = UX.Text
 newtype VC  = VC [Cmd] 
 data Cmd    = Say  !Smt 
-            | Hear !Smt !Response !UX.SourceSpan
+            | Hear !Smt !Response !UX.UserError 
 
 instance Monoid VC where 
   mempty                  = VC [] 
@@ -150,18 +150,16 @@ instance Monoid VC where
 comment :: UX.Text -> VC 
 comment s = say $ printf "; %s" s
 
-declare :: (UX.Located l) => l -> (Var, Type) -> VC 
-declare _ (x, t) = say $ printf "(declare-const %s %s)" (toSmt x) (toSmt t)
+declare ::  (Var, Type) -> VC 
+declare (x, t) = say $ printf "(declare-const %s %s)" (toSmt x) (toSmt t)
 
-assert :: (UX.Located l) => l -> Pred -> VC 
-assert _ PTrue = mempty 
-assert _ p     = say $ printf "(assert %s)" (toSmt p)
+assert :: Pred -> VC 
+assert PTrue = mempty 
+assert p     = say $ printf "(assert %s)" (toSmt p)
 
-check :: (UX.Located l) => l -> Pred -> VC 
+check :: UX.UserError -> Pred -> VC 
 check _ PTrue = mempty 
-check l p     = withBracket (assert l (PNot p) <> checkSat sp)
-  where 
-    sp        = UX.sourceSpan l
+check e p     = withBracket (assert (PNot p) <> checkSat e)
 
 withBracket :: VC -> VC 
 withBracket vc = push <> vc <> pop 
@@ -170,8 +168,8 @@ push, pop :: VC
 push     = say  "(push 1)"
 pop      = say  "(pop 1)"
 
-checkSat :: UX.SourceSpan -> VC
-checkSat l = VC [ Hear "(check-sat)" Unsat l ]
+checkSat :: UX.UserError -> VC
+checkSat e = VC [ Hear "(check-sat)" Unsat e ]
 
 say :: UX.Text -> VC
 say s = VC [ Say s ]
@@ -179,11 +177,11 @@ say s = VC [ Say s ]
 -------------------------------------------------------------------------------
 -- | VC "Execution" API 
 -------------------------------------------------------------------------------
-runQuery :: FilePath -> VC -> IO [UX.SourceSpan]
+runQuery :: FilePath -> VC -> IO [UX.UserError]
 runQuery f (VC cmds) = do 
   me <- makeContext f
   rs <- mapM (command me) cmds 
-  return [ l | Fail l <- rs]
+  return [ e | Fail e <- rs]
 
 --------------------------------------------------------------------------------
 command              :: Context -> Cmd -> IO Response
@@ -194,14 +192,20 @@ command me !cmd       = talk cmd >> hear cmd
     hear (Hear _ s l) = smtRead me >>= (\s' -> return $ if s == s' then Ok else Fail l)
     hear _            = return Ok
 
-
-
 data Response 
   = Ok 
   | Sat 
   | Unsat 
-  | Fail !UX.SourceSpan 
-  deriving (Eq)
+  | Fail !UX.UserError 
+ --  deriving (Eq)
+
+instance Eq Response where 
+  Ok    == Ok    = True 
+  Sat   == Sat   = True 
+  Unsat == Unsat = True 
+  _     == _     = False 
+
+
 
 --------------------------------------------------------------------------------
 data Context = Ctx
@@ -221,20 +225,17 @@ makeContext smtFile = do
   createDirectoryIfMissing True $ takeDirectory smtFile
   hLog     <- IO.openFile smtFile WriteMode
   let me'   = me { ctxLog = Just hLog }
-  smtWrite me' (T.pack prelude)
+  smtWrite me' prelude
   return me'
 
 makeProcess :: IO Context
 makeProcess = do 
-  (hOut, hIn, _ ,pid) <- runInteractiveCommand "z3" 
+  (hOut, hIn, _ ,pid) <- runInteractiveCommand "z3 --in" 
   return Ctx { ctxPid     = pid
              , ctxCin     = hIn
              , ctxCout    = hOut
              , ctxLog     = Nothing
              }
-
-smtWrite :: Context -> T.Text -> IO ()
-smtWrite me !s = smtWriteRaw me s
 
 smtRead :: Context -> IO Response
 smtRead me = strResponse . T.unpack <$> smtReadRaw me
@@ -244,15 +245,17 @@ strResponse "sat"   = Sat
 strResponse "unsat" = Unsat 
 strResponse s       = error ("SMT: Unexpected response: " ++ s)
 
-smtWriteRaw      :: Context -> T.Text -> IO ()
-smtWriteRaw me !s = {-# SCC "smtWriteRaw" #-} do
+smtWrite :: Context -> T.Text -> IO ()
+smtWrite me !s = do
   hPutStrLnNow (ctxCout me) s
-  maybe (return ()) (`hPutStrLnNow` s) (ctxLog me)
+  case ctxLog me of 
+    Just hLog -> hPutStrLnNow hLog s 
+    Nothing   -> return ()
 
 smtReadRaw       :: Context -> IO T.Text
-smtReadRaw me    = {-# SCC "smtReadRaw" #-} TIO.hGetLine (ctxCin me)
+smtReadRaw me    = TIO.hGetLine (ctxCin me)
 
-hPutStrLnNow     :: Handle -> T.Text -> IO ()
-hPutStrLnNow h !s = TIO.hPutStrLn h s >> hFlush h
+hPutStrLnNow    :: Handle -> T.Text -> IO ()
+hPutStrLnNow h s = TIO.hPutStrLn h s >> hFlush h
 
  
