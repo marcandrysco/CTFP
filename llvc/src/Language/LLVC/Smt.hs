@@ -215,7 +215,7 @@ data Context = Ctx
 --------------------------------------------------------------------------------
 makeContext :: FilePath -> IO Context
 --------------------------------------------------------------------------------
-makeContext f = do 
+makeContext smtFile = do 
   me       <- makeProcess 
   prelude  <- readPrelude 
   createDirectoryIfMissing True $ takeDirectory smtFile
@@ -223,8 +223,6 @@ makeContext f = do
   let me'   = me { ctxLog = Just hLog }
   smtWrite me' (T.pack prelude)
   return me'
-  where
-    smtFile = f <.> "smt2" 
 
 makeProcess :: IO Context
 makeProcess = do 

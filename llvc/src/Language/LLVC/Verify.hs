@@ -28,13 +28,14 @@ vcFun env fd fb = comment    ("VC for: " ++  fnName fd)
                <> mconcatMap (declare l)  (fnArgTys fd) 
                <> assert     l             pre
                <> mconcatMap (vcStmt env) (fnStmts  fb)
-               <> check      l (subst su    post) 
+               <> check      l' (subst su    post) 
   where 
-    su          = [(retVar, snd (fnRet fb))]
+    su          = [(retVar, retExp)]
+    retExp      = snd (fnRet fb)
     pre         = ctPre  (fnCon fd)        
     post        = ctPost (fnCon fd)
     l           = sourceSpan (getLabel fd)
-
+    l'          = sourceSpan (getLabel retExp)
 
 vcStmt :: (Located a) => Env -> Stmt a -> VC 
 vcStmt _ (SAssert p l) 

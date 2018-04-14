@@ -9,7 +9,7 @@ import System.Exit
 import System.IO                        
 import Language.LLVC.Parse 
 import Language.LLVC.UX 
-import qualified Language.LLVC.Utils as Utils 
+-- import qualified Language.LLVC.Utils as Utils 
 import Language.LLVC.Verify 
 import Language.LLVC.Smt 
 
@@ -31,10 +31,13 @@ filterGoals All       xs = xs
 filterGoals (Some fs) xs = filter ((`elem` fs) . fst) xs 
 
 checkVC :: FilePath -> (Text, VC) -> IO () 
-checkVC f (fn, vc) = 
-  runQuery f smtF vc
-  where 
-    smtF = f <.> tail fn <.> "smt2"
+checkVC f (fn, vc) = do 
+  let smtF = f <.> tail fn <.> "smt2"
+  errSpans <- runQuery smtF vc
+  let errs = mkError "Failed check" <$> errSpans 
+  esHandle stderr exitFailure errs
+
+
 {- 
 checkVC :: FilePath -> (Text, VC) -> IO () 
 checkVC f (fn, vc) = do 
