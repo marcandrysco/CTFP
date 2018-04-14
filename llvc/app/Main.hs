@@ -22,10 +22,9 @@ main = (getGoal >>= llvc)
 
 llvc :: FileGoal -> IO () 
 llvc (f, g) = do 
-  -- putStrLn $ "\nllvc: checking " ++ show f 
+  putStrLn "" 
   p       <- parseFile f 
   let gs   = filterGoals g (vcs p)  
-  -- putStrLn $ "\nGoals: " ++ L.intercalate ", " (fst <$> gs) ++ "\n" 
   errs    <- concat <$> mapM (checkVC f) gs 
   case errs of 
     [] -> esHandle Utils.Safe   exitSuccess [] 

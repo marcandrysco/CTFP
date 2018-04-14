@@ -110,6 +110,6 @@ data ExitStatus
   | Crash 
 
 exitStatus :: ExitStatus -> IO () 
-exitStatus Safe   = withColor Green  $ putStrLn "Yay! Safe!"
-exitStatus Unsafe = withColor Red    $ putStrLn "Yikes, errors found!"
-exitStatus Crash  = withColor Yellow $ putStrLn "Oops, crash!"
+exitStatus Safe   = withColor Green  $ putStrLn "\nYay! Safe!"
+exitStatus Unsafe = withColor Red    $ putStrLn "\nYikes, errors found!"
+exitStatus Crash  = withColor Yellow $ putStrLn "\nOops, crash!"

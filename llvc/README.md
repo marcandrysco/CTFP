@@ -56,52 +56,6 @@ or check a **subset** of the functions
 ```
 $ stack exec -- llvc test/ll/restrict.cse.ll @ctfp_restrict_add_f32v1
 ```
-rjhala@borscht ~/r/C/llvc (CHECKPOINT)> stack exec -- llvc test/ll/restrict.cse.ll @ctfp_restrict_add_f32v1
-
-llvc: checking "test/ll/restrict.cse.ll"
-
-Goals: @ctfp_restrict_add_f32v1
-
-Yikes, errors found!
-
-test/ll/restrict.cse.ll:27:13-16: Failed ensures check!
-
-        27|    ret float %11
-                         ^^^^
-
-(model
-  (define-fun r2 () Bool
-    false)
-  (define-fun r7 () (_ BitVec 32)
-    #x7f800000)
-  (define-fun r8 () (_ BitVec 32)
-    #x7f800000)
-  (define-fun rb () Float32
-    (_ -oo 8 24))
-  (define-fun r9 () Float32
-    (fp #b0 #x9d #b11111110000000000000000))
-  (define-fun r3 () (_ BitVec 32)
-    #x00000000)
-  (define-fun r11 () Float32
-    (_ -oo 8 24))
-  (define-fun ra () Float32
-    (_ +oo 8 24))
-  (define-fun r4 () Float32
-    (_ +zero 8 24))
-  (define-fun r5 () (_ BitVec 32)
-    #xffffffff)
-  (define-fun r10 () Float32
-    (fp #b0 #x9d #b00111011111111000000000))
-  (define-fun r1 () Float32
-    (_ +oo 8 24))
-  (define-fun r6 () Float32
-    (fp #b1 #x7f #b00000000000000000000000))
-  (define-fun fp.to_ieee_bv ((x!0 Float32)) (_ BitVec 32)
-    (ite (= x!0 (_ +oo 8 24)) #x7f800004
-    (ite (= x!0 (fp #b0 #x9d #b11111110000000000000000)) #x7f804000
-      #x7f800004)))
-)
-
 
 ## Errors and Models 
 
@@ -113,10 +67,11 @@ If there are **failed** verification conditions, `llvc` will print out
 corresponding to the values that yield the failed check.
 
 ```bash
+$ stack exec -- llvc test/ll/restrict.cse.ll
 
-llvc: checking "test/ll/restrict.cse.ll"
-
-Goals: @ctfp_restrict_add_f32v1_1, @ctfp_restrict_add_f32v1_2, @ctfp_restrict_add_f32v1
+llvc checking: @ctfp_restrict_add_f32v1_1
+llvc checking: @ctfp_restrict_add_f32v1_2
+llvc checking: @ctfp_restrict_add_f32v1
 
 Yikes, errors found!
 
