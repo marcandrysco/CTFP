@@ -40,6 +40,7 @@ float ctfp_full_div(float, float);
  */
 static void perf_init(void);
 static void perf_micro(void);
+static void perf_timing(void);
 
 
 /**
@@ -54,7 +55,8 @@ int main(int argc, char **argv)
 	setbuf(stderr, NULL);
 
 	perf_init();
-	perf_micro();
+	if(1) perf_micro();
+	if(0) perf_timing();
 
 	return 0;
 }
@@ -67,11 +69,6 @@ int main(int argc, char **argv)
 #define DIV  (3)
 #define SQRT (4)
 #define NOPS (5)
-
-#define REF   (0)
-#define REST  (1)
-#define FULL  (2)
-#define NCFGS (3)
 
 #define FLT    (0)
 #define DBL    (1)
@@ -104,6 +101,11 @@ uint32_t *run_new(uint32_t len)
 	return runs;
 }
 
+/**
+ * Compute the average of a run.
+ *   @run: The run.
+ *   @len: The length.
+ */
 float run_ave(uint32_t *run, uint32_t len)
 {
 	unsigned int i;
@@ -158,47 +160,107 @@ static void perf_init(void)
 		sinkf = sqrt(0.1 - sinkf);
 }
 
+float run_exec(uint32_t *run, uint32_t n, bench_f func)
+{
+	uint32_t i;
+
+	for(i = 0; i < n; i++)
+		run[i] = func();
+
+	return run_ave(run, n);
+}
+
 /**
  * Microbenchmark performance.
  */
 static void perf_micro(void)
 {
-	uint32_t i, k, n;
-	uint32_t *ref32[NOPS], *rest32[NOPS], *full32[NOPS];
+	uint32_t k, n, *run;
+	float ref32[NOPS], sub32[NOPS], rest32[NOPS], full32[NOPS];
+	float ref64[NOPS], sub64[NOPS], rest64[NOPS], full64[NOPS];
 
 	n = 100000;
 
-	for(i = 0; i < NOPS; i++) {
-		ref32[i] = run_new(n);
-		rest32[i] = run_new(n);
-		full32[i] = run_new(n);
+	run = run_new(n);
+
+	for(k = 0; k < NOPS; k++) {
+		src1f32 = 1.0f; src2f32 = 1.2f;
+		ref32[k] = run_exec(run, n, ref[0][k]);
+		rest32[k] = run_exec(run, n, ctfp1[0][k]);
+		full32[k] = run_exec(run, n, ctfp2[0][k]);
+
+		src1f32 = FLT_MIN/2; src2f32 = 1.2;
+		sub32[k] = run_exec(run, n, ref[0][k]);
+
+		src1f64 = 1.0; src2f64 = 1.2;
+		ref64[k] = run_exec(run, n, ref[1][k]);
+		rest64[k] = run_exec(run, n, ctfp1[1][k]);
+		full64[k] = run_exec(run, n, ctfp2[1][k]);
+
+		src1f64 = DBL_MIN/2; src2f64 = 1.2;
+		sub64[k] = run_exec(run, n, ref[1][k]);
 	}
 
-	for(k = 0; k < 4/*NOPS*/; k++) {
-		for(i = 0; i < n; i++) {
-			src1f32=1.0; src2f32=1.2;
-			ref32[k][i] = ref[0][k]();
-			rest32[k][i] = ctfp1[0][k]();
-			full32[k][i] = ctfp2[0][k]();
-		}
-	}
-
-	for(k = 0; k < 4/*NOPS*/; k++) {
-		printf("%d: %8.3f %8.3f  ", k, run_ave(ref32[k], n), run_ave(rest32[k], n));
-		printf("%5.2f   ", (run_ave(rest32[k], n) - 30) / (run_ave(ref32[k], n) - 30));
-		printf("%9.3f  ", run_ave(full32[k], n));
-		printf("%5.2f   ", (run_ave(full32[k], n) - 30) / (run_ave(ref32[k], n) - 30));
+	for(k = 0; k < NOPS; k++) {
+		printf("%d: %8.3f %8.3f  ", k, ref32[k], rest32[k]);
+		printf("%5.2f   ", (rest32[k] - 30) / (ref32[k] - 30));
+		printf("%9.3f  ", full32[k]);
+		printf("%5.2f   ", (full32[k] - 30) / (ref32[k] - 30));
+		printf("%9.3f  ", sub32[k]);
+		printf("%5.2f   ", (sub32[k] - 30) / (ref32[k] - 30));
 		printf("\n");
 	}
 
-	for(i = 0; i < NOPS; i++) {
-		run_delete(ref32[i]);
-		run_delete(rest32[i]);
-		run_delete(full32[i]);
-	}
-	//printf("%d\n", ref[0]());
-	//printf("%d\n", ref[2]());
+	printf("\n");
 
-	//printf("%d\n", ctfp1[0]());
-	//printf("%d\n", ctfp1[2]());
+	for(k = 0; k < NOPS; k++) {
+		printf("%d: %8.3f %8.3f  ", k, ref64[k], rest64[k]);
+		printf("%5.2f   ", (rest64[k] - 30) / (ref64[k] - 30));
+		printf("%9.3f  ", full64[k]);
+		printf("%5.2f   ", (full64[k] - 30) / (ref64[k] - 30));
+		printf("%9.3f  ", sub64[k]);
+		printf("%5.2f   ", (sub64[k] - 30) / (ref64[k] - 30));
+		printf("\n");
+	}
+
+	run_delete(run);
+}
+
+float flts[] = {
+	1.4f, 1.0f, 2.0f, 256.0f, 512.0f, 1.2e-18f, 1.2e-20f, 1.2e-37f, 1.2e-40f, INFINITY, NAN, 0.0f
+};
+
+#define ARRSIZE(arr) (sizeof(arr) / sizeof(arr[0]))
+
+/**
+ * Timing benchmarks.
+ */
+static void perf_timing(void)
+{
+	uint32_t i, j, k, n, *run;
+	float ave, base;
+
+	//n = 100000;
+	n = 10000;
+
+	run = run_new(n);
+
+	base = run_ave(run, n);
+
+	for(i = 0; i < ARRSIZE(flts); i++) {
+		for(j = 0; j < ARRSIZE(flts); j++) {
+			src1f32 = flts[i]; src2f32 = flts[j];
+			for(k = 0; k < n; k++)
+				run[k] = ref[0][2]();
+
+			ave = run_ave(run, n);
+			if((i == 0) && (j == 0))
+				base = ave;
+
+			printf("%7.2f (%7.4f) ", ave, ave / base);
+		}
+		printf("\n");
+	}
+
+	run_delete(run);
 }

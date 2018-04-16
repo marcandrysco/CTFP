@@ -4,6 +4,8 @@
 *.swp
 *.swo
 *.ll
+*.s
+*.gch
 
 # bin
 ctfp.s

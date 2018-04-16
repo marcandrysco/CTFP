@@ -288,6 +288,7 @@ int main(int argc, char **argv)
 
 	unsigned int i, j;
 
+	if(1)
 	for(i = 0; i < ARRSIZE(val32); i++) {
 		float x = val32[i];
 
