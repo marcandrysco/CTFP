@@ -24,6 +24,7 @@ module Language.LLVC.UX
 
   -- * Throwing & Handling Errors
   , mkError
+  , extError
   , abort
   , panic
   , renderErrors
@@ -33,6 +34,7 @@ module Language.LLVC.UX
   , PPrint (..)
   ) where
 
+import           Data.Function (on) 
 import           Control.Exception
 import           Data.Typeable
 import qualified Data.List as L
@@ -64,7 +66,7 @@ data SourceSpan = SS
   { ssBegin :: !SourcePos
   , ssEnd   :: !SourcePos
   }
-  deriving (Eq, Show)
+  deriving (Eq, Ord, Show)
 
 instance Monoid SourceSpan where
   mempty  = junkSpan
@@ -169,6 +171,7 @@ type Result a = Either [UserError] a
 data UserError = Error
   { eMsg  :: !Text
   , eSpan :: !SourceSpan
+  , eExt  :: !Text
   }
   deriving (Show, Typeable)
 
@@ -187,7 +190,7 @@ instance (Show a, Show b) => PPrint (ParseError a b) where
 --------------------------------------------------------------------------------
 panic :: String -> SourceSpan -> a
 --------------------------------------------------------------------------------
-panic msg sp = throw [Error msg sp]
+panic msg sp = throw [Error msg sp ""]
 
 --------------------------------------------------------------------------------
 abort :: UserError -> b
@@ -197,15 +200,20 @@ abort e = throw [e]
 --------------------------------------------------------------------------------
 mkError :: Text -> SourceSpan -> UserError
 --------------------------------------------------------------------------------
-mkError = Error
+mkError s l = Error s l ""
+
+--------------------------------------------------------------------------------
+extError :: UserError -> Text -> UserError 
+--------------------------------------------------------------------------------
+extError e s = e { eExt = s }
 
 renderErrors :: [UserError] -> IO Text
 renderErrors es = do
-  errs  <- mapM renderError es
-  return $ L.intercalate "\n" ("Errors found!" : errs)
+  errs  <- mapM renderError (L.sortBy (compare `on` eSpan) es)
+  return $ L.intercalate "\n" (" " : errs)
 
 renderError :: UserError -> IO Text
 renderError e = do
   let sp   = sourceSpan e
   snippet <- readFileSpan sp
-  return   $ printf "%s: %s\n\n%s" (pprint sp) (eMsg e) snippet
+  return   $ printf "%s: %s\n\n%s\n\n%s" (pprint sp) (eMsg e) snippet (eExt e)

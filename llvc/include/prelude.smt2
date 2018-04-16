@@ -6,17 +6,21 @@
 (define-const addmin Float32 ((_ to_fp 8 24) #x0c000000))
 (define-const zero Float32 ((_ to_fp 8 24) #x00000000))
 
+;
+(define-fun plus ((a Int) (b Int)) Int 
+  (+ a b)
+) 
 ; some functions on Int32
-(define-fun lt    ((a Int32) (b Int32)) Bool 
+(define-fun lt32    ((a Int32) (b Int32)) Bool 
   (bvslt a b)
 )
-(define-fun rng   ((n Int32) (x Int32)) Bool 
+(define-fun rng32   ((n Int32) (x Int32)) Bool 
   (or (= #x00000000 x) (bvsle n x))
 )
-(define-fun trunc ((n Int32) (x Int32)) Int32 
+(define-fun trunc32 ((n Int32) (x Int32)) Int32 
   (ite (bvslt x n) #x00000000 x)
 )
-(define-fun plus  ((a Int32) (b Int32)) Int32 
+(define-fun plus32  ((a Int32) (b Int32)) Int32 
   (bvadd a b)
 ) 
 ; some functions on Float32 

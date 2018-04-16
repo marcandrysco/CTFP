@@ -26,22 +26,31 @@ vcs p   = [ (f, vcFun env fd fb)
 vcFun :: (Located a) => Env -> FnDef a -> FnBody a -> VC 
 vcFun env fd fb = comment    ("VC for: " ++  fnName fd)
                <> mconcatMap declare      (fnArgTys fd) 
-               <> assert                  pre
-               <> mconcatMap (vcAsgn env) (fnAsgns  fb)
-               <> check      (subst su    post) 
+               <> assert                   pre
+               <> mconcatMap (vcStmt env) (fnStmts  fb)
+               <> check      l' (subst su    post) 
   where 
-    su          = [(retVar, snd (fnRet fb))]
+    su          = [(retVar, retExp)]
+    retExp      = snd (fnRet fb)
     pre         = ctPre  (fnCon fd)        
     post        = ctPost (fnCon fd)
+    -- l           = sourceSpan (getLabel fd)
+    l'          = mkError "Failed ensures check!" 
+                $ sourceSpan (getLabel retExp)
 
-vcAsgn :: (Located a) => Env  -> ((Var, a), Expr a) -> VC 
-vcAsgn env asgn@((x, _), ECall fn tys tx l) 
-                = comment (ppAsgn asgn)
-               <> declare (x, tx) 
-               <> check  pre 
-               <> assert post 
+vcStmt :: (Located a) => Env -> Stmt a -> VC 
+vcStmt _ (SAssert p l) 
+  = check err p 
+  where 
+    err = mkError "Failed assert" (sourceSpan l)
+vcStmt env asgn@(SAsgn x (ECall fn tys tx l) _)
+  =  comment (pprint asgn)
+  <> declare (x, tx) 
+  <> check err pre
+  <> assert    post 
   where 
     (pre, post) = contractAt env fn x tys l 
+    err         = mkError "Failed requires check" (sourceSpan l)
 
 contractAt :: (Located a) => Env -> Fn -> Var -> [TypedArg a] -> a -> (Pred, Pred)
 contractAt env fn rv tys l = (pre, post) 
@@ -52,14 +61,6 @@ contractAt env fn rv tys l = (pre, post)
     actuals                = EVar rv l : (snd <$> tys) 
     formals                = retVar    : ctParams ct
     ct                     = contract env fn (sourceSpan l) 
-
--- resultType :: Program a -> Fn -> [TypedArg a] -> Type -> Type 
--- resultType _ _ _ t           = t 
--- resultType _ (FnFunc _) _ t  = t 
--- resultType _ (FnBin _) _  t  = t 
--- resultType _ (FnFcmp _) _ t  = t 
--- resultType _ FnSelect _ t    = t 
--- resultType _ FnBitcast _ t   = t 
 
 -------------------------------------------------------------------------------
 -- | Contracts for all the `Fn` stuff.
@@ -110,8 +111,6 @@ primitiveContracts =
   , ( FnBitcast Float (I 32) 
     , postCond 1 "(= %ret (to_ieee_bv  %arg0))" )
 
---  , ( FnFunc "@llvm.fabs.f32"
---    , postCond 1 "(fp.eq %ret (fp.abs %arg0))" )
   ] 
 
 postCond :: Int -> Text -> Contract 
@@ -123,8 +122,6 @@ mkContract n tPre tPost = Ct
   , ctPre    = pred tPre 
   , ctPost   = pred tPost 
   } 
-
--- Ct (paramVar <$> [0..(n-1)]) PTrue . pred 
 
 pred :: Text -> Pred 
 pred = Parse.parseWith Parse.predP "primitive-contracts" 

@@ -2,7 +2,7 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 6fd52f8c21883d0cec0ab1775ddf93573a5d51bab11b689b419ddc2aa08d3029
+-- hash: 4413e456c1128433ecbe709910a45c523141949ddb74bbd2e2194efaefc6b5b5
 
 name:           llvc
 version:        0.1.0.0
@@ -33,7 +33,9 @@ library
       src
   ghc-options: -Wall
   build-depends:
-      base >=4.7 && <5
+      ansi-terminal
+    , attoparsec
+    , base >=4.7 && <5
     , cmdargs
     , containers
     , directory
@@ -41,6 +43,7 @@ library
     , hashable
     , megaparsec
     , process
+    , text
     , unordered-containers
   exposed-modules:
       Language.LLVC.Parse
@@ -60,7 +63,9 @@ executable llvc
       app
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      base >=4.7 && <5
+      ansi-terminal
+    , attoparsec
+    , base >=4.7 && <5
     , cmdargs
     , containers
     , directory
@@ -69,6 +74,7 @@ executable llvc
     , llvc
     , megaparsec
     , process
+    , text
     , unordered-containers
   other-modules:
       Paths_llvc
@@ -81,7 +87,9 @@ test-suite llvc-test
       test
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      base >=4.7 && <5
+      ansi-terminal
+    , attoparsec
+    , base >=4.7 && <5
     , cmdargs
     , containers
     , directory
@@ -90,6 +98,7 @@ test-suite llvc-test
     , llvc
     , megaparsec
     , process
+    , text
     , unordered-containers
   other-modules:
       Paths_llvc
