@@ -36,7 +36,7 @@ ctfp.ll: gen Makefile
 	./gen > ctfp.ll
 
 ctfp.cse.ll: ctfp.ll
-	opt -early-cse ctfp.ll -S > ctfp.cse.ll
+	opt -early-cse -dce ctfp.ll -S > ctfp.cse.ll
 
 ctfp.bc: ctfp.cse.ll ctfp-clean.so
 	opt -load ./ctfp-clean.so -always-inline -ctfp-clean ctfp.cse.ll > ctfp.bc
