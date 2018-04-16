@@ -348,6 +348,25 @@ infixr 8 @@
 tx @@ f = tx f
 
 
+-- ## OPTIMIZED PRIMITIVES ## --
+
+-- create an optimized and expression
+mk_and :: Expr -> Expr -> Expr
+mk_and x Ones = x
+mk_and Ones y = y
+mk_and x Zero = Zero
+mk_and Zero y = Zero
+mk_and x y    = if x == y then x else And (x, y)
+
+-- create an optimized or expression
+mk_or :: Expr -> Expr -> Expr
+mk_or x Ones = Ones
+mk_or Ones y = Ones
+mk_or x Zero = x
+mk_or Zero y = y
+mk_or x y    = if x == y then x else Or (x, y)
+
+
 -- ## HELPERS ## --
 
 -- create a conditional using logic operations
@@ -381,7 +400,7 @@ get_exp e =
 -- extract the significand component
 get_sig :: Expr -> Expr
 get_sig e =
-  Or ( And (e, Int (dec "0x007FFFFF", dec "0x000FFFFFFFFFFFFF") ), val_one )
+  Or (And (e, Int (dec "0x007FFFFF", dec "0x000FFFFFFFFFFFFF") ), val_one)
 
 -- compute the sign explicitly for mul/div
 do_sign :: (FP2 -> FP1) -> FP2 -> FP1
@@ -400,24 +419,6 @@ do_big =
     (\(u,v) -> And (FCmpOGT (u, val_one), FCmpOLT (v, val_one)))
     (\(u,v) -> (FMul (u, val_half), v))
     (\_ r -> FMul (r, val_two))
-
--- divide only by the exponent component of the inputs
-div_exp :: (FP2 -> FP1) -> FP2 -> FP1
-div_exp =
-  withBlind
-    (\_ -> val_true)
-    (\(w,v) -> (FDivExp(w, get_exp v), get_sig v))
-    --(\(w,v) -> (w, get_exp(v)))
-    (\v r -> r)
-
--- prevent division by one using a dummy
-div_noop op (a, b) =
-  withBlind
-    (\(u,v) -> FCmpOEQ(v, val_one))
-    (\_ -> (val_dummy, val_dummy))
-    (\_ _ -> a)
-    op
-    (a, b)
 
 is_nan a = FCmpUNE (a, a)
 
@@ -514,6 +515,69 @@ with_dummy2' badIn badOut safeIn op (a, b) =
     (\(_,w) -> cmp_eq (w, badIn))
     (\(v,w) -> (safeIn, safeIn))
     (\_ _ -> badOut)
+    op
+    (a, b)
+
+-- perform with dummy using a list of unsafe inputs
+with_dummies :: [(Maybe Expr, Maybe Expr)] -> FP1 -> FP1 -> (FP2 -> FP1) -> FP2 -> FP1
+with_dummies unsafe ans safe op (a, b) =
+  let
+    g x val = case x of
+      Just expr -> cmp_eq(expr, val)
+      Nothing   -> val_true
+    f xs (x,y) =
+      case xs of
+        (a,b):ys -> mk_or (mk_and (g a x) (g b y)) (f ys (x,y))
+        []       -> val_false
+  in
+    withBlind
+      (\(x,y) -> f unsafe (x,y))
+      (\(x,y) -> (safe, safe))
+      (\_ _   -> ans)
+      op
+      (a, b)
+
+
+-- ## DIVISION STRATEGIES ## --
+
+-- perform a division that is safe for all special (non suborn) values
+safediv =
+  let
+    nans = [
+      (Just val_nan,  Nothing      ),
+      (Nothing,       Just val_nan ),
+      (Just val_inf,  Just val_inf ),
+      (Just val_zero, Just val_zero)]
+    infs = [
+      (Just val_inf,  Nothing       ),
+      (Nothing     ,  Just val_zero )]
+    zeros = [
+      (Just val_zero, Nothing       ),
+      (Nothing      , Just val_inf )]
+  in
+    with_dummies nans val_nan val_dummy @@
+    with_dummies infs val_inf val_dummy @@
+    with_dummies zeros val_zero val_dummy @@
+    div_exp @@
+    div_noop @@
+    with_dummy1' val_zero val_zero val_dummy @@
+    with_dummy1' val_inf val_inf val_dummy @@
+    FDivSig
+
+-- divide only by the exponent component of the inputs
+div_exp :: (FP2 -> FP1) -> FP2 -> FP1
+div_exp =
+  withBlind
+    (\_ -> val_true)
+    (\(w,v) -> (FDivExp(w, get_exp v), get_sig v))
+    (\v r -> r)
+
+-- prevent division by one using a dummy
+div_noop op (a, b) =
+  withBlind
+    (\(u,v) -> FCmpOEQ(v, val_one))
+    (\_ -> (val_dummy, val_dummy))
+    (\_ _ -> a)
     op
     (a, b)
 
@@ -618,27 +682,6 @@ divoff = Float ( "8.50705917302346159e+37", "6.70390396497129855e+153" )
 divcmp = Float ( "1.0", "1.0" )
 
 
--- ## DIVISION ## --
-
--- perform a division that is safe for all special (non suborn) values
-safediv =
-  with_dummy1' val_nan val_nan val_dummy @@
-  with_dummy2' val_nan val_nan val_dummy @@
-  with_dummy' (val_zero, val_zero) val_nan val_dummy @@
-  with_dummy' (val_inf, val_inf) val_nan val_dummy @@
-  with_dummy1' val_zero val_zero val_dummy @@
-  with_dummy1' val_inf val_inf val_dummy @@
-  with_dummy2' val_zero val_inf val_dummy @@
-  with_dummy2' val_inf val_zero val_dummy @@
-  div_exp @@
-  div_noop @@
-  with_dummy1' val_zero val_zero val_dummy @@
-  with_dummy1' val_inf val_inf val_dummy @@
-  with_dummy2' val_zero val_inf val_dummy @@
-  with_dummy2' val_inf val_zero val_dummy @@
-  FDivSig
-
-
 -- ## RESTRICT ## --
 
 -- addition
@@ -683,6 +726,7 @@ restrict_sqrt =
   zero_sqrt @@
   blind_sqrt @@
   FSqrt
+
 
 -- ## FULL ## --
 

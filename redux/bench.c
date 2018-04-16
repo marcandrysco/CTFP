@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <string.h>
+#include <math.h>
 
 
 #define ATTR __attribute__((noinline))
@@ -8,12 +9,18 @@
                         thing thing thing thing  thing thing thing thing  thing thing thing thing  thing thing thing thing
 //#define DO_MANY(thing)  thing 
 
+/**
+ * Start the performance counter.
+ */
 #define PERF_INIT() do { \
 		asm volatile("" :: "x"(in1), "x"(in2), "x"(out)); \
 		begin = perf_begin(); \
 		asm volatile("" :: "x"(in1), "x"(in2), "x"(out)); \
 	} while(0)
 
+/**
+ * End the performance counter.
+ */
 #define PERF_DONE() do { \
 		asm volatile("" :: "x"(in1), "x"(in2), "x"(out)); \
 		end = perf_end(); \
@@ -29,7 +36,7 @@
 
 #define F64_DECL() double in1, in2, out, res; uint32_t begin, end;
 #define F64_INIT(OP) do { in1 = src1f64; in2 = src2f64; OP; res = out; in1 = src1f64; in2 = src2f64; PERF_INIT(); } while (0)
-#define F64_DO(OP) DO_MANY(do { OP; float t = xor_f64(out, res); in1 = xor_f64(t, in1); in2 = xor_f64(t, in2); } while(0);)
+#define F64_DO(OP) DO_MANY(do { OP; double t = xor_f64(out, res); in1 = xor_f64(t, in1); in2 = xor_f64(t, in2); } while(0);)
 #define F64_DONE() do { PERF_DONE(); sinkf64 = out; return end - begin; } while (0)
 #define F64_BENCH(NAM, OP) \
 	static ATTR uint32_t NAM##_f64(void) { F64_DECL(); F64_INIT(OP); F64_DO(OP); F64_DONE(); } 
@@ -48,15 +55,20 @@ extern volatile float sinkf32, src1f32, src2f32;
 extern volatile double sinkf64, src1f64, src2f64;
 
 
+/*
+ * benchmark code
+ */
 F32_BENCH(base, out = in1);
 F32_BENCH(add, out = in1 + in2);
 F32_BENCH(mul, out = in1 * in2);
 F32_BENCH(div, out = in1 / in2);
+F32_BENCH(sqrt, out = sqrtf(in1));
 
 F64_BENCH(base, out = in1);
 F64_BENCH(add, out = in1 + in2);
 F64_BENCH(mul, out = in1 * in2);
 F64_BENCH(div, out = in1 / in2);
+F64_BENCH(sqrt, out = sqrt(in1));
 
 
 /**
@@ -158,6 +170,6 @@ static inline double xor_f64(double left, double right)
 //typedef uint32_t (*bench_f)(void);
 
 void *BENCH[2][5] = {
-	{ base_f32, add_f32, mul_f32, div_f32, NULL },
-	{ base_f64, add_f64, mul_f64, div_f64, NULL },
+	{ base_f32, add_f32, mul_f32, div_f32, sqrt_f32 },
+	{ base_f64, add_f64, mul_f64, div_f64, sqrt_f64 },
 };

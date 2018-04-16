@@ -190,14 +190,6 @@ struct CTFP : public FunctionPass {
 
 		if(func.getName().str().find("ctfp_") == 0)
 			return false;
-		//else if(func.getName().str().find("ctfp_sub") == 0)
-			//return false;
-		//else if(func.getName().str().find("ctfp_mul") == 0)
-			//return false;
-		//else if(func.getName().str().find("ctfp_div") == 0)
-			//return false;
-		//else if(func.getName().str().find("ctfp_sqrt") == 0)
-			//return false;
 
 		Module *mod = func.getParent();
 		if(mod->getFunction("ctfp_restrict_add_f32v4") == nullptr) {
@@ -258,37 +250,37 @@ struct CTFP : public FunctionPass {
 						};
 
 						if(func->getName() == "sqrt") {
-							//insert(inst, "ctfp_sqrt1_d1");
+							insert(inst, "ctfp_restrict_sqrt_f64v1");
 						}
 						else if(func->getName() == "sqrtf") {
-							//insert(inst, "ctfp_sqrt1_f1");
+							insert(inst, "ctfp_restrict_sqrt_f32v1");
 						}
 						else if(func->getName() == "llvm.sqrt.f32") {
-							//insert(inst, "ctfp_sqrt1_f1");
+							insert(inst, "ctfp_restrict_sqrt_f32v1");
 						}
 						else if(func->getName() == "llvm.sqrt.f32v2") {
-							//insert(inst, "ctfp_sqrt1_f2");
+							insert(inst, "ctfp_restrict_sqrt_f32v2");
 						}
 						else if(func->getName() == "llvm.sqrt.f32v4") {
-							//insert(inst, "ctfp_sqrt1_f4");
+							insert(inst, "ctfp_restrict_sqrt_f32v4");
 						}
 						else if(func->getName() == "llvm.sqrt.f32v8") {
-							//insert(inst, "ctfp_sqrt1_f8");
+							insert(inst, "ctfp_restrict_sqrt_f32v8");
 						}
 						else if(func->getName() == "llvm.sqrt.f32v16") {
-							//insert(inst, "ctfp_sqrt1_f16");
+							insert(inst, "ctfp_restrict_sqrt_f32v16");
 						}
 						else if(func->getName() == "llvm.sqrt.f64") {
-							//insert(inst, "ctfp_sqrt1_d1");
+							insert(inst, "ctfp_restrict_sqrt_f64v1");
 						}
 						else if(func->getName() == "llvm.sqrt.f64v2") {
-							//insert(inst, "ctfp_sqrt1_d2");
+							insert(inst, "ctfp_restrict_sqrt_f64v2");
 						}
 						else if(func->getName() == "llvm.sqrt.f64v4") {
-							//insert(inst, "ctfp_sqrt1_d4");
+							insert(inst, "ctfp_restrict_sqrt_f64v4");
 						}
 						else if(func->getName() == "llvm.sqrt.f64v8") {
-							//insert(inst, "ctfp_sqrt1_d8");
+							insert(inst, "ctfp_restrict_sqrt_f64v8");
 						}
 						else {
 							auto find = std::find(std::begin(list), std::end(list), func->getName());
