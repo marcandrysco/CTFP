@@ -36,7 +36,7 @@
 
 #define F64_DECL() double in1, in2, out, res; uint32_t begin, end;
 #define F64_INIT(OP) do { in1 = src1f64; in2 = src2f64; OP; res = out; in1 = src1f64; in2 = src2f64; PERF_INIT(); } while (0)
-#define F64_DO(OP) DO_MANY(do { OP; float t = xor_f64(out, res); in1 = xor_f64(t, in1); in2 = xor_f64(t, in2); } while(0);)
+#define F64_DO(OP) DO_MANY(do { OP; double t = xor_f64(out, res); in1 = xor_f64(t, in1); in2 = xor_f64(t, in2); } while(0);)
 #define F64_DONE() do { PERF_DONE(); sinkf64 = out; return end - begin; } while (0)
 #define F64_BENCH(NAM, OP) \
 	static ATTR uint32_t NAM##_f64(void) { F64_DECL(); F64_INIT(OP); F64_DO(OP); F64_DONE(); } 
