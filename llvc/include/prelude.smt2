@@ -1,10 +1,14 @@
 (set-logic QF_FPBV)
 (define-sort Int1    () Bool)
 (define-sort Int32   () (_ BitVec 32))
-(define-fun to_fp_32 ((a Int32)) Float32  ((_ to_fp 8 24) RNE a))
+(define-fun to_fp_32 ((a Int32)) Float32  ((_ to_fp 8 24) a))
 (define-fun fp_add ((a Float32) (b Float32)) Float32 (fp.add RNE a b))
 (define-const addmin Float32 ((_ to_fp 8 24) #x0c000000))
 (define-const zero Float32 ((_ to_fp 8 24) #x00000000))
+
+; (define-fun to_fp_32 ((a Int32)) Float32  ((_ to_fp 8 24) (_ BitVec 32) a))
+;    ((_ to_fp eb sb) (_ BitVec m) (_ FloatingPoint eb sb))
+
 
 ;
 (define-fun plus ((a Int) (b Int)) Int 
@@ -27,11 +31,14 @@
 (define-fun fp_rng  ((n Float32) (x Float32)) Bool 
   (or (fp.isZero x) (fp.isNaN x) (fp.leq n (fp.abs x)))
 )
-(define-fun fp_trunc ((n Float32) (x Float32)) Float32 
-  (ite (fp.lt (fp.abs x) n) zero x)
-)
+
 (define-fun copysign ((a Float32) (b Float32)) Float32  
   (to_fp_32 (bvor (bvand (to_ieee_bv a) #x7fffffff)                  
-    		    (bvand (to_ieee_bv b) #x80000000)))
+    		          (bvand (to_ieee_bv b) #x80000000)))
 )
+
+(define-fun fp_trunc ((n Float32) (x Float32)) Float32 
+  (ite (fp.lt (fp.abs x) n) (copysign zero x) x)
+)
+
 

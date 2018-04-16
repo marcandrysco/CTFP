@@ -6,7 +6,8 @@ declare float @llvm.fabs.f32(float) #0
 ; Function Attrs: nounwind readnone
 declare float @llvm.copysign.f32(float, float) #0
 ;@ requires true 
-;@ ensures  (= %ret (copysign %arg0 %arg1)) 
+;@ ensures (= (to_ieee_bv %ret) (bvor (bvand (to_ieee_bv %arg0) #x7fffffff) (bvand (to_ieee_bv %arg1) #x80000000))) 
+
 
 ; Function Attrs: alwaysinline
 define weak float @ctfp_restrict_add_f32v1(float %a, float %b) #1 {
@@ -27,25 +28,24 @@ define weak float @ctfp_restrict_add_f32v1(float %a, float %b) #1 {
   ret float %11
 }
 
-; Function Attrs: alwaysinline
-define weak float @ctfp_restrict_add_f32v1_1(float %a, float %b) #1 {
+define weak float @ctfp_restrict_add_f32v1_1(float %a, float %b) #2 {
 ;@ requires (fp_rng addmin %a)
 ;@ ensures  (= %ret (fp_add %a (fp_trunc addmin %b)))
   %1 = call float @llvm.fabs.f32(float %b)
   %2 = fcmp olt float %1, 0x3980000000000000
   %3 = select i1 %2, i32 -1, i32 0
   %4 = bitcast i32 %3 to float
-  %5 = bitcast float %4 to i32
-  %6 = xor i32 %5, -1
-  %7 = bitcast i32 %6 to float
-  %8 = bitcast float %7 to i32
-  %9 = bitcast float %b to i32
-  %10 = and i32 %8, %9
-  %11 = bitcast i32 %10 to float
-  %12 = call float @llvm.copysign.f32(float %11, float %b)
-  %13 = call float @ctfp_restrict_add_f32v1_2(float %a, float %12)
-  ret float %13
+  %5 = xor i32 %3, -1
+  ; %6 = bitcast i32 %5 to float
+  %7 = bitcast float %b to i32
+  %8 = and i32 %5, %7
+  %9 = bitcast i32 %8 to float
+  %10 = call float @llvm.copysign.f32(float %9, float %b)
+  %11 = call float @ctfp_restrict_add_f32v1_2(float %a, float %10)
+  ret float %11
 }
+
+
 
 ; Function Attrs: alwaysinline
 define weak float @ctfp_restrict_add_f32v1_2(float %a, float %b) #1 {

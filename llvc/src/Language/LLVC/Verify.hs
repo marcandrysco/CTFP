@@ -106,7 +106,9 @@ primitiveContracts =
     , postCond 3 "(= %ret (ite %arg0 %arg1 %arg2))" 
     )
   , ( FnBitcast (I 32) Float 
-    , postCond 1 "(= %ret (to_fp_32 %arg0))" )
+   -- , postCond 1 "(= %ret (to_fp_32 %arg0))" )
+    , postCond 1 "(= (to_ieee_bv %ret) %arg0)" 
+    )
 
   , ( FnBitcast Float (I 32) 
     , postCond 1 "(= %ret (to_ieee_bv  %arg0))" )
