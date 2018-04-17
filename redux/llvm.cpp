@@ -320,8 +320,8 @@ struct CTFP : public FunctionPass {
 				width = getwidth(inst->getType());
 				if((bits == 32) && (width == 1))
 					extra = "_hack";
-				//else if((bits == 64) && (width == 1))
-					//extra = "_hack";
+				else if((bits == 64) && (width == 1))
+					extra = "_hack";
 
 				sprintf(id, "ctfp_%s_%s_f%dv%d%s", sel.c_str(), name.c_str(), bits, width, extra.c_str());
 				insert(inst, id);
