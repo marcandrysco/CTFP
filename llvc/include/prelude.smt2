@@ -9,7 +9,6 @@
 ; (define-fun to_fp_32 ((a Int32)) Float32  ((_ to_fp 8 24) (_ BitVec 32) a))
 ;    ((_ to_fp eb sb) (_ BitVec m) (_ FloatingPoint eb sb))
 
-
 ;
 (define-fun plus ((a Int) (b Int)) Int 
   (+ a b)
