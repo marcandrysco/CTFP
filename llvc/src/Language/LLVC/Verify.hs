@@ -4,6 +4,7 @@
 module Language.LLVC.Verify (vcs) where 
 
 import           Prelude hiding (pred)
+import qualified Data.List           as L 
 import qualified Data.Maybe          as Mb 
 import qualified Data.HashMap.Strict as M 
 import           Data.Monoid
@@ -39,12 +40,6 @@ vcFun env fd fb pre post
                 $ sourceSpan (getLabel retExp)
 
 
-inP :: Env a -> Pred -> SmtPred
-inP = undefined -- smtPred p 
-
-inV :: Env a -> Var -> Var 
-inV = undefined 
-
 vcStmt :: (Located a) => Env a -> Stmt a -> VC 
 vcStmt env (SAssert p l) 
   = check err (inP env p) 
@@ -63,9 +58,27 @@ vcSig env _ x tys (SigC ct) l
     (pre, post) = contractAt ct x tys l 
     err         = mkError "Failed requires check" (sourceSpan l)
 
-vcSig _env fn _rv _tys (SigI _i) _l 
-                = undefined
+vcSig env (FnFunc f) rv tys (SigI i) l 
+  | Just fb <- fnBody fd
+                = equate env (snd <$> tys) env' formals l 
+               <> vcFun env' fd fb PTrue PTrue 
+               <> equate env [EVar rv l] env' [EVar retVar l] l 
+  where 
+    fd          = fnDef env f l  
+    env'        = pushEnv i env 
+    formals     = (`EVar` l) . fst <$> fnArgTys fd 
 
+vcSig _ _ fn _ _ l 
+                = panic ("VCSig for Fn: " ++ show fn) (sourceSpan l)
+
+equate :: (Located a) => Env a -> [Arg a] -> Env a -> [Arg a] -> a -> VC
+equate env1 x1s env2 x2s l = assert $ smtPred $ PAnd $ zipWith eq x1s' x2s'
+  where 
+    x1s'                   = inA env1 <$> x1s 
+    x2s'                   = inA env2 <$> x2s 
+    eq x1 x2               = PAtom Eq (PArg <$> [bare x1, bare x2])
+    sp                     = sourceSpan l
+    bare                   = fmap (const sp)
 
 contractAt :: (Located a) => Contract -> Var -> [TypedArg a] -> a -> (Pred, Pred)
 contractAt ct rv tys l = (pre, post) 
@@ -75,6 +88,26 @@ contractAt ct rv tys l = (pre, post)
     su                 = zip formals actuals 
     actuals            = EVar rv l : (snd <$> tys) 
     formals            = retVar    : ctParams ct
+
+-------------------------------------------------------------------------------
+-- | Renaming locals in a Context
+-------------------------------------------------------------------------------
+inP :: Env a -> Pred -> SmtPred
+inP = undefined -- smtPred p 
+
+inA :: Env a -> Arg a -> Arg a 
+inA env (EVar v l) = EVar (inV env v) l  
+inA _   a          = a 
+
+inV :: Env a -> Var -> Var 
+inV env x = stackPrefix (eStack env) ++ x 
+
+stackPrefix :: [Int] -> String 
+stackPrefix [] = "" 
+stackPrefix is = L.intercalate "_" ("tmp" : (show <$> is))
+
+
+
 
 -------------------------------------------------------------------------------
 -- | Contracts for all the `Fn` stuff.
@@ -89,12 +122,20 @@ data Env a = Env
   , eStack :: [Int]                   -- ^ non-empty stack of function names
   }
 
+pushEnv :: Int -> Env a -> Env a 
+pushEnv i env = env { eStack = i : eStack env } 
+
 sig :: (Located l) => Env a -> Fn -> l -> Sig 
 sig env fn l = case M.lookup fn (eSig env) of 
   Just ct -> SigC ct 
   Nothing -> case fn of 
                FnFunc f -> SigI (fnId env f l) 
                _        -> errMissing "definition" fn l 
+
+fnDef :: (Located l) => Env a -> Var -> l -> FnDef a 
+fnDef env v l = Mb.fromMaybe err (M.lookup v (eDef env))
+  where 
+    err       = errMissing "(inline) definition" v l
 
 fnId :: (Located l) => Env a -> Var -> l -> Int 
 fnId env v l = Mb.fromMaybe err (M.lookup v (eId env)) 
