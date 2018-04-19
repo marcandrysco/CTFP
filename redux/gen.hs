@@ -366,8 +366,18 @@ mk_or x Zero = x
 mk_or Zero y = y
 mk_or x y    = if x == y then x else Or (x, y)
 
+-- compare for equality that works on not-a-number
+mk_cmp (a, b)
+  | a == val_nan = FCmpUNE (b, b)
+  | b == val_nan = FCmpUNE (a, a)
+  | otherwise    = FCmpOEQ (a, b)
+
 
 -- ## HELPERS ## --
+
+-- create a left or right value for with_dummies
+left val = (Just val, Nothing)
+right val = (Nothing, Just val)
 
 -- create a conditional using logic operations
 ite :: Expr -> Expr -> Expr -> Expr
@@ -420,16 +430,6 @@ do_big =
     (\(u,v) -> (FMul (u, val_half), v))
     (\_ r -> FMul (r, val_two))
 
-is_nan a = FCmpUNE (a, a)
-
--- compare for equality that works on nan
-cmp_eq (a, b) =
-  if a == val_nan
-    then FCmpUNE (b, b)
-    else if b == val_nan
-      then FCmpUNE (a, a)
-      else FCmpOEQ (a, b)
-
 
 -- ## STRATEGIES ## --
 
@@ -442,19 +442,19 @@ with_underflow lim =
     (\v r -> CopySign(r, v))
 
 -- underflow only on the first input
-with_underflow1 :: FP1 -> (FP2 -> FP1) -> FP2 -> FP1
-with_underflow1 lim =
+with_underflow1 :: FP1 -> Bool -> (FP2 -> FP1) -> FP2 -> FP1
+with_underflow1 lim sgn =
   withBlind
     (\(v,_) -> FCmpOLT(Abs(v), lim))
-    (\(v, w) -> (CopySign(val_zero, v), w))
+    (\(v, w) -> (if sgn then CopySign(val_zero, v) else val_zero, w))
     (\_ r -> r)
 
 -- underflow only on the second input
-with_underflow2 :: FP1 -> (FP2 -> FP1) -> FP2 -> FP1
-with_underflow2 lim =
+with_underflow2 :: FP1 -> Bool -> (FP2 -> FP1) -> FP2 -> FP1
+with_underflow2 lim sgn =
   withBlind
     (\(_,v) -> FCmpOLT(Abs(v), lim))
-    (\(w,v) -> (w, CopySign(val_zero, v)))
+    (\(w,v) -> (w, if sgn then CopySign(val_zero, v) else val_zero))
     (\_ r -> r)
 
 -- overflow only on the first input
@@ -477,53 +477,16 @@ with_overflow2 lim =
 with_dummy :: FP1 -> FP1 -> FP1 -> (FP1 -> FP1) -> FP1 -> FP1
 with_dummy badIn badOut safeIn =
   withBlind
-    (\v   -> cmp_eq (v, badIn))
+    (\v   -> mk_cmp (v, badIn))
     (\v   -> safeIn)
     (\_ _ -> badOut)
-
-with_dummy1 :: FP1 -> FP1 -> FP1 -> (FP2 -> FP1) -> FP2 -> FP1
-with_dummy1 badIn badOut safeIn op (a, b) =
-  withBlind
-    (\(v,w) -> FCmpOEQ (v, badIn))
-    (\(v,w) -> (safeIn, w))
-    (\_ _ -> CopySign(badOut, a))
-    op
-    (a, b)
-
--- compare and replace both inputs if matching the bad input
-with_dummy' :: FP2 -> FP1 -> FP1 -> (FP2 -> FP1) -> FP2 -> FP1
-with_dummy' badIn badOut safeIn op (a, b) =
-  withBlind
-    (\(v,w) -> And(cmp_eq (v, fst badIn), cmp_eq (w, snd badIn)))
-    (\(v,w) -> (safeIn, safeIn))
-    (\_ _ -> badOut)
-    op
-    (a, b)
-
-with_dummy1' :: FP1 -> FP1 -> FP1 -> (FP2 -> FP1) -> FP2 -> FP1
-with_dummy1' badIn badOut safeIn op (a, b) =
-  withBlind
-    (\(v,_) -> cmp_eq (v, badIn))
-    (\(v,w) -> (safeIn, safeIn))
-    (\_ _ -> badOut)
-    op
-    (a, b)
-
-with_dummy2' :: FP1 -> FP1 -> FP1 -> (FP2 -> FP1) -> FP2 -> FP1
-with_dummy2' badIn badOut safeIn op (a, b) =
-  withBlind
-    (\(_,w) -> cmp_eq (w, badIn))
-    (\(v,w) -> (safeIn, safeIn))
-    (\_ _ -> badOut)
-    op
-    (a, b)
 
 -- perform with dummy using a list of unsafe inputs
 with_dummies :: [(Maybe Expr, Maybe Expr)] -> FP1 -> FP1 -> (FP2 -> FP1) -> FP2 -> FP1
 with_dummies unsafe ans safe op (a, b) =
   let
     g x val = case x of
-      Just expr -> cmp_eq(expr, val)
+      Just expr -> mk_cmp(expr, val)
       Nothing   -> val_true
     f xs (x,y) =
       case xs of
@@ -560,8 +523,8 @@ safediv =
     with_dummies zeros val_zero val_dummy @@
     div_exp @@
     div_noop @@
-    with_dummy1' val_zero val_zero val_dummy @@
-    with_dummy1' val_inf val_inf val_dummy @@
+    with_dummies [left val_zero] val_zero val_dummy @@
+    with_dummies [left val_inf] val_inf val_dummy @@
     FDivSig
 
 -- divide only by the exponent component of the inputs
@@ -687,30 +650,31 @@ divcmp = Float ( "1.0", "1.0" )
 -- addition
 restrict_add :: FP2 -> FP1
 restrict_add =
-  with_underflow1 addmin @@
-  with_underflow2 addmin @@
+  with_underflow1 addmin True @@
+  with_underflow2 addmin True @@
   FAdd
 
 -- subtraction
 restrict_sub :: FP2 -> FP1
 restrict_sub =
-  with_underflow1 addmin @@
-  with_underflow2 addmin @@
+  with_underflow1 addmin True @@
+  with_underflow2 addmin True @@
   FSub
 
 -- multiplication
 restrict_mul :: FP2 -> FP1
 restrict_mul =
-  with_underflow1 mulmin @@
-  with_underflow2 mulmin @@
+  do_sign @@
+  with_underflow1 mulmin False @@
+  with_underflow2 mulmin False @@
   FMul
 
 -- division
 restrict_div :: FP2 -> FP1
 restrict_div =
   do_sign @@
-  with_underflow1 divmin @@
-  with_underflow2 divmin @@
+  with_underflow1 divmin False @@
+  with_underflow2 divmin False @@
   with_overflow1 divmax @@
   with_overflow2 divmax @@
   safediv
@@ -733,16 +697,16 @@ restrict_sqrt =
 -- addition
 full_add :: FP2 -> FP1
 full_add =
-  with_underflow1 fltmin @@
-  with_underflow2 fltmin @@
+  with_underflow1 fltmin True @@
+  with_underflow2 fltmin True @@
   tryadd @@
   FAdd
 
 -- subtraction
 full_sub :: FP2 -> FP1
 full_sub =
-  with_underflow1 fltmin @@
-  with_underflow2 fltmin @@
+  with_underflow1 fltmin True @@
+  with_underflow2 fltmin True @@
   trysub @@
   FSub
 
@@ -750,8 +714,8 @@ full_sub =
 full_mul :: FP2 -> FP1
 full_mul =
   do_sign @@
-  with_underflow1 fltmin @@
-  with_underflow2 fltmin @@
+  with_underflow1 fltmin True @@
+  with_underflow2 fltmin True @@
   trymul @@
   FMul
 
@@ -759,8 +723,8 @@ full_mul =
 full_div :: FP2 -> FP1
 full_div =
   do_sign @@
-  with_underflow1 fltmin @@
-  with_underflow2 fltmin @@
+  with_underflow1 fltmin False @@
+  with_underflow2 fltmin False @@
   trydiv @@
   do_big @@
   safediv
