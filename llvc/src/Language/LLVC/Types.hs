@@ -6,7 +6,7 @@
 
 module Language.LLVC.Types where 
 
--- import qualified Data.Maybe          as Mb
+import qualified Data.Maybe          as Mb
 import           Data.Hashable
 import           GHC.Generics
 import qualified Data.List           as L 
@@ -303,10 +303,22 @@ data Pred
   deriving (Eq, Show, Generic) 
 
 subst :: (UX.Located a) => [(Var, Arg a)] -> Pred -> Pred
-subst su             = go 
+subst su = substf (`M.lookup` m)
   where 
-    m                = M.fromList [ (x, UX.sourceSpan <$> a) | (x, a) <- su ] 
-    goa a@(EVar x _) = M.lookupDefault a x m 
+    m    = M.fromList [ (x, UX.sourceSpan <$> a) | (x, a) <- su ] 
+    -- goa a@(EVar x _) = M.lookupDefault a x m 
+    -- goa a            = a 
+    -- go (PArg a)      = PArg (goa a)
+    -- go (PAtom o ps)  = PAtom o (go <$> ps)
+    -- go (PNot p)      = PNot (go p) 
+    -- go (PAnd ps)     = PAnd (go <$> ps)
+    -- go (POr  ps)     = POr  (go <$> ps)
+    -- go (PTrue)       = PTrue 
+
+substf :: (Var -> Maybe BareArg) -> Pred -> Pred
+substf f             = go 
+  where 
+    goa a@(EVar x _) = Mb.fromMaybe a (f x)  
     goa a            = a 
     go (PArg a)      = PArg (goa a)
     go (PAtom o ps)  = PAtom o (go <$> ps)
