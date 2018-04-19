@@ -221,25 +221,25 @@ decl f ts t pre post l = FnDef
   , fnArgs = ts 
   , fnOut  = t 
   , fnBody = Nothing 
-  , fnCon  = contract (take n paramVars) pre post 
+  , fnCon  = contract (take n paramVars) (Just (pre, post)) 
   , fnLab  = l 
   }
   where n  = length ts 
 
-contract :: [Var] -> Pred -> Pred -> Contract 
-contract xs pre post = Ct 
+contract :: [Var] -> Maybe (Pred, Pred) -> Contract 
+contract xs prop = Ct 
   { ctParams = xs 
-  , ctProps  = Just (pre, post)  
+  , ctProps  = prop 
   }
 
 
-defn :: Var -> [(Var, Type)] -> FnBody a -> Type -> Pred -> Pred -> a -> FnDef a 
-defn f xts b t pre post l = FnDef 
+defn :: Var -> [(Var, Type)] -> FnBody a -> Type -> Maybe (Pred, Pred) -> a -> FnDef a 
+defn f xts b t prop l = FnDef 
   { fnName = f 
   , fnArgs = ts 
   , fnOut  = t 
   , fnBody = Just b 
-  , fnCon  = contract xs pre post 
+  , fnCon  = contract xs prop  
   , fnLab  = l 
   }
   where 
@@ -290,8 +290,6 @@ instance UX.PPrint Op where
   pprint Eq        = "=" 
   pprint (SmtOp x) = x
 
-
-
 -- | 'Pred' are boolean combinations of 'Expr' used to define contracts 
 data Pred 
   = PArg   !BareArg
@@ -306,14 +304,6 @@ subst :: (UX.Located a) => [(Var, Arg a)] -> Pred -> Pred
 subst su = substf (\x _ -> M.lookup x m)
   where 
     m    = M.fromList [ (x, UX.sourceSpan <$> a) | (x, a) <- su ] 
-    -- goa a@(EVar x _) = M.lookupDefault a x m 
-    -- goa a            = a 
-    -- go (PArg a)      = PArg (goa a)
-    -- go (PAtom o ps)  = PAtom o (go <$> ps)
-    -- go (PNot p)      = PNot (go p) 
-    -- go (PAnd ps)     = PAnd (go <$> ps)
-    -- go (POr  ps)     = POr  (go <$> ps)
-    -- go (PTrue)       = PTrue 
 
 substf :: (Var -> UX.SourceSpan -> Maybe BareArg) -> Pred -> Pred
 substf f             = go 

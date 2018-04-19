@@ -18,7 +18,7 @@ import qualified Text.Printf as Printf
 -------------------------------------------------------------------------------
 vcs :: (Located a) => Program a -> [(Var, VC)] 
 -------------------------------------------------------------------------------
-vcs p   = [ (f, vcFun env fd fb pre post)
+vcs p   = [ (f, vcFun env fd fb (Just (pre, post)))
           | (f, fd)     <- M.toList p 
           , fb          <- Mb.maybeToList (fnBody fd)
           , (pre, post) <- Mb.maybeToList (ctProps $ fnCon fd) 
@@ -26,19 +26,24 @@ vcs p   = [ (f, vcFun env fd fb pre post)
   where 
     env = mkEnv p 
 
-vcFun :: (Located a) => Env a -> FnDef a -> FnBody a -> Pred -> Pred -> VC 
-vcFun env fd fb pre post 
+vcFun :: (Located a) => Env a -> FnDef a -> FnBody a -> Maybe (Pred, Pred) -> VC 
+vcFun env fd fb prop 
                 =  comment    ("VC for: " ++  fnName fd)
-                <> mconcatMap declare      (fnArgTys fd) 
+                <> mconcatMap declare      [(inV env x, t) | (x,t) <- argTys] 
                 <> assert                  (inP env pre)
                 <> mconcatMap (vcStmt env) (fnStmts  fb)
-                <> check      l'           (inP env $ subst su post) 
+                <> declare    (inV env retVar, rT)
+                <> equate     env [rv] env [rE] l 
+                <> check      err          (inP env post) 
   where 
-    su          = [(retVar, retExp)]
-    retExp      = snd (fnRet fb)
-    l'          = mkError "Failed ensures check!" 
-                $ sourceSpan (getLabel retExp)
-
+    -- su          = [(retVar, retExp)]
+    rv          = EVar retVar l
+    (rT, rE)    = fnRet fb
+    err         = mkError "Failed ensures check!" (sourceSpan l) 
+    l           = getLabel rE 
+    (argTys, pre, post) = case prop of 
+                            Nothing     -> ([], PTrue, PTrue)
+                            Just (p, q) -> (fnArgTys fd, p, q) 
 
 vcStmt :: (Located a) => Env a -> Stmt a -> VC 
 vcStmt env (SAssert p l) 
@@ -60,13 +65,16 @@ vcSig env _ x tys (SigC ct) l
 
 vcSig env (FnFunc f) rv tys (SigI i) l 
   | Just fb <- fnBody fd
-                = equate env (snd <$> tys) env' formals l 
-               <> vcFun env' fd fb PTrue PTrue 
-               <> equate env [EVar rv l] env' [EVar retVar l] l 
+                = mconcatMap declare      [(inV env' x, t) | (x,t) <- fnArgTys fd ] 
+               <> equate env actuals env' (evl <$> formals) l 
+               <> vcFun env' fd fb Nothing
+               <> equate env [evl rv] env' [evl retVar] l 
   where 
     fd          = fnDef env f l  
     env'        = pushEnv i env 
-    formals     = (`EVar` l) . fst <$> fnArgTys fd 
+    formals     = fst <$> fnArgTys fd
+    actuals     = snd <$> tys        
+    evl v       = EVar v l
 
 vcSig _ _ fn _ _ l 
                 = panic ("VCSig for Fn: " ++ show fn) (sourceSpan l)
@@ -154,7 +162,7 @@ mkEnv p   = Env (M.fromList sigs) (M.fromList fIds) (M.fromList fDefs) []
   where 
     fIds   = zip (fst <$> fDefs) [0..]
     fDefs  = [ (f, d)  | (f, d)    <- M.toList p ] 
-    sigs   = [ (fn, ct) | (fn, ct) <- fPrims ++ fCons ]  
+    sigs   = [ (fn, ct) | (fn, ct) <- fPrims ++ fCons, Mb.isJust (ctProps ct) ]  
     fPrims = primitiveContracts 
     fCons  = [ (FnFunc v, fnCon d) | (v, d) <- M.toList p]  
      
@@ -166,7 +174,7 @@ primitiveContracts =
     , postCond 2 "(= %ret (fp.lt %arg0 %arg1))" 
     )
   , ( FnCmp (I 32) Slt 
-    , postCond 2 "(= %ret (lt %arg0 %arg1))" 
+    , postCond 2 "(= %ret (lt32 %arg0 %arg1))" 
     )
   , ( FnBin BvXor
     , postCond 2 "(= %ret (bvxor %arg0 %arg1))" 

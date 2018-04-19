@@ -73,8 +73,14 @@ defineP = do
   outTy           <- typeP
   (name, sp)      <- identifier "@" 
   dArgs           <- argTypesP <* many attrP
-  (pre,post,body) <- braces ((,,) <$> requiresP <*> ensuresP <*> bodyP) 
-  return           $ defn name dArgs body outTy pre post sp
+  (prop, body)    <- braces ((,) <$> propertyP <*> bodyP)
+  return           $ defn name dArgs body outTy prop sp
+  -- body            <- bodyP
+  -- (pre,post,body) <- braces ((,,) <$> requiresP <*> ensuresP <*> bodyP) 
+
+propertyP :: Parser (Maybe (Pred, Pred))
+propertyP =  curry Just <$> requiresP <*> ensuresP
+         <|> return Nothing 
 
 requiresP, ensuresP :: Parser Pred
 requiresP = annotationP "requires"
