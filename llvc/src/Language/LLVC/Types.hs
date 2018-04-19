@@ -139,9 +139,8 @@ data FnDef a = FnDef
   deriving (Eq, Show, Functor)
 
 data Contract = Ct
-  { ctParams :: ![Var]               -- ^ Parameter names 
-  , ctPre    :: !Pred                -- ^ Precondition / "requires" clause               
-  , ctPost   :: !Pred                -- ^ Postcondition / "ensures" clause               
+  { ctParams :: ![Var]                -- ^ Parameter names 
+  , ctProps  :: !(Maybe (Pred, Pred)) -- ^ Precondition / "requires" clause               
   } deriving (Eq, Show)
 
 instance UX.PPrint (FnDef a) where 
@@ -230,8 +229,7 @@ decl f ts t pre post l = FnDef
 contract :: [Var] -> Pred -> Pred -> Contract 
 contract xs pre post = Ct 
   { ctParams = xs 
-  , ctPre    = pre  
-  , ctPost   = post 
+  , ctProps  = Just (pre, post)  
   }
 
 

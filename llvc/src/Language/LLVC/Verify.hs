@@ -12,72 +12,109 @@ import           Language.LLVC.UX
 import           Language.LLVC.Utils 
 import           Language.LLVC.Smt   
 import           Language.LLVC.Types hiding (contract) 
+import qualified Text.Printf as Printf 
 
 -------------------------------------------------------------------------------
 vcs :: (Located a) => Program a -> [(Var, VC)] 
 -------------------------------------------------------------------------------
-vcs p   = [ (f, vcFun env fd fb)
-          | (f, fd) <- M.toList p 
-          , fb      <- Mb.maybeToList (fnBody fd)
+vcs p   = [ (f, vcFun env fd fb pre post)
+          | (f, fd)     <- M.toList p 
+          , fb          <- Mb.maybeToList (fnBody fd)
+          , (pre, post) <- Mb.maybeToList (ctProps $ fnCon fd) 
           ] 
   where 
     env = mkEnv p 
 
-vcFun :: (Located a) => Env -> FnDef a -> FnBody a -> VC 
-vcFun env fd fb = comment    ("VC for: " ++  fnName fd)
-               <> mconcatMap declare      (fnArgTys fd) 
-               <> assert                   pre
-               <> mconcatMap (vcStmt env) (fnStmts  fb)
-               <> check      l' (subst su    post) 
+vcFun :: (Located a) => Env a -> FnDef a -> FnBody a -> Pred -> Pred -> VC 
+vcFun env fd fb pre post 
+                =  comment    ("VC for: " ++  fnName fd)
+                <> mconcatMap declare      (fnArgTys fd) 
+                <> assert                  (inP env pre)
+                <> mconcatMap (vcStmt env) (fnStmts  fb)
+                <> check      l'           (inP env $ subst su post) 
   where 
     su          = [(retVar, retExp)]
     retExp      = snd (fnRet fb)
-    pre         = ctPre  (fnCon fd)        
-    post        = ctPost (fnCon fd)
-    -- l           = sourceSpan (getLabel fd)
     l'          = mkError "Failed ensures check!" 
                 $ sourceSpan (getLabel retExp)
 
-vcStmt :: (Located a) => Env -> Stmt a -> VC 
-vcStmt _ (SAssert p l) 
-  = check err p 
+
+inP :: Env a -> Pred -> SmtPred
+inP = undefined -- smtPred p 
+
+inV :: Env a -> Var -> Var 
+inV = undefined 
+
+vcStmt :: (Located a) => Env a -> Stmt a -> VC 
+vcStmt env (SAssert p l) 
+  = check err (inP env p) 
   where 
     err = mkError "Failed assert" (sourceSpan l)
 vcStmt env asgn@(SAsgn x (ECall fn tys tx l) _)
   =  comment (pprint asgn)
-  <> declare (x, tx) 
-  <> check err pre
-  <> assert    post 
+  <> declare (inV env x, tx) 
+  <> vcSig env fn x tys (sig env fn l) l 
+
+vcSig :: (Located a) => Env a -> Fn -> Var -> [TypedArg a] -> Sig -> a -> VC 
+vcSig env _ x tys (SigC ct) l 
+                = check err (inP env pre)
+               <> assert    (inP env post) 
   where 
-    (pre, post) = contractAt env fn x tys l 
+    (pre, post) = contractAt ct x tys l 
     err         = mkError "Failed requires check" (sourceSpan l)
 
-contractAt :: (Located a) => Env -> Fn -> Var -> [TypedArg a] -> a -> (Pred, Pred)
-contractAt env fn rv tys l = (pre, post) 
+vcSig _env fn _rv _tys (SigI _i) _l 
+                = undefined
+
+
+contractAt :: (Located a) => Contract -> Var -> [TypedArg a] -> a -> (Pred, Pred)
+contractAt ct rv tys l = (pre, post) 
   where 
-    pre                    = subst su (ctPre  ct)
-    post                   = subst su (ctPost ct)
-    su                     = zip formals actuals 
-    actuals                = EVar rv l : (snd <$> tys) 
-    formals                = retVar    : ctParams ct
-    ct                     = contract env fn (sourceSpan l) 
+    (pre, post)        = (subst su pre0, subst su post0)
+    Just (pre0, post0) = ctProps ct 
+    su                 = zip formals actuals 
+    actuals            = EVar rv l : (snd <$> tys) 
+    formals            = retVar    : ctParams ct
 
 -------------------------------------------------------------------------------
 -- | Contracts for all the `Fn` stuff.
 -------------------------------------------------------------------------------
-type Env = M.HashMap Fn Contract 
+data Sig = SigC !Contract             -- ^ function with specification
+         | SigI !Int                  -- ^ function to be inlined
+         
+data Env a = Env 
+  { eSig   :: M.HashMap Fn  Contract  -- ^ map from functions to code 
+  , eId    :: M.HashMap Var Int       -- ^ unique id per function 
+  , eDef   :: M.HashMap Var (FnDef a) -- ^ definitions of functions
+  , eStack :: [Int]                   -- ^ non-empty stack of function names
+  }
 
-contract :: Env -> Fn -> SourceSpan -> Contract
-contract env fn l = Mb.fromMaybe err (M.lookup fn env)
-  where 
-    err           = panic msg l 
-    msg           = "Cannot find contract for: " ++ show fn
+sig :: (Located l) => Env a -> Fn -> l -> Sig 
+sig env fn l = case M.lookup fn (eSig env) of 
+  Just ct -> SigC ct 
+  Nothing -> case fn of 
+               FnFunc f -> SigI (fnId env f l) 
+               _        -> errMissing "definition" fn l 
 
-mkEnv :: Program a -> Env 
-mkEnv p   = M.fromList (prims ++ defs) 
+fnId :: (Located l) => Env a -> Var -> l -> Int 
+fnId env v l = Mb.fromMaybe err (M.lookup v (eId env)) 
   where 
-    prims = primitiveContracts 
-    defs  = [ (FnFunc v, fnCon d)  | (v, d) <- M.toList p ]  
+    err      = errMissing "id" v l 
+
+errMissing :: (Located l, Show x) => String -> x -> l -> a 
+errMissing thing x l = panic msg (sourceSpan l)
+  where 
+    msg              = Printf.printf "Cannot find %s for %s" thing (show x) 
+
+mkEnv :: Program a -> Env a 
+mkEnv p   = Env (M.fromList sigs) (M.fromList fIds) (M.fromList fDefs) [] 
+  where 
+    fIds   = zip (fst <$> fDefs) [0..]
+    fDefs  = [ (f, d)  | (f, d)    <- M.toList p ] 
+    sigs   = [ (fn, ct) | (fn, ct) <- fPrims ++ fCons ]  
+    fPrims = primitiveContracts 
+    fCons  = [ (FnFunc v, fnCon d) | (v, d) <- M.toList p]  
+     
 
 -- | We could parse these in too, in due course.
 primitiveContracts :: [(Fn, Contract)]
@@ -124,8 +161,7 @@ postCond n = mkContract n "true"
 mkContract :: Int -> Text -> Text -> Contract 
 mkContract n tPre tPost = Ct 
   { ctParams = paramVar <$> [0..(n-1)]
-  , ctPre    = pred tPre 
-  , ctPost   = pred tPost 
+  , ctProps  = Just (pred tPre, pred tPost) 
   } 
 
 pred :: Text -> Pred 
