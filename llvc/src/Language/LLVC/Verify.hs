@@ -93,7 +93,9 @@ contractAt ct rv tys l = (pre, post)
 -- | Renaming locals in a Context
 -------------------------------------------------------------------------------
 inP :: Env a -> Pred -> SmtPred
-inP = undefined -- smtPred p 
+inP env p = smtPred (substf f p) 
+  where 
+    f x l = Just (EVar (inV env x) l)
 
 inA :: Env a -> Arg a -> Arg a 
 inA env (EVar v l) = EVar (inV env v) l  

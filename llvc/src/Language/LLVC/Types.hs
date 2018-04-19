@@ -303,7 +303,7 @@ data Pred
   deriving (Eq, Show, Generic) 
 
 subst :: (UX.Located a) => [(Var, Arg a)] -> Pred -> Pred
-subst su = substf (`M.lookup` m)
+subst su = substf (\x _ -> M.lookup x m)
   where 
     m    = M.fromList [ (x, UX.sourceSpan <$> a) | (x, a) <- su ] 
     -- goa a@(EVar x _) = M.lookupDefault a x m 
@@ -315,10 +315,10 @@ subst su = substf (`M.lookup` m)
     -- go (POr  ps)     = POr  (go <$> ps)
     -- go (PTrue)       = PTrue 
 
-substf :: (Var -> Maybe BareArg) -> Pred -> Pred
+substf :: (Var -> UX.SourceSpan -> Maybe BareArg) -> Pred -> Pred
 substf f             = go 
   where 
-    goa a@(EVar x _) = Mb.fromMaybe a (f x)  
+    goa a@(EVar x l) = Mb.fromMaybe a (f x l)  
     goa a            = a 
     go (PArg a)      = PArg (goa a)
     go (PAtom o ps)  = PAtom o (go <$> ps)
