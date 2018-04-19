@@ -3,7 +3,9 @@
 (define-sort Int32   () (_ BitVec 32))
 (define-fun to_fp_32 ((a Int32)) Float32  ((_ to_fp 8 24) a))
 (define-fun fp_add ((a Float32) (b Float32)) Float32 (fp.add RNE a b))
+(define-fun fp_mul ((a Float32) (b Float32)) Float32 (fp.mul RNE a b))
 (define-const addmin Float32 ((_ to_fp 8 24) #x0c000000))
+(define-const mulmin Float32 ((_ to_fp 8 24) #x20000000))
 (define-const zero Float32 ((_ to_fp 8 24) #x00000000))
 
 ; (define-fun to_fp_32 ((a Int32)) Float32  ((_ to_fp 8 24) (_ BitVec 32) a))

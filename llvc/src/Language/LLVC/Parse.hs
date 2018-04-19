@@ -142,6 +142,7 @@ llOpP =   (BvAnd, ) <$> rWord "and"
       <|> (BvXor, ) <$> rWord "xor" 
       <|> (BvOr, )  <$> rWord  "or" 
       <|> (FpAdd, ) <$> rWord "fadd" 
+      <|> (FpMul, ) <$> rWord "fmul" 
       <?>  "binary-op"
 
 bitcastP :: Parser BareExpr 
@@ -213,6 +214,7 @@ pAtomP
  <|> atom2 "fp.eq"    FpEq 
  <|> atom2 "fp.lt"    FpLt 
  <|> atom2 "fp_add"   FpAdd 
+ <|> atom2 "fp_mul"   FpMul 
  <|> atom2 "bvor"     BvOr 
  <|> atom2 "bvxor"    BvXor
  <|> atom2 "bvand"    BvAnd 

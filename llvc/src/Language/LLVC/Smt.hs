@@ -210,6 +210,7 @@ instance ToSmt Op where
   toSmt BvOr      = "bvor"
   toSmt BvXor     = "bvxor"
   toSmt FpAdd     = "fp_add" 
+  toSmt FpMul     = "fp_mul" 
   toSmt FpEq      = "fp.eq" 
   toSmt FpAbs     = "fp.abs" 
   toSmt FpLt      = "fp.lt" 
@@ -229,6 +230,7 @@ instance ToSmt (Arg a) where
 convTable :: M.HashMap (Integer, Type) String
 convTable = M.fromList 
   [ ((0x3980000000000000, Float), "addmin") 
+  , ((0x3C00000000000000, Float), "mulmin") 
   , ((-1                , I 32) , "#xffffffff")
   ]
  

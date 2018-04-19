@@ -102,17 +102,20 @@ primitiveContracts =
         "(and (fp_rng addmin %arg0) (fp_rng addmin %arg1))"
         "(= %ret (fp_add %arg0 %arg1))" 
     )
+  , (FnBin FpMul 
+    , mkContract 2 
+        "(and (fp_rng mulmin %arg0) (fp_rng mulmin %arg1))"
+        "(= %ret (fp_mul %arg0 %arg1))" 
+    )
   , ( FnSelect   
     , postCond 3 "(= %ret (ite %arg0 %arg1 %arg2))" 
     )
-  , ( FnBitcast (I 32) Float 
-   -- , postCond 1 "(= %ret (to_fp_32 %arg0))" )
-    , postCond 1 "(= (to_ieee_bv %ret) %arg0)" 
+  , ( FnBitcast (I 32) Float
+    , postCond 1 "(= (to_ieee_bv %ret) %arg0)"
     )
 
-  , ( FnBitcast Float (I 32) 
+  , ( FnBitcast Float (I 32)
     , postCond 1 "(= %ret (to_ieee_bv  %arg0))" )
-
   ] 
 
 postCond :: Int -> Text -> Contract 
