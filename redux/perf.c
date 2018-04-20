@@ -179,7 +179,7 @@ static void perf_micro(void)
 	float ref32[NOPS], sub32[NOPS], rest32[NOPS], full32[NOPS];
 	float ref64[NOPS], sub64[NOPS], rest64[NOPS], full64[NOPS];
 
-	n = 100000;
+	n = 2000000;
 
 	run = run_new(n);
 

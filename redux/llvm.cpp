@@ -188,7 +188,9 @@ struct CTFP : public FunctionPass {
 	virtual bool runOnFunction(Function &func) {
 		LLVMContext &ctx = func.getContext();
 
-		if(func.getName().str().find("ctfp_") == 0)
+		if(func.getName().str().find("ctfp_restrict_") == 0)
+			return false;
+		else if(func.getName().str().find("ctfp_full_") == 0)
 			return false;
 
 		Module *mod = func.getParent();
@@ -286,7 +288,7 @@ struct CTFP : public FunctionPass {
 							auto find = std::find(std::begin(list), std::end(list), func->getName());
 							if(find != std::end(list)) {
 								std::string ctfp = "ctfp_" + *find;
-								//call->setCalledFunction(mod->getOrInsertFunction(ctfp, func->getFunctionType()));
+								call->setCalledFunction(mod->getOrInsertFunction(ctfp, func->getFunctionType()));
 							}
 						}
 					}
@@ -335,7 +337,9 @@ struct CTFP : public FunctionPass {
 				Function *func = &*iter++;
 
 				std::string name = func->getName().str();
-				if(regex_match(name, std::regex("^ctfp_.*$")))
+				if(regex_match(name, std::regex("^ctfp_restrict_.*$")))
+					func->eraseFromParent();
+				else if(regex_match(name, std::regex("^ctfp_full_.*$")))
 					func->eraseFromParent();
 			}
 		}
