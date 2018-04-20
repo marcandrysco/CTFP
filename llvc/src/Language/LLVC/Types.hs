@@ -6,7 +6,7 @@
 
 module Language.LLVC.Types where 
 
--- import qualified Data.Maybe          as Mb
+import qualified Data.Maybe          as Mb
 import           Data.Hashable
 import           GHC.Generics
 import qualified Data.List           as L 
@@ -139,9 +139,8 @@ data FnDef a = FnDef
   deriving (Eq, Show, Functor)
 
 data Contract = Ct
-  { ctParams :: ![Var]               -- ^ Parameter names 
-  , ctPre    :: !Pred                -- ^ Precondition / "requires" clause               
-  , ctPost   :: !Pred                -- ^ Postcondition / "ensures" clause               
+  { ctParams :: ![Var]                -- ^ Parameter names 
+  , ctProps  :: !(Maybe (Pred, Pred)) -- ^ Precondition / "requires" clause               
   } deriving (Eq, Show)
 
 instance UX.PPrint (FnDef a) where 
@@ -222,26 +221,25 @@ decl f ts t pre post l = FnDef
   , fnArgs = ts 
   , fnOut  = t 
   , fnBody = Nothing 
-  , fnCon  = contract (take n paramVars) pre post 
+  , fnCon  = contract (take n paramVars) (Just (pre, post)) 
   , fnLab  = l 
   }
   where n  = length ts 
 
-contract :: [Var] -> Pred -> Pred -> Contract 
-contract xs pre post = Ct 
+contract :: [Var] -> Maybe (Pred, Pred) -> Contract 
+contract xs prop = Ct 
   { ctParams = xs 
-  , ctPre    = pre  
-  , ctPost   = post 
+  , ctProps  = prop 
   }
 
 
-defn :: Var -> [(Var, Type)] -> FnBody a -> Type -> Pred -> Pred -> a -> FnDef a 
-defn f xts b t pre post l = FnDef 
+defn :: Var -> [(Var, Type)] -> FnBody a -> Type -> Maybe (Pred, Pred) -> a -> FnDef a 
+defn f xts b t prop l = FnDef 
   { fnName = f 
   , fnArgs = ts 
   , fnOut  = t 
   , fnBody = Just b 
-  , fnCon  = contract xs pre post 
+  , fnCon  = contract xs prop  
   , fnLab  = l 
   }
   where 
@@ -292,8 +290,6 @@ instance UX.PPrint Op where
   pprint Eq        = "=" 
   pprint (SmtOp x) = x
 
-
-
 -- | 'Pred' are boolean combinations of 'Expr' used to define contracts 
 data Pred 
   = PArg   !BareArg
@@ -305,10 +301,14 @@ data Pred
   deriving (Eq, Show, Generic) 
 
 subst :: (UX.Located a) => [(Var, Arg a)] -> Pred -> Pred
-subst su             = go 
+subst su = substf (\x _ -> M.lookup x m)
   where 
-    m                = M.fromList [ (x, UX.sourceSpan <$> a) | (x, a) <- su ] 
-    goa a@(EVar x _) = M.lookupDefault a x m 
+    m    = M.fromList [ (x, UX.sourceSpan <$> a) | (x, a) <- su ] 
+
+substf :: (Var -> UX.SourceSpan -> Maybe BareArg) -> Pred -> Pred
+substf f             = go 
+  where 
+    goa a@(EVar x l) = Mb.fromMaybe a (f x l)  
     goa a            = a 
     go (PArg a)      = PArg (goa a)
     go (PAtom o ps)  = PAtom o (go <$> ps)

@@ -15,7 +15,7 @@ define weak float @ctfp_restrict_add_f32v1(float %a, float %b) #1 {
 ;@ ensures  (= %ret (fp_add (fp_trunc addmin %a) (fp_trunc addmin %b)))
   %1 = call float @llvm.fabs.f32(float %a)
   %2 = fcmp olt float %1, 0x3980000000000000
-  ;@ assert (= 5 (plus 2 3))
+  ;@ assert (= 50 (plus 20 30))
   %3 = select i1 %2, i32 -1, i32 0
   %4 = bitcast i32 %3 to float
   %5 = xor i32 %3, -1

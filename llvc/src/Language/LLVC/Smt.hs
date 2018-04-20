@@ -7,6 +7,10 @@ module Language.LLVC.Smt
   ( -- * Opaque SMT Query type 
     VC
 
+    -- * Opaque SMT Pred
+  , SmtPred
+  , smtPred
+
   -- * Constructing Queries
   , comment
   , declare
@@ -57,13 +61,17 @@ comment s = say $ printf "; %s" s
 declare ::  (Var, Type) -> VC 
 declare (x, t) = say $ printf "(declare-const %s %s)" (toSmt x) (toSmt t)
 
-assert :: Pred -> VC 
-assert PTrue = mempty 
-assert p     = say $ printf "(assert %s)" (toSmt p)
+newtype SmtPred = SP Pred
+smtPred :: Pred -> SmtPred 
+smtPred = SP
 
-check :: UX.UserError -> Pred -> VC 
-check _ PTrue = mempty 
-check e p     = withBracket (assert (PNot p) <> checkSat e)
+assert :: SmtPred -> VC 
+assert (SP PTrue) = mempty 
+assert (SP p    ) = say $ printf "(assert %s)" (toSmt p)
+
+check :: UX.UserError -> SmtPred -> VC 
+check _ (SP PTrue) = mempty 
+check e (SP p)     = withBracket (assert (SP (PNot p)) <> checkSat e)
 
 withBracket :: VC -> VC 
 withBracket vc = push <> vc <> pop 
@@ -233,7 +241,7 @@ convTable = M.fromList
   , ((0x3C00000000000000, Float), "mulmin") 
   , ((-1                , I 32) , "#xffffffff")
   ]
- 
+
 sigIntHex :: Integer -> Type -> Smt 
 sigIntHex n t     = M.lookupDefault res (n, t) convTable 
   where 
