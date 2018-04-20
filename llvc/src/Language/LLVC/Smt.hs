@@ -241,7 +241,7 @@ convTable = M.fromList
   , ((0x3C00000000000000, Float), "mulmin") 
   , ((-1                , I 32) , "#xffffffff")
   ]
- 
+
 sigIntHex :: Integer -> Type -> Smt 
 sigIntHex n t     = M.lookupDefault res (n, t) convTable 
   where 

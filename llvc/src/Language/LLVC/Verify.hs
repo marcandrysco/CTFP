@@ -110,7 +110,10 @@ inA env (EVar v l) = EVar (inV env v) l
 inA _   a          = a 
 
 inV :: Env a -> Var -> Var 
-inV env x = stackPrefix (eStack env) ++ x 
+inV env x@('%':_) = stackPrefix (eStack env) ++ x 
+inV _   x         = x 
+
+-- inV env x = stackPrefix (eStack env) ++ x 
 
 stackPrefix :: [Int] -> String 
 stackPrefix [] = "" 
