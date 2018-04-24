@@ -10,6 +10,7 @@
 
 
 (define-const one_point_zero Float32 ((_ to_fp 8 24) roundTowardZero 1.0))
+(define-const zero_point_zero Float32 ((_ to_fp 8 24) roundTowardZero 0.0))
 
 
 ; (define-fun to_fp_32 ((a Int32)) Float32  ((_ to_fp 8 24) (_ BitVec 32) a))
