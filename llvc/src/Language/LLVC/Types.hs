@@ -63,6 +63,7 @@ instance UX.PPrint Fn where
 -------------------------------------------------------------------------------
 data Arg a 
   = ELit  !Integer       a    -- ^ integer 
+  | EFlt  !Float         a    -- ^ float literal
   | ETLit !Integer !Type a    -- ^ integer interpreted at a type
   | EVar  !Var           a    -- ^ variable 
   | ECon  !UX.Text       a    -- ^ smt-string-literal e.g. #x00000005
@@ -77,6 +78,7 @@ type TypedExpr a = (Type, Expr a)
 
 instance UX.PPrint (Arg a) where 
   pprint (ELit  n _  ) = show n 
+  pprint (EFlt  n _  ) = show n 
   pprint (ETLit n _ _) = show n 
   pprint (EVar  x _  ) = x 
   pprint (ECon  s _  ) = s 
@@ -178,6 +180,7 @@ class Labeled thing where
 
 instance Labeled Arg where 
   getLabel (ELit  _ z)   = z 
+  getLabel (EFlt  _ z)   = z 
   getLabel (ETLit _ _ z) = z 
   getLabel (EVar _ z)    = z 
   getLabel (ECon _ z)    = z 

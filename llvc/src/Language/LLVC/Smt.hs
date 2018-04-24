@@ -231,6 +231,7 @@ instance ToSmt (Arg a) where
   toSmt (ETLit n (I 32) _) = sigIntHex n (I 32) 
   toSmt (ETLit n Float _)  = printf "((_ to_fp 8 24) RNE %s)" (sigIntHex n Float)
   toSmt (ETLit n _ _)      = show n 
+  toSmt (EFlt n    _)      = printf "((_ to_fp 8 24) roundTowardZero %s)" (show n)
   toSmt (ELit n    _)      = show n 
   toSmt (EVar x    _)      = toSmt x 
   toSmt (ECon x    _)      = x 

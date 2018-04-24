@@ -8,7 +8,6 @@ import           Text.Megaparsec hiding (parse)
 import           Data.List.NonEmpty         as NE
 import qualified Text.Megaparsec.Char.Lexer as L
 import           Text.Megaparsec.Char
--- import           Text.Megaparsec.Expr
 import           Language.LLVC.Types
 import           Language.LLVC.UX 
 
@@ -121,11 +120,14 @@ retP = do
 argP :: Parser BareArg 
 argP 
   =  uncurry ECon <$> identifier "#"
+ <|> try (uncurry EFlt <$> float)
  <|> uncurry ELit <$> integer 
  <|> uncurry EVar <$> identifier "%" 
  <|> uncurry EVar <$> smtId 
  <?> "smt-argument"
 
+float :: Parser (Float, SourceSpan) 
+float = lexeme L.float 
 
 exprP :: Parser BareExpr 
 exprP 

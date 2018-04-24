@@ -8,6 +8,10 @@
 (define-const mulmin Float32 ((_ to_fp 8 24) #x20000000))
 (define-const zero Float32 ((_ to_fp 8 24) #x00000000))
 
+
+(define-const one_point_zero Float32 ((_ to_fp 8 24) roundTowardZero 1.0))
+
+
 ; (define-fun to_fp_32 ((a Int32)) Float32  ((_ to_fp 8 24) (_ BitVec 32) a))
 ;    ((_ to_fp eb sb) (_ BitVec m) (_ FloatingPoint eb sb))
 
