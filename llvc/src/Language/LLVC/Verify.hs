@@ -179,6 +179,14 @@ primitiveContracts =
   , ( FnCmp (I 32) Slt 
     , postCond 2 "(= %ret (lt32 %arg0 %arg1))" 
     )
+  ,
+    ( FnCmp Float Une
+    , postCond 2 "(= %ret (or (fp.isNaN %arg0) (fp.isNaN %arg1) (not (fp.eq %arg0 %arg1))))" 
+    )
+  ,
+    ( FnCmp Float Oeq 
+    , postCond 2 "(= %ret (fp.eq %arg0 %arg1))" 
+    )
   , ( FnBin BvXor
     , postCond 2 "(= %ret (bvxor %arg0 %arg1))" 
     )

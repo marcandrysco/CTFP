@@ -39,6 +39,8 @@ data Fn
 data Rel 
   = Olt 
   | Slt  
+  | Une
+  | Oeq
   deriving (Eq, Ord, Show, Generic) 
 
 instance Hashable Type 
@@ -49,6 +51,8 @@ instance Hashable Fn
 instance UX.PPrint Rel where 
   pprint Olt = "olt"
   pprint Slt = "slt"
+  pprint Une = "une"
+  pprint Oeq = "oeq"
 
 instance UX.PPrint Fn where 
   pprint (FnCmp Float r) = printf "fcmp %s" (UX.pprint r)
@@ -89,6 +93,8 @@ instance UX.PPrint (Expr a) where
 ppCmp :: Type -> Rel -> UX.Text 
 ppCmp Float Olt = "fcmp olt"
 ppCmp (I _) Slt = "icmp slt"
+ppCmp Float Une = "fcmp une"
+ppCmp Float Oeq = "fcmp oeq"
 ppCmp t     r   = error $ "ppCmp: " ++ show (t, r)
 
 ppCall :: Fn -> [TypedArg a] -> Type -> UX.Text 
@@ -208,7 +214,7 @@ tLit (t, ELit n l) = (t, ETLit n t l)
 tLit z            = z 
 
 mkBitcast :: TypedArg a -> Type -> a -> Expr a 
-mkBitcast (t, e) t' = ECall (FnBitcast t t') [(t, e)] t'
+mkBitcast (t, e) t' = ECall (FnBitcast t t') [tLit (t, e)] t'
 
 mkOp :: Op -> TypedArg a -> Arg a -> a -> Expr a 
 mkOp o (t, e1) e2 = ECall (FnBin o) [tLit (t, e1), tLit (t, e2)] t 

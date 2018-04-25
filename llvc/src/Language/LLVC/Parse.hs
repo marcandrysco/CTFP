@@ -184,6 +184,8 @@ cmpP = do
 relP :: Parser Rel 
 relP =  (rWord "olt" >> return Olt)
     <|> (rWord "slt" >> return Slt) 
+    <|> (rWord "une" >> return Une) 
+    <|> (rWord "oeq" >> return Oeq) 
     <?> "relation"
 
 eCallP :: Parser BareExpr 
@@ -313,7 +315,7 @@ keywords =
   [ "define", "declare", "weak"
   , "float", "i32", "i1"
   , "call"
-  , "fcmp", "olt", "select"
+  , "fcmp", "olt", "oeq", "une", "select"
   , "bitcast", "to"
   , "and", "or"
   , "ret"
