@@ -194,8 +194,8 @@ float addmin_f32 = 9.86076131526264760e-32;
 double addmin_f64 = 2.00416836000897278e-292;
 float mulmin_f32 = 1.08420217248550443e-19;
 double mulmin_f64 = 1.49166814624004135e-154;
-float divmax_f32 = 9.22337203685477581e+18;
-double divmax_f64 = 6.70390396497129855e+153;
+float divmax_f32 = 4.61168601842738790e+18;
+double divmax_f64 = 3.35195198248564927e+153;
 
 /*
  * ctfp semantic simulation functions

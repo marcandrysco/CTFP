@@ -38,9 +38,10 @@ data Fn
 
 data Rel 
   = Olt 
+  | Ogt 
+  | Oeq 
+  | Une 
   | Slt  
-  | Une
-  | Oeq
   deriving (Eq, Ord, Show, Generic) 
 
 instance Hashable Type 
@@ -50,9 +51,10 @@ instance Hashable Fn
 
 instance UX.PPrint Rel where 
   pprint Olt = "olt"
-  pprint Slt = "slt"
-  pprint Une = "une"
+  pprint Ogt = "ogt"
   pprint Oeq = "oeq"
+  pprint Une = "une"
+  pprint Slt = "slt"
 
 instance UX.PPrint Fn where 
   pprint (FnCmp Float r) = printf "fcmp %s" (UX.pprint r)
@@ -92,9 +94,10 @@ instance UX.PPrint (Expr a) where
 
 ppCmp :: Type -> Rel -> UX.Text 
 ppCmp Float Olt = "fcmp olt"
-ppCmp (I _) Slt = "icmp slt"
-ppCmp Float Une = "fcmp une"
+ppCmp Float Ogt = "fcmp ogt"
 ppCmp Float Oeq = "fcmp oeq"
+ppCmp Float Une = "fcmp une"
+ppCmp (I _) Slt = "icmp slt"
 ppCmp t     r   = error $ "ppCmp: " ++ show (t, r)
 
 ppCall :: Fn -> [TypedArg a] -> Type -> UX.Text 
@@ -276,6 +279,7 @@ data Op
   | FpAdd 
   | FpSub 
   | FpMul 
+  | FpDiv 
   | ToFp32    -- ((_ to_fp 8 24) RNE r3)  
   | BvOr
   | BvXor
@@ -293,6 +297,7 @@ instance UX.PPrint Op where
   pprint FpAdd     = "fadd" 
   pprint FpSub     = "fsub" 
   pprint FpMul     = "fmul" 
+  pprint FpDiv     = "fdiv" 
   pprint FpEq      = "fp.eq" 
   pprint FpAbs     = "fp.abs" 
   pprint FpLt      = "fp.lt" 

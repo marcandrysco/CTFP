@@ -87,15 +87,15 @@ bench_ref.o: bench.c Makefile
 	clang -c -O2 $< -o $@ -Werror -Wall -D BENCH=ref -march=$(CPU)
 
 bench_restrict.o: bench.c ctfp-llvm.so ctfp.bc Makefile
-	CTFP_VER=1 CTFP_DIR=. clang -g -c -O2 $< -o $@ -Werror -Wall -D BENCH=ctfp1 -march=$(CPU) $(MATH) -fplugin=./ctfp-llvm.so
+	CTFP_VER=1 CTFP_DIR=. clang -g -c -O2 $< -o $@ -Werror -Wall -D BENCH=ctfp1 -march=$(CPU) -fplugin=./ctfp-llvm.so
 
 bench_full.o: bench.c ctfp-llvm.so ctfp.bc Makefile
-	CTFP_VER=2 CTFP_DIR=. clang -g -c -O2 $< -o $@ -Werror -Wall -D BENCH=ctfp2 -march=$(CPU) $(MATH) -fplugin=./ctfp-llvm.so
+	CTFP_VER=2 CTFP_DIR=. clang -g -c -O2 $< -o $@ -Werror -Wall -D BENCH=ctfp2 -march=$(CPU) -fplugin=./ctfp-llvm.so
 
 
 ## Run
 
-run1: prover
+run: prover
 	./prover
 
 run4: gen
@@ -108,7 +108,7 @@ run3:
 run5: all test
 	./test
 
-run: all test perf
+run1: all test perf
 	./test
 	./perf
 

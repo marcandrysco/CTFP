@@ -176,6 +176,15 @@ primitiveContracts =
   [ ( FnCmp Float Olt 
     , postCond 2 "(= %ret (fp.lt %arg0 %arg1))" 
     )
+  , ( FnCmp Float Ogt 
+    , postCond 2 "(= %ret (fp.gt %arg0 %arg1))" 
+    )
+  , ( FnCmp Float Une 
+    , postCond 2 "(= %ret (not (fp.eq %arg0 %arg1)))" 
+    )
+  , ( FnCmp Float Oeq 
+    , postCond 2 "(= %ret (fp.eq %arg0 %arg1))" 
+    )
   , ( FnCmp (I 32) Slt 
     , postCond 2 "(= %ret (lt32 %arg0 %arg1))" 
     )
@@ -208,8 +217,11 @@ primitiveContracts =
     )
   , (FnBin FpMul 
     , mkContract 2 
-        "(and (fp_rng mulmin %arg0) (fp_rng mulmin %arg1))"
+        "(and (not (fp_isspec_f32 %arg0)) (not (fp_isspec_f32 %arg1)))"
         "(= %ret (fp_mul %arg0 %arg1))" 
+    )
+  , ( FnBin FpDiv
+    , mkContract 2 "(fdiv32_pre %arg0 %arg1)" "(fdiv32_post %ret %arg0 %arg1)"
     )
   , ( FnSelect   
     , postCond 3 "(= %ret (ite %arg0 %arg1 %arg2))" 

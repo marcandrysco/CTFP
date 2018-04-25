@@ -152,6 +152,7 @@ llOpP =   (BvAnd, ) <$> rWord "and"
       <|> (FpAdd, ) <$> rWord "fadd" 
       <|> (FpSub, ) <$> rWord "fsub" 
       <|> (FpMul, ) <$> rWord "fmul" 
+      <|> (FpDiv, ) <$> rWord "fdiv" 
       <?>  "binary-op"
 
 bitcastP :: Parser BareExpr 
@@ -184,6 +185,9 @@ cmpP = do
  
 relP :: Parser Rel 
 relP =  (rWord "olt" >> return Olt)
+    <|> (rWord "ogt" >> return Ogt) 
+    <|> (rWord "oeq" >> return Oeq) 
+    <|> (rWord "une" >> return Une) 
     <|> (rWord "slt" >> return Slt) 
     <|> (rWord "une" >> return Une) 
     <|> (rWord "oeq" >> return Oeq) 
@@ -227,6 +231,7 @@ pAtomP
  <|> atom2 "fp_add"   FpAdd 
  <|> atom2 "fp_sub"   FpSub
  <|> atom2 "fp_mul"   FpMul 
+ <|> atom2 "fp_div"   FpDiv 
  <|> atom2 "bvor"     BvOr 
  <|> atom2 "bvxor"    BvXor
  <|> atom2 "bvand"    BvAnd 
@@ -317,7 +322,7 @@ keywords =
   [ "define", "declare", "weak"
   , "float", "i32", "i1"
   , "call"
-  , "fcmp", "olt", "oeq", "une", "select"
+  , "fcmp", "olt", "ogt", "oeq", "une", "select"
   , "bitcast", "to"
   , "and", "or"
   , "ret"

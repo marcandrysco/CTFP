@@ -220,6 +220,7 @@ instance ToSmt Op where
   toSmt FpAdd     = "fp_add" 
   toSmt FpSub     = "fp_sub" 
   toSmt FpMul     = "fp_mul" 
+  toSmt FpDiv     = "fp_div" 
   toSmt FpEq      = "fp.eq" 
   toSmt FpAbs     = "fp.abs" 
   toSmt FpLt      = "fp.lt" 
@@ -229,8 +230,8 @@ instance ToSmt Op where
   toSmt (SmtOp x) = x 
 
 instance ToSmt (Arg a) where 
-  toSmt (ETLit n (I 32) _) = sigIntHex n (I 32)
-  toSmt (ETLit n Float _)  = printf "((_ to_fp 8 24) RNE %s)" (sigIntHex n Float)
+  toSmt (ETLit n (I 32) _) = sigIntHex n (I 32) 
+  toSmt (ETLit n Float _)  = printf "((_ to_fp 8 24) %s)" (sigIntHex n Float)
   toSmt (ETLit n _ _)      = show n 
   toSmt (EFlt n    _)      = printf "((_ to_fp 8 24) roundTowardZero %s)" (show n)
   toSmt (ELit n    _)      = show n
@@ -241,6 +242,9 @@ convTable :: M.HashMap (Integer, Type) String
 convTable = M.fromList 
   [ ((0x3980000000000000, Float), "addmin") 
   , ((0x3C00000000000000, Float), "mulmin") 
+  , ((0x3FF0000000000000, Float), "#x3f800000") 
+  , ((0x7FF0000000000000, Float), "#x7f800000") 
+  , ((0x0000000000000000, Float), "#x00000000") 
   , ((-1                , I 32) , "#xffffffff")
   ]
 
