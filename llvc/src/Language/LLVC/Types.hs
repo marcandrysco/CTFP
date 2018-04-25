@@ -274,6 +274,7 @@ data Op
   | FpAbs 
   | FpLt 
   | FpAdd 
+  | FpSub 
   | FpMul 
   | ToFp32    -- ((_ to_fp 8 24) RNE r3)  
   | BvOr
@@ -290,6 +291,7 @@ instance UX.PPrint Op where
   pprint BvXor     = "xor"
   pprint BvAnd     = "and"
   pprint FpAdd     = "fadd" 
+  pprint FpSub     = "fsub" 
   pprint FpMul     = "fmul" 
   pprint FpEq      = "fp.eq" 
   pprint FpAbs     = "fp.abs" 

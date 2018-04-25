@@ -218,6 +218,7 @@ instance ToSmt Op where
   toSmt BvOr      = "bvor"
   toSmt BvXor     = "bvxor"
   toSmt FpAdd     = "fp_add" 
+  toSmt FpSub     = "fp_sub" 
   toSmt FpMul     = "fp_mul" 
   toSmt FpEq      = "fp.eq" 
   toSmt FpAbs     = "fp.abs" 

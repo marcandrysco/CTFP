@@ -201,6 +201,11 @@ primitiveContracts =
         "(and (fp_rng addmin %arg0) (fp_rng addmin %arg1))"
         "(= %ret (fp_add %arg0 %arg1))" 
     )
+  , (FnBin FpSub
+    , mkContract 2 
+        "(and (fp_rng submin %arg0) (fp_rng submin %arg1))"
+        "(= %ret (fp_sub %arg0 %arg1))" 
+    )
   , (FnBin FpMul 
     , mkContract 2 
         "(and (fp_rng mulmin %arg0) (fp_rng mulmin %arg1))"
