@@ -20,7 +20,10 @@ define weak float @ctfp_restrict_div_f32v1_8(float %a, float %b) #2 {
   %1 = bitcast float %b to i32
   %2 = and i32 %1, 2139095040
   %3 = bitcast i32 %2 to float
+;@ assert (= (bvand (to_ieee_bv %3) #x807fffff) #x00000000)
   %4 = fdiv float %a, %3
+;@ assert (= (bvand (to_ieee_bv %4) #x807fffff) (bvand (to_ieee_bv %4) #x807fffff))
+;@ assert (= (bvadd (bvsub (fp_exponent %a) (fp_exponent %3)) #x7f) (fp_exponent %4))
   %5 = and i32 %1, 8388607
   %6 = or i32 %5, 1065353216
   %7 = bitcast i32 %6 to float

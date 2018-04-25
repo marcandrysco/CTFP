@@ -196,3 +196,7 @@
 (define-fun fdiv32sig_post ((ret Float32) (a Float32) (b Float32)) Bool
   (= ret (fp.div RNE a b))
 )
+
+(define-fun fp_exponent ((a Float32)) (_ BitVec 8)
+  ((_ extract 30 23) (to_ieee_bv a))
+)
