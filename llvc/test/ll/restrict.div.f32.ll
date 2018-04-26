@@ -11,8 +11,8 @@ declare float @llvm.copysign.f32(float, float) #0
 
 ; Function Attrs: alwaysinline
 define weak float @ctfp_restrict_div_f32v1(float %a, float %b) #2 {
-;@ requires true 
-;@ ensures  (= %ret (fp_div (fp_clamp mulmin divmax %a) (fp_clamp mulmin divmax %b)))
+; requires true 
+; ensures  (= %ret (fp_div (fp_clamp mulmin divmax %a) (fp_clamp mulmin divmax %b)))
   %1 = call float @llvm.fabs.f32(float %a)
   %2 = call float @llvm.fabs.f32(float %b)
   %3 = call float @ctfp_restrict_div_f32v1_1(float %1, float %2)

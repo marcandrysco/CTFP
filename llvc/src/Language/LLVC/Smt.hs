@@ -245,7 +245,9 @@ convTable = M.fromList
   , ((0x3FF0000000000000, Float), "#x3f800000") 
   , ((0x7FF0000000000000, Float), "#x7f800000") 
   , ((0x0000000000000000, Float), "#x00000000") 
+  , ((0x3810000000000000, Float), "#x00800000")
   , ((-1                , I 32) , "#xffffffff")
+  , ((-2                , I 32) , "#xfffffffe")
   ]
 
 sigIntHex :: Integer -> Type -> Smt 

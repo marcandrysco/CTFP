@@ -5,8 +5,8 @@ declare float @llvm.fabs.f32(float) #0
 
 ; Function Attrs: nounwind readnone
 declare float @llvm.sqrt.f32(float) #0
-;@ requires true 
-;@ ensures  (fp.eq %ret (fp_sqrt %arg0))
+;@ requires (fsqrt32_pre %a)
+;@ ensures (fsqrt32_post %ret %a)
 
 ; Function Attrs: nounwind readnone
 declare float @llvm.copysign.f32(float, float) #0
@@ -14,227 +14,142 @@ declare float @llvm.copysign.f32(float, float) #0
 ;@ ensures (= (to_ieee_bv %ret) (bvor (bvand (to_ieee_bv %arg0) #x7fffffff) (bvand (to_ieee_bv %arg1) #x80000000))) 
 
 ; Function Attrs: alwaysinline
-define weak float @ctfp_restrict_sqrt_f32v1(float %a, float %b) #0 {
-;@ requires (fp_rng sqrtmin %a)
-;@ ensures  (= %ret (fp_sqrt %a))
+define weak float @ctfp_restrict_sqrt_f32v1(float %a) #2 {
+;@ requires (restrict_sqrt_f32_pre0 %a)
+;@ ensures  (restrict_sqrt_f32_post0 %ret %a)
   %1 = call float @llvm.fabs.f32(float %a)
   %2 = fcmp olt float %1, 0x3810000000000000
   %3 = select i1 %2, i32 -1, i32 0
-  %4 = bitcast i32 %3 to float
-  %5 = bitcast float %4 to i32
-  %6 = xor i32 %5, -1
+  %4 = xor i32 %3, -1
+  %5 = bitcast float %a to i32
+  %6 = and i32 %4, %5
   %7 = bitcast i32 %6 to float
-  %8 = bitcast float %7 to i32
-  %9 = bitcast float %a to i32
-  %10 = and i32 %8, %9
-  %11 = bitcast i32 %10 to float
-  %12 = call float @llvm.fabs.f32(float %11)
-  %13 = fcmp olt float %12, 0x3810000000000000
-  %14 = select i1 %13, i32 -1, i32 0
+  %8 = call float @ctfp_restrict_sqrt_f32v1_1(float %7)
+  %9 = call float @llvm.copysign.f32(float %8, float %a)
+  %10 = bitcast float %9 to i32
+  %11 = and i32 %3, %10
+  %12 = bitcast float %8 to i32
+  %13 = and i32 %4, %12
+  %14 = or i32 %11, %13
   %15 = bitcast i32 %14 to float
-  %16 = bitcast float %15 to i32
-  %17 = xor i32 %16, -1
+  ret float %15
+}
+
+; Function Attrs: alwaysinline
+define weak float @ctfp_restrict_sqrt_f32v1_1(float %a) #2 {
+;@ requires (restrict_sqrt_f32_pre1 %a)
+;@ ensures  (restrict_sqrt_f32_post1 %ret %a)
+  %1 = fcmp une float %a, %a
+  %2 = select i1 %1, i32 -1, i32 0
+  %3 = and i32 %2, 2143289344
+  %4 = xor i32 %2, -1
+  %5 = and i32 %2, 1069547520
+  %6 = bitcast float %a to i32
+  %7 = and i32 %4, %6
+  %8 = or i32 %5, %7
+  %9 = bitcast i32 %8 to float
+  %10 = call float @ctfp_restrict_sqrt_f32v1_2(float %9)
+  %11 = bitcast float %10 to i32
+  %12 = and i32 %4, %11
+  %13 = or i32 %3, %12
+  %14 = bitcast i32 %13 to float
+  ret float %14
+}
+
+; Function Attrs: alwaysinline
+define weak float @ctfp_restrict_sqrt_f32v1_2(float %a) #2 {
+;@ requires (restrict_sqrt_f32_pre2 %a)
+;@ ensures  (restrict_sqrt_f32_post2 %ret %a)
+  %1 = fcmp oeq float %a, 0x7FF0000000000000
+  %2 = select i1 %1, i32 -1, i32 0
+  %3 = and i32 %2, 2139095040
+  %4 = xor i32 %2, -1
+  %5 = and i32 %2, 1069547520
+  %6 = bitcast float %a to i32
+  %7 = and i32 %4, %6
+  %8 = or i32 %5, %7
+  %9 = bitcast i32 %8 to float
+  %10 = call float @ctfp_restrict_sqrt_f32v1_3(float %9)
+  %11 = bitcast float %10 to i32
+  %12 = and i32 %4, %11
+  %13 = or i32 %3, %12
+  %14 = bitcast i32 %13 to float
+  ret float %14
+}
+
+; Function Attrs: alwaysinline
+define weak float @ctfp_restrict_sqrt_f32v1_3(float %a) #2 {
+;@ requires (restrict_sqrt_f32_pre3 %a)
+;@ ensures  (restrict_sqrt_f32_post3 %ret %a)
+  %1 = fcmp olt float %a, 0.000000e+00
+  %2 = select i1 %1, i32 -1, i32 0
+  %3 = and i32 %2, 2143289344
+  %4 = xor i32 %2, -1
+  %5 = and i32 %2, 1069547520
+  %6 = bitcast float %a to i32
+  %7 = and i32 %4, %6
+  %8 = or i32 %5, %7
+  %9 = bitcast i32 %8 to float
+  %10 = call float @ctfp_restrict_sqrt_f32v1_4(float %9)
+  %11 = bitcast float %10 to i32
+  %12 = and i32 %4, %11
+  %13 = or i32 %3, %12
+  %14 = bitcast i32 %13 to float
+  ret float %14
+}
+
+; Function Attrs: alwaysinline
+define weak float @ctfp_restrict_sqrt_f32v1_4(float %a) #2 {
+;@ requires (restrict_sqrt_f32_pre4 %a)
+;@ ensures  (restrict_sqrt_f32_post4 %ret %a)
+  %1 = fcmp oeq float %a, 0.000000e+00
+  %2 = select i1 %1, i32 -1, i32 0
+  %3 = bitcast float %a to i32
+  %4 = and i32 %2, %3
+  %5 = xor i32 %2, -1
+  %6 = and i32 %2, 1069547520
+  %7 = and i32 %5, %3
+  %8 = or i32 %6, %7
+  %9 = bitcast i32 %8 to float
+  %10 = call float @ctfp_restrict_sqrt_f32v1_5(float %9)
+  %11 = bitcast float %10 to i32
+  %12 = and i32 %5, %11
+  %13 = or i32 %4, %12
+  %14 = bitcast i32 %13 to float
+  ret float %14
+}
+
+; Function Attrs: alwaysinline
+define weak float @ctfp_restrict_sqrt_f32v1_5(float %a) #2 {
+;@ requires (restrict_sqrt_f32_pre5 %a)
+;@ ensures  (restrict_sqrt_f32_post5 %ret %a)
+  %1 = bitcast float %a to i32
+  %2 = and i32 %1, 16777215
+  %3 = bitcast i32 %2 to float
+  %4 = fcmp oeq float %3, 0x3810000000000000
+  %5 = select i1 %4, i32 -1, i32 0
+  %6 = or i32 %1, 1
+  %7 = and i32 %5, %6
+  %8 = xor i32 %5, -1
+  %9 = and i32 %8, %1
+  %10 = or i32 %7, %9
+  %11 = bitcast i32 %10 to float
+  %12 = call float @ctfp_restrict_sqrt_f32v1_6(float %11)
+  %13 = bitcast float %12 to i32
+  %14 = and i32 %13, -2
+  %15 = and i32 %5, %14
+  %16 = and i32 %8, %13
+  %17 = or i32 %15, %16
   %18 = bitcast i32 %17 to float
-  %19 = bitcast float %18 to i32
-  %20 = bitcast float %11 to i32
-  %21 = and i32 %19, %20
-  %22 = bitcast i32 %21 to float
-  %23 = fcmp une float %22, %22
-  %24 = select i1 %23, i32 -1, i32 0
-  %25 = bitcast i32 %24 to float
-  %26 = bitcast i32 2143289344 to float
-  %27 = bitcast float %25 to i32
-  %28 = bitcast float %26 to i32
-  %29 = and i32 %27, %28
-  %30 = bitcast i32 %29 to float
-  %31 = bitcast float %25 to i32
-  %32 = xor i32 %31, -1
-  %33 = bitcast i32 %32 to float
-  %34 = bitcast float %25 to i32
-  %35 = bitcast float 1.5 to i32
-  %36 = and i32 %34, %35
-  %37 = bitcast i32 %36 to float
-  %38 = bitcast float %33 to i32
-  %39 = bitcast float %22 to i32
-  %40 = and i32 %38, %39
-  %41 = bitcast i32 %40 to float
-  %42 = bitcast float %37 to i32
-  %43 = bitcast float %41 to i32
-  %44 = or i32 %42, %43
-  %45 = bitcast i32 %44 to float
-  %46 = bitcast i32 2139095040 to float
-  %47 = fcmp oeq float %45, %46
-  %48 = select i1 %47, i32 -1, i32 0
-  %49 = bitcast i32 %48 to float
-  %50 = bitcast float %49 to i32
-  %51 = bitcast float %46 to i32
-  %52 = and i32 %50, %51
-  %53 = bitcast i32 %52 to float
-  %54 = bitcast float %49 to i32
-  %55 = xor i32 %54, -1
-  %56 = bitcast i32 %55 to float
-  %57 = bitcast float %49 to i32
-  %58 = bitcast float 1.5 to i32
-  %59 = and i32 %57, %58
-  %60 = bitcast i32 %59 to float
-  %61 = bitcast float %56 to i32
-  %62 = bitcast float %45 to i32
-  %63 = and i32 %61, %62
-  %64 = bitcast i32 %63 to float
-  %65 = bitcast float %60 to i32
-  %66 = bitcast float %64 to i32
-  %67 = or i32 %65, %66
-  %68 = bitcast i32 %67 to float
-  %69 = fcmp olt float %68, 0.0
-  %70 = select i1 %69, i32 -1, i32 0
-  %71 = bitcast i32 %70 to float
-  %72 = bitcast float %71 to i32
-  %73 = bitcast float %26 to i32
-  %74 = and i32 %72, %73
-  %75 = bitcast i32 %74 to float
-  %76 = bitcast float %71 to i32
-  %77 = xor i32 %76, -1
-  %78 = bitcast i32 %77 to float
-  %79 = bitcast float %71 to i32
-  %80 = bitcast float 1.5 to i32
-  %81 = and i32 %79, %80
-  %82 = bitcast i32 %81 to float
-  %83 = bitcast float %78 to i32
-  %84 = bitcast float %68 to i32
-  %85 = and i32 %83, %84
-  %86 = bitcast i32 %85 to float
-  %87 = bitcast float %82 to i32
-  %88 = bitcast float %86 to i32
-  %89 = or i32 %87, %88
-  %90 = bitcast i32 %89 to float
-  %91 = fcmp oeq float %90, 0.0
-  %92 = select i1 %91, i32 -1, i32 0
-  %93 = bitcast i32 %92 to float
-  %94 = bitcast float %93 to i32
-  %95 = bitcast float %90 to i32
-  %96 = and i32 %94, %95
-  %97 = bitcast i32 %96 to float
-  %98 = bitcast float %93 to i32
-  %99 = xor i32 %98, -1
-  %100 = bitcast i32 %99 to float
-  %101 = bitcast float %93 to i32
-  %102 = bitcast float 1.5 to i32
-  %103 = and i32 %101, %102
-  %104 = bitcast i32 %103 to float
-  %105 = bitcast float %100 to i32
-  %106 = bitcast float %90 to i32
-  %107 = and i32 %105, %106
-  %108 = bitcast i32 %107 to float
-  %109 = bitcast float %104 to i32
-  %110 = bitcast float %108 to i32
-  %111 = or i32 %109, %110
-  %112 = bitcast i32 %111 to float
-  %113 = bitcast i32 16777215 to float
-  %114 = bitcast float %112 to i32
-  %115 = bitcast float %113 to i32
-  %116 = and i32 %114, %115
-  %117 = bitcast i32 %116 to float
-  %118 = bitcast i32 8388608 to float
-  %119 = fcmp oeq float %117, %118
-  %120 = select i1 %119, i32 -1, i32 0
-  %121 = bitcast i32 %120 to float
-  %122 = bitcast i32 1 to float
-  %123 = bitcast float %112 to i32
-  %124 = bitcast float %122 to i32
-  %125 = or i32 %123, %124
-  %126 = bitcast i32 %125 to float
-  %127 = bitcast float %121 to i32
-  %128 = bitcast float %126 to i32
-  %129 = and i32 %127, %128
-  %130 = bitcast i32 %129 to float
-  %131 = bitcast float %121 to i32
-  %132 = xor i32 %131, -1
-  %133 = bitcast i32 %132 to float
-  %134 = bitcast float %133 to i32
-  %135 = bitcast float %112 to i32
-  %136 = and i32 %134, %135
-  %137 = bitcast i32 %136 to float
-  %138 = bitcast float %130 to i32
-  %139 = bitcast float %137 to i32
-  %140 = or i32 %138, %139
-  %141 = bitcast i32 %140 to float
-  %142 = call float @llvm.sqrt.f32(float %141)
-  %143 = bitcast i32 4294967294 to float
-  %144 = bitcast float %142 to i32
-  %145 = bitcast float %143 to i32
-  %146 = and i32 %144, %145
-  %147 = bitcast i32 %146 to float
-  %148 = bitcast float %121 to i32
-  %149 = bitcast float %147 to i32
-  %150 = and i32 %148, %149
-  %151 = bitcast i32 %150 to float
-  %152 = bitcast float %133 to i32
-  %153 = bitcast float %142 to i32
-  %154 = and i32 %152, %153
-  %155 = bitcast i32 %154 to float
-  %156 = bitcast float %151 to i32
-  %157 = bitcast float %155 to i32
-  %158 = or i32 %156, %157
-  %159 = bitcast i32 %158 to float
-  %160 = bitcast float %100 to i32
-  %161 = bitcast float %159 to i32
-  %162 = and i32 %160, %161
-  %163 = bitcast i32 %162 to float
-  %164 = bitcast float %97 to i32
-  %165 = bitcast float %163 to i32
-  %166 = or i32 %164, %165
-  %167 = bitcast i32 %166 to float
-  %168 = bitcast float %78 to i32
-  %169 = bitcast float %167 to i32
-  %170 = and i32 %168, %169
-  %171 = bitcast i32 %170 to float
-  %172 = bitcast float %75 to i32
-  %173 = bitcast float %171 to i32
-  %174 = or i32 %172, %173
-  %175 = bitcast i32 %174 to float
-  %176 = bitcast float %56 to i32
-  %177 = bitcast float %175 to i32
-  %178 = and i32 %176, %177
-  %179 = bitcast i32 %178 to float
-  %180 = bitcast float %53 to i32
-  %181 = bitcast float %179 to i32
-  %182 = or i32 %180, %181
-  %183 = bitcast i32 %182 to float
-  %184 = bitcast float %33 to i32
-  %185 = bitcast float %183 to i32
-  %186 = and i32 %184, %185
-  %187 = bitcast i32 %186 to float
-  %188 = bitcast float %30 to i32
-  %189 = bitcast float %187 to i32
-  %190 = or i32 %188, %189
-  %191 = bitcast i32 %190 to float
-  %192 = call float @llvm.copysign.f32(float %191, float %11)
-  %193 = bitcast float %15 to i32
-  %194 = bitcast float %192 to i32
-  %195 = and i32 %193, %194
-  %196 = bitcast i32 %195 to float
-  %197 = bitcast float %18 to i32
-  %198 = bitcast float %191 to i32
-  %199 = and i32 %197, %198
-  %200 = bitcast i32 %199 to float
-  %201 = bitcast float %196 to i32
-  %202 = bitcast float %200 to i32
-  %203 = or i32 %201, %202
-  %204 = bitcast i32 %203 to float
-  %205 = call float @llvm.copysign.f32(float %204, float %a)
-  %206 = bitcast float %4 to i32
-  %207 = bitcast float %205 to i32
-  %208 = and i32 %206, %207
-  %209 = bitcast i32 %208 to float
-  %210 = bitcast float %7 to i32
-  %211 = bitcast float %204 to i32
-  %212 = and i32 %210, %211
-  %213 = bitcast i32 %212 to float
-  %214 = bitcast float %209 to i32
-  %215 = bitcast float %213 to i32
-  %216 = or i32 %214, %215
-  %217 = bitcast i32 %216 to float
-  ret float %217
+  ret float %18
+}
+
+; Function Attrs: alwaysinline
+define weak float @ctfp_restrict_sqrt_f32v1_6(float %a) #2 {
+;@ requires (restrict_sqrt_f32_pre6 %a)
+;@ ensures  (restrict_sqrt_f32_post6 %ret %a)
+  %1 = call float @llvm.sqrt.f32(float %a)
+  ret float %1
 }
 
 attributes #0 = { nounwind readnone }

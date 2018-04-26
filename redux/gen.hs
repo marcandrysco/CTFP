@@ -52,6 +52,7 @@ data Expr
   | FCmpOLT  (Expr, Expr)
   | FCmpOGT  (Expr, Expr)
   | CopySign (Expr, Expr)
+  | Call1    (Expr, Expr)
   | Call     (Expr, Expr, Expr)
   | Seq      (Expr, Expr)
   deriving (Eq, Show, Ord)
@@ -164,7 +165,8 @@ z3_call (fn, a, b, env) =
 llvm_main :: Bool -> IO ()
 llvm_main dbg = 
   let
-    fns = [ "restrict_add", "restrict_sub", "restrict_mul", "restrict_div", "restrict_sqrt", "full_add", "full_sub", "full_mul", "full_div", "full_sqrt" ]
+    fns1 = [ "restrict_sqrt", "full_sqrt" ]
+    fns2 = [ "restrict_add", "restrict_sub", "restrict_mul", "restrict_div", "full_add", "full_sub", "full_mul", "full_div" ]
     f ty =
       let
         post = type2post ty
@@ -182,8 +184,10 @@ llvm_main dbg =
   in
     do llvm_prelude
        mapM f typelist
-       mapM llvm_hack32 fns
-       mapM llvm_hack64 fns
+       mapM llvm_hack32_1 fns1
+       mapM llvm_hack32 fns2
+       mapM llvm_hack64_1 fns1
+       mapM llvm_hack64 fns2
        return ()
 
 llvm_prelude :: IO ()
@@ -222,6 +226,14 @@ llvm_hack32 op =
      putStr $ "  %r  = extractelement <4 x float> %r1, i32 0\n"
      putStr $ "  ret float %r\n"
      putStr $ "}\n"
+llvm_hack32_1 :: String -> IO ()
+llvm_hack32_1 op =
+  do putStr $ "define weak float @ctfp_"++op++"_f32v1_hack(float %a) #0 {\n"
+     putStr $ "  %a1 = insertelement <4 x float> undef, float %a, i32 0\n"
+     putStr $ "  %r1 = call <4 x float> @ctfp_"++op++"_f32v4(<4 x float> %a1)\n"
+     putStr $ "  %r  = extractelement <4 x float> %r1, i32 0\n"
+     putStr $ "  ret float %r\n"
+     putStr $ "}\n"
 
 -- hack for generating vectorized functions
 llvm_hack64 :: String -> IO ()
@@ -233,23 +245,34 @@ llvm_hack64 op =
      putStr $ "  %r  = extractelement <2 x double> %r1, i64 0\n"
      putStr $ "  ret double %r\n"
      putStr $ "}\n"
+llvm_hack64_1 :: String -> IO ()
+llvm_hack64_1 op =
+  do putStr $ "define weak double @ctfp_"++op++"_f64v1_hack(double %a) #0 {\n"
+     putStr $ "  %a1 = insertelement <2 x double> undef, double %a, i64 0\n"
+     putStr $ "  %r1 = call <2 x double> @ctfp_"++op++"_f64v2(<2 x double> %a1)\n"
+     putStr $ "  %r  = extractelement <2 x double> %r1, i64 0\n"
+     putStr $ "  ret double %r\n"
+     putStr $ "}\n"
 
 -- generate the code for a function
-llvm_func :: Expr -> Type -> String -> Bool -> IO ()
-llvm_func fn ty nam dbg = 
-  let tnam = type2flt ty in
-    do putStr $ "define weak " ++ tnam ++ " @" ++ nam ++ "(" ++ tnam ++ " %a, " ++ tnam ++ " %b) #0 {\n"
+llvm_func :: Expr -> Int -> Type -> String -> Bool -> IO ()
+llvm_func fn nargs ty nam dbg = 
+  let
+    tnam = type2flt ty
+    argl = map (\x -> tnam ++ " %" ++ x) ["a","b","c","d"]
+  in
+    do putStr $ "define weak " ++ tnam ++ " @" ++ nam ++ "(" ++ (intercalate ", " (take nargs argl)) ++ ") #0 {\n"
        (r,(_,_,(idx,fns),n,_,_,_)) <- llvm_expr (fn, env_init ty nam dbg)
        putStr $ "ret " ++ tnam ++ " " ++ r ++ "\n}\n"
-       gen_unnamed fns ty idx nam dbg
+       gen_unnamed fns nargs ty idx nam dbg
 
--- helper for 2-argument functions
+-- helper for 1-argument functions
 llvm_func1 :: (Expr -> Expr) -> Type -> String -> Bool -> IO ()
-llvm_func1 fn = llvm_func (fn (Arg "a"))
+llvm_func1 fn = llvm_func (fn (Arg "a")) 1
 
 -- helper for 2-argument functions
 llvm_func2 :: ((Expr, Expr) -> Expr) -> Type -> String -> Bool -> IO ()
-llvm_func2 fn = llvm_func (fn (Arg "a", Arg "b"))
+llvm_func2 fn = llvm_func (fn (Arg "a", Arg "b")) 2
 
 -- Create a call from a function and arguments
 func :: ((Expr, Expr) -> Expr) -> (Expr, Expr) -> Expr
@@ -322,7 +345,7 @@ instance WithBlind Expr (Expr -> Expr -> Expr) where
   withBlind cond blind fix op v =
     let b   = cond v
         tmp = ite b (blind v) v
-        res = op tmp
+        res = Call1 (op (Arg "a"), tmp)
         out = ite b (fix v res) res
     in out
 
@@ -574,37 +597,45 @@ blind_sqrt =
 
 -- ## TRIAL STRATEGIES ## --
 
--- try an addition, replace with zeros on failure
-tryadd  =
-  let trial v w = FAdd (FMul (v, addoff), FMul (w, addoff)) in
-    withBlind
-      (\(u,v)   -> FCmpOLT (Abs (trial u v), addcmp))
-      (\(u,v)   -> (val_zero, val_zero))
-      (\(u,v) r -> CopySign(r, trial u v))
+-- general trial strategy, needs safety function, limit, and safe input
+trial :: (Expr -> Expr -> Expr) -> Expr -> (Expr, Expr) -> (FP2 -> FP1) -> FP2 -> FP1
+trial fn lim safe =
+  withBlind
+    (\(u,v)   -> FCmpOLT (Abs (fn u v), lim))
+    (\(u,v)   -> safe)
+    (\(u,v) r -> CopySign(r, fn u v))
 
--- try a subtraction, replace with zeros on failure
-trysub  =
-  let trial v w = FSub (FMul (v, addoff), FMul (w, addoff)) in
-    withBlind
-      (\(u,v)   -> FCmpOLT (Abs (trial u v), addcmp))
-      (\(u,v)   -> (val_zero, val_zero))
-      (\(u,v) r -> CopySign(r, trial u v))
+-- trial addition
+tryadd :: (FP2 -> FP1) -> FP2 -> FP1
+tryadd =
+  trial
+    (\v w -> FAdd (FMul (v, addoff), FMul (w, addoff)))
+    addcmp
+    (val_zero, val_zero)
 
--- try a multiplication, replace with zeros on failure
-trymul  =
-  let trial u v = FMul (FMul (u, muloff), v) in
-    withBlind
-      (\(u,v)   -> FCmpOLT (Abs (trial u v), mulcmp))
-      (\(u,v)   -> (val_zero, val_zero))
-      (\(u,v) r -> r)
+-- trial subtraction
+trysub :: (FP2 -> FP1) -> FP2 -> FP1
+trysub =
+  trial
+    (\v w -> FSub (FMul (v, addoff), FMul (w, addoff)))
+    addcmp
+    (val_zero, val_zero)
 
--- try a division, replace with zeros on failure
-trydiv  =
-  let trial u v = safediv (FMul (u, divoff), v) in
-    withBlind
-      (\(u,v)   -> FCmpOLT (Abs (trial u v), divcmp))
-      (\(u,v)   -> (val_zero, val_one))
-      (\(u,v) r -> r)
+-- trial multiplication
+trymul :: (FP2 -> FP1) -> FP2 -> FP1
+trymul =
+  trial
+    (\v w -> FMul (FMul (v, muloff), w))
+    mulcmp
+    (val_zero, val_zero)
+
+-- trial division
+trydiv :: (FP2 -> FP1) -> FP2 -> FP1
+trydiv =
+  trial
+    (\v w -> safediv (FMul (v, divoff), w))
+    divcmp
+    (val_zero, val_one)
 
 
 -- ## CONSTANTS ## --
@@ -683,11 +714,10 @@ restrict_div =
 restrict_sqrt :: FP1 -> FP1
 restrict_sqrt =
   with_underflow fltmin @@
-  with_underflow fltmin @@
-  with_dummy val_nan val_nan val_dummy @@
-  with_dummy val_inf val_inf val_dummy @@
+  with_dummy val_nan  val_nan  val_dummy @@
+  with_dummy val_inf  val_inf  val_dummy @@
+  with_dummy val_zero val_zero val_dummy @@
   neg_sqrt @@
-  zero_sqrt @@
   blind_sqrt @@
   FSqrt
 
@@ -797,14 +827,17 @@ zeros :: Env -> String
 zeros e = ints e "0"
 
 
-gen_unnamed :: [Func] -> Type -> Int -> String -> Bool -> IO ()
-gen_unnamed [] _ _ _ _ = return ()
-gen_unnamed ((nam, expr):fns) t idx fn dbg =
-  let ty = type2flt t in
-    do putStr $ "define weak " ++ ty ++ " @"++fn++"_" ++ (show nam) ++ "(" ++ ty ++ " %a, " ++ ty ++ " %b) #1 {\n"
+gen_unnamed :: [Func] -> Int -> Type -> Int -> String -> Bool -> IO ()
+gen_unnamed [] _ _ _ _ _ = return ()
+gen_unnamed ((nam, expr):fns) nargs t idx fn dbg =
+  let
+    ty = type2flt t
+    argl = intercalate ", " $ take nargs (map (\x -> ty ++ " %" ++ x) ["a","b","c","d"])
+  in
+    do putStr $ "define weak " ++ ty ++ " @"++fn++"_" ++ (show nam) ++ "(" ++ argl ++ ") #1 {\n"
        (r,(_,_,(idx',fns'),_,_,_,_)) <- llvm_expr (expr, (1, t, (idx, fns), fn, [], dbg, Map.empty))
        putStr $ "ret " ++ ty ++ " " ++ r ++ "\n}\n"
-       gen_unnamed fns' t idx' fn dbg
+       gen_unnamed fns' nargs t idx' fn dbg
 
 llvm_expr :: (Expr, Env) -> IO (String, Env)
 llvm_expr (expr, env) =
@@ -870,7 +903,8 @@ gen_expr (FCmpOLT (a, b), env) = gen_fcmp ("fcmp olt", a, b, env)
 gen_expr (FCmpOGT (a, b), env) = gen_fcmp ("fcmp ogt", a, b, env)
 gen_expr (FCmpUNE (a, b), env) = gen_fcmp ("fcmp une", a, b, env)
 gen_expr (CopySign (a, b), env) = gen_call2 ("llvm.copysign." ++ (env2vec env), a, b, env)
-gen_expr (Call (fn, a, b),  env) = gen_call (fn, a, b, env)
+gen_expr (Call1 (fn, a),  env) = llvm_call1 (fn, a, env)
+gen_expr (Call (fn, a, b),  env) = llvm_call2 (fn, a, b, env)
 gen_expr (Seq (a, b), env) = llvm_seq a b env
 
 -- llvm code for let expressions
@@ -892,8 +926,19 @@ llvm_seq a b env =
      (y, env) <- llvm_expr (b, env)
      return (y, env)
 
-gen_call :: (Expr, Expr, Expr, Env) -> IO (String, Env)
-gen_call (fn, a, b, env) =
+-- llvm code for a 1-argument call
+llvm_call1 :: (Expr, Expr, Env) -> IO (String, Env)
+llvm_call1 (fn, a, env) =
+  do (ra, env) <- llvm_expr (a, env)
+     let (env',r) = alloc env in
+       let (env'',func) = name env' fn in
+         let flt = env2flt env'' in 
+           do putStr $ r++" = call "++flt++" @"++(env_func env'')++"_"++func++"("++flt++" "++ra++")\n"
+              return (r, env'')
+
+-- llvm code for a 2-argument call
+llvm_call2 :: (Expr, Expr, Expr, Env) -> IO (String, Env)
+llvm_call2 (fn, a, b, env) =
   do (ra, env) <- llvm_expr (a, env)
      (rb, env) <- llvm_expr (b, env)
      let (env',r) = alloc env in

@@ -68,9 +68,14 @@
   (or (fp.isZero a) (fp.isInfinite a) (fp.isNaN a) (fp.isSubnormal a))
 )
 
-; check if a value is a power of two
+; check if a value is a power-of-two
 (define-fun fp32_ispow2 ((v Float32)) Bool
   (= #x00000000 (bvand (to_ieee_bv v) #x007fffff))
+)
+
+; check if a value is a power-of-four
+(define-fun fp32_ispow4 ((v Float32)) Bool
+  (= #x00800000 (bvand (to_ieee_bv v) #x00ffffff))
 )
 
 
@@ -169,6 +174,88 @@
 )
 
 
+;; RESTRICT SQRT PRE/POST
+
+; sqrt, part 0
+(define-fun restrict_sqrt_f32_pre0 ((a Float32)) Bool
+  true
+)
+(define-fun restrict_sqrt_f32_post0 ((ret Float32) (a Float32)) Bool
+  (= ret (fp.sqrt RNE (fp32_underflow a fltmin)))
+)
+
+; sqrt, part 1
+(define-fun restrict_sqrt_f32_pre1 ((a Float32)) Bool
+  (not (fp.isSubnormal (fp.sqrt RNE a)))
+)
+(define-fun restrict_sqrt_f32_post1 ((ret Float32) (a Float32)) Bool
+  (= ret (fp.sqrt RNE a))
+)
+
+; sqrt, part 2
+(define-fun restrict_sqrt_f32_pre2 ((a Float32)) Bool
+  (and
+    (not (fp.isSubnormal (fp.sqrt RNE a)))
+    (not (fp.isNaN a))
+  )
+)
+(define-fun restrict_sqrt_f32_post2 ((ret Float32) (a Float32)) Bool
+  (= ret (fp.sqrt RNE a))
+)
+
+; sqrt, part 3
+(define-fun restrict_sqrt_f32_pre3 ((a Float32)) Bool
+  (and
+    (not (fp.isSubnormal (fp.sqrt RNE a)))
+    (not (fp.isNaN a))
+    (not (= a inf))
+  )
+)
+(define-fun restrict_sqrt_f32_post3 ((ret Float32) (a Float32)) Bool
+  (= ret (fp.sqrt RNE a))
+)
+
+; sqrt, part 4
+(define-fun restrict_sqrt_f32_pre4 ((a Float32)) Bool
+  (and
+    (not (fp.isSubnormal (fp.sqrt RNE a)))
+    (not (fp.isNaN a))
+    (not (= a inf))
+    (fp.geq a zero)
+  )
+)
+(define-fun restrict_sqrt_f32_post4 ((ret Float32) (a Float32)) Bool
+  (= ret (fp.sqrt RNE a))
+)
+
+; sqrt, part 5
+(define-fun restrict_sqrt_f32_pre5 ((a Float32)) Bool
+  (and
+    (not (fp.isSubnormal (fp.sqrt RNE a)))
+    (not (fp.isNaN a))
+    (not (= a inf))
+    (fp.gt a zero)
+  )
+)
+(define-fun restrict_sqrt_f32_post5 ((ret Float32) (a Float32)) Bool
+  (= ret (fp.sqrt RNE a))
+)
+
+; sqrt, part 6
+(define-fun restrict_sqrt_f32_pre6 ((a Float32)) Bool
+  (and
+    (not (fp.isSubnormal (fp.sqrt RNE a)))
+    (not (fp.isNaN a))
+    (not (= a inf))
+    (fp.gt a zero)
+    (not (fp32_ispow4 a))
+  )
+)
+(define-fun restrict_sqrt_f32_post6 ((ret Float32) (a Float32)) Bool
+  (= ret (fp.sqrt RNE a))
+)
+
+
 ;; PRIMITIVE OPERATION SAFETY
 
 ; fdiv
@@ -177,8 +264,8 @@
     (fp_isspec_f32 a)
     (fp_isspec_f32 b)
     ;; TODO: power-of-two
-    (fp.isSubnormal (fp.div RNE a b))
-  ))
+    (fp.isSubnormal (fp.div RNE a b)))
+  )
 )
 (define-fun fdiv32_post ((ret Float32) (a Float32) (b Float32)) Bool
   (= ret (fp.div RNE a b))
@@ -190,11 +277,24 @@
     (not (fp_isspec_f32 a))
     (not (fp_isspec_f32 b))
     (not (fp32_ispow2 b))
-    (not (fp.isSubnormal (fp.div RNE a b))
-  ))
+    (not (fp.isSubnormal (fp.div RNE a b)))
+  )
 )
 (define-fun fdiv32sig_post ((ret Float32) (a Float32) (b Float32)) Bool
   (= ret (fp.div RNE a b))
+)
+
+; fsqrt
+(define-fun fsqrt32_pre ((a Float32)) Bool
+  (and
+    (fp.geq a zero)
+    (not (= a inf))
+    (not (fp32_ispow4 a))
+    (not (fp.isSubnormal (fp.sqrt RNE a)))
+  )
+)
+(define-fun fsqrt32_post ((ret Float32) (a Float32)) Bool
+  (= ret (fp.sqrt RNE a))
 )
 
 (define-fun fp_exponent ((a Float32)) (_ BitVec 8)
