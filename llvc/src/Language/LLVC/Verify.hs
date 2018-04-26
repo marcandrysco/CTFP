@@ -205,20 +205,14 @@ primitiveContracts =
   , ( FnBin BvAnd
     , postCond 2 "(= %ret (bvand %arg0 %arg1))" 
     )
-  , (FnBin FpAdd 
-    , mkContract 2 
-        "(and (fp_rng addmin %arg0) (fp_rng addmin %arg1))"
-        "(= %ret (fp_add %arg0 %arg1))" 
+  , ( FnBin FpAdd
+    , mkContract 2 "(fadd32_pre %arg0 %arg1)" "(fadd32_post %ret %arg0 %arg1)"
     )
-  , (FnBin FpSub
-    , mkContract 2 
-        "(and (fp_rng submin %arg0) (fp_rng submin %arg1))"
-        "(= %ret (fp_sub %arg0 %arg1))" 
+  , ( FnBin FpSub
+    , mkContract 2 "(fsub32_pre %arg0 %arg1)" "(fsub32_post %ret %arg0 %arg1)"
     )
-  , (FnBin FpMul 
-    , mkContract 2 
-        "(and (not (fp_isspec_f32 %arg0)) (not (fp_isspec_f32 %arg1)))"
-        "(= %ret (fp_mul %arg0 %arg1))" 
+  , ( FnBin FpMul
+    , mkContract 2 "(fmul32_pre %arg0 %arg1)" "(fmul32_post %ret %arg0 %arg1)"
     )
   , ( FnBin FpDiv
     , mkContract 2 "(fdiv32_pre %arg0 %arg1)" "(fdiv32_post %ret %arg0 %arg1)"

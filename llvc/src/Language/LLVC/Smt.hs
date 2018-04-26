@@ -240,8 +240,8 @@ instance ToSmt (Arg a) where
 
 convTable :: M.HashMap (Integer, Type) String
 convTable = M.fromList 
-  [ ((0x3980000000000000, Float), "addmin") 
-  , ((0x3C00000000000000, Float), "mulmin") 
+  [ ((0x3980000000000000, Float), "#x0c000000") 
+  , ((0x3C00000000000000, Float), "#x20000000") 
   , ((0x3FF0000000000000, Float), "#x3f800000") 
   , ((0x7FF0000000000000, Float), "#x7f800000") 
   , ((0x0000000000000000, Float), "#x00000000") 

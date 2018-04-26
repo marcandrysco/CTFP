@@ -10,47 +10,41 @@ declare float @llvm.copysign.f32(float, float) #0
 
 
 ; Function Attrs: alwaysinline
-define weak float @ctfp_restrict_add_f32v1(float %a, float %b) #1 {
-;@ requires true 
-;@ ensures  (= %ret (fp_add (fp_trunc addmin %a) (fp_trunc addmin %b)))
+define weak float @ctfp_restrict_add_f32v1(float %a, float %b) #2 {
+;@ requires (restrict_add_f32_pre0 %a %b)
+;@ ensures  (restrict_add_f32_post0 %ret %a %b)
   %1 = call float @llvm.fabs.f32(float %a)
   %2 = fcmp olt float %1, 0x3980000000000000
-  ;@ assert (= 50 (plus 20 30))
   %3 = select i1 %2, i32 -1, i32 0
-  %4 = bitcast i32 %3 to float
-  %5 = xor i32 %3, -1
-  %6 = bitcast i32 %5 to float
-  %7 = bitcast float %a to i32
-  %8 = and i32 %5, %7
-  %9 = bitcast i32 %8 to float
-  %10 = call float @llvm.copysign.f32(float %9, float %a)
-  %11 = call float @ctfp_restrict_add_f32v1_1(float %10, float %b)
-  ret float %11
+  %4 = xor i32 %3, -1
+  %5 = bitcast float %a to i32
+  %6 = and i32 %4, %5
+  %7 = bitcast i32 %6 to float
+  %8 = call float @llvm.copysign.f32(float %7, float %a)
+  %9 = call float @ctfp_restrict_add_f32v1_1(float %8, float %b)
+  ret float %9
 }
 
+; Function Attrs: alwaysinline
 define weak float @ctfp_restrict_add_f32v1_1(float %a, float %b) #2 {
-;@ requires (fp_rng addmin %a)
-;@ ensures  (= %ret (fp_add %a (fp_trunc addmin %b)))
+;@ requires (restrict_add_f32_pre1 %a %b)
+;@ ensures  (restrict_add_f32_post1 %ret %a %b)
   %1 = call float @llvm.fabs.f32(float %b)
   %2 = fcmp olt float %1, 0x3980000000000000
   %3 = select i1 %2, i32 -1, i32 0
-  %4 = bitcast i32 %3 to float
-  %5 = xor i32 %3, -1
-  ; %6 = bitcast i32 %5 to float
-  %7 = bitcast float %b to i32
-  %8 = and i32 %5, %7
-  %9 = bitcast i32 %8 to float
-  %10 = call float @llvm.copysign.f32(float %9, float %b)
-  %11 = call float @ctfp_restrict_add_f32v1_2(float %a, float %10)
-  ret float %11
+  %4 = xor i32 %3, -1
+  %5 = bitcast float %b to i32
+  %6 = and i32 %4, %5
+  %7 = bitcast i32 %6 to float
+  %8 = call float @llvm.copysign.f32(float %7, float %b)
+  %9 = call float @ctfp_restrict_add_f32v1_2(float %a, float %8)
+  ret float %9
 }
 
-
-
 ; Function Attrs: alwaysinline
-define weak float @ctfp_restrict_add_f32v1_2(float %a, float %b) #1 {
-;@ requires (and (fp_rng addmin %a) (fp_rng addmin %b))
-;@ ensures  (= %ret (fp_add %a %b))
+define weak float @ctfp_restrict_add_f32v1_2(float %a, float %b) #2 {
+;@ requires (restrict_add_f32_pre2 %a %b)
+;@ ensures  (restrict_add_f32_post2 %ret %a %b)
   %1 = fadd float %a, %b
   ret float %1
 }

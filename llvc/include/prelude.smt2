@@ -116,6 +116,110 @@
 )
 
 
+;; RESTRICT ADDITION PRE/POST
+
+; addition, part 0
+(define-fun restrict_add_f32_pre0 ((a Float32) (b Float32)) Bool
+  true
+)
+(define-fun restrict_add_f32_post0 ((ret Float32) (a Float32) (b Float32)) Bool
+  (= ret (fp.add RNE (fp32_underflow a addmin) (fp32_underflow b addmin)))
+)
+
+; addition, part 1
+(define-fun restrict_add_f32_pre1 ((a Float32) (b Float32)) Bool
+  (or (fp.eq a zero) (fp.geq (fp.abs a) addmin))
+)
+(define-fun restrict_add_f32_post1 ((ret Float32) (a Float32) (b Float32)) Bool
+  (= ret (fp.add RNE a (fp32_underflow b addmin)))
+)
+
+; addition, part 2
+(define-fun restrict_add_f32_pre2 ((a Float32) (b Float32)) Bool
+  (and
+    (or (fp.eq a zero) (fp.geq (fp.abs a) addmin))
+    (or (fp.eq b zero) (fp.geq (fp.abs b) addmin))
+  )
+)
+(define-fun restrict_add_f32_post2 ((ret Float32) (a Float32) (b Float32)) Bool
+  (= ret (fp.add RNE a b))
+)
+
+
+;; RESTRICT SUBTRACTION PRE/POST
+
+; subtraction, part 0
+(define-fun restrict_sub_f32_pre0 ((a Float32) (b Float32)) Bool
+  true
+)
+(define-fun restrict_sub_f32_post0 ((ret Float32) (a Float32) (b Float32)) Bool
+  (= ret (fp.sub RNE (fp32_underflow a addmin) (fp32_underflow b addmin)))
+)
+
+; subtraction, part 1
+(define-fun restrict_sub_f32_pre1 ((a Float32) (b Float32)) Bool
+  (or (fp.eq a zero) (fp.geq (fp.abs a) addmin))
+)
+(define-fun restrict_sub_f32_post1 ((ret Float32) (a Float32) (b Float32)) Bool
+  (= ret (fp.sub RNE a (fp32_underflow b addmin)))
+)
+
+; subtraction, part 2
+(define-fun restrict_sub_f32_pre2 ((a Float32) (b Float32)) Bool
+  (and
+    (or (fp.eq a zero) (fp.geq (fp.abs a) addmin))
+    (or (fp.eq b zero) (fp.geq (fp.abs b) addmin))
+  )
+)
+(define-fun restrict_sub_f32_post2 ((ret Float32) (a Float32) (b Float32)) Bool
+  (= ret (fp.sub RNE a b))
+)
+
+
+;; RESTRICT MULTIPLICATION SUBTRACTION PRE/POST
+
+; multiplication, part 0
+(define-fun restrict_mul_f32_pre0 ((a Float32) (b Float32)) Bool
+  true
+)
+(define-fun restrict_mul_f32_post0 ((ret Float32) (a Float32) (b Float32)) Bool
+  (= ret (fp.mul RNE (fp32_underflow a mulmin) (fp32_underflow b mulmin)))
+)
+
+; multiplication, part 1
+(define-fun restrict_mul_f32_pre1 ((a Float32) (b Float32)) Bool
+  (and
+    (or (fp.isPositive a) (fp.isNaN a))
+    (or (fp.isPositive b) (fp.isNaN b))
+  )
+)
+(define-fun restrict_mul_f32_post1 ((ret Float32) (a Float32) (b Float32)) Bool
+  (= ret (fp.mul RNE (fp32_underflow a mulmin) (fp32_underflow b mulmin)))
+)
+
+; multiplication, part 2
+(define-fun restrict_mul_f32_pre2 ((a Float32) (b Float32)) Bool
+  (and
+    (or (= a zero) (fp.geq a mulmin) (fp.isNaN a))
+    (or (fp.isPositive b) (fp.isNaN b))
+  )
+)
+(define-fun restrict_mul_f32_post2 ((ret Float32) (a Float32) (b Float32)) Bool
+  (= ret (fp.mul RNE a (fp32_underflow b mulmin)))
+)
+
+; multiplication, part 3
+(define-fun restrict_mul_f32_pre3 ((a Float32) (b Float32)) Bool
+  (and
+    (or (= a zero) (fp.geq a mulmin) (fp.isNaN a))
+    (or (= b zero) (fp.geq b mulmin) (fp.isNaN b))
+  )
+)
+(define-fun restrict_mul_f32_post3 ((ret Float32) (a Float32) (b Float32)) Bool
+  (= ret (fp.mul RNE a b))
+)
+
+
 ;; RESTRICT DIVIDE PRE/POST
 
 ; division, part 8
@@ -257,6 +361,36 @@
 
 
 ;; PRIMITIVE OPERATION SAFETY
+
+; fadd
+(define-fun fadd32_pre ((a Float32) (b Float32)) Bool
+  (not (or
+    (fp.isSubnormal (fp.add RNE a b)))
+  )
+)
+(define-fun fadd32_post ((ret Float32) (a Float32) (b Float32)) Bool
+  (= ret (fp.add RNE a b))
+)
+
+; fsub
+(define-fun fsub32_pre ((a Float32) (b Float32)) Bool
+  (not (or
+    (fp.isSubnormal (fp.sub RNE a b)))
+  )
+)
+(define-fun fsub32_post ((ret Float32) (a Float32) (b Float32)) Bool
+  (= ret (fp.sub RNE a b))
+)
+
+; fmul
+(define-fun fmul32_pre ((a Float32) (b Float32)) Bool
+  (not (or
+    (fp.isSubnormal (fp.mul RNE a b)))
+  )
+)
+(define-fun fmul32_post ((ret Float32) (a Float32) (b Float32)) Bool
+  (= ret (fp.mul RNE a b))
+)
 
 ; fdiv
 (define-fun fdiv32_pre ((a Float32) (b Float32)) Bool
