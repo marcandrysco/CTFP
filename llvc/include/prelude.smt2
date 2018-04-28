@@ -487,18 +487,6 @@
   (= ret (fp.mul RNE a b))
 )
 
-; fdiv
-(define-fun fdiv32_pre ((a Float32) (b Float32)) Bool
-  (not (or
-    (fp_isspec_f32 a)
-    (fp_isspec_f32 b)
-    (fp.isSubnormal (fp.div RNE a b)))
-  )
-)
-(define-fun fdiv32_post ((ret Float32) (a Float32) (b Float32)) Bool
-  (= ret (fp.div RNE a b))
-)
-
 ; fdiv exponent
 (define-fun fdiv32exp_pre ((a Float32) (b Float32)) Bool
   (and
