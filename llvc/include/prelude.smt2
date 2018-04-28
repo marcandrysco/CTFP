@@ -10,8 +10,8 @@
 (define-const addmin Float32 ((_ to_fp 8 24) #x0c000000))
 (define-const submin Float32 ((_ to_fp 8 24) #x0c000000))
 (define-const mulmin Float32 ((_ to_fp 8 24) #x20000000))
-(define-const sqrtmin Float32 ((_ to_fp 8 24) #x00800000))
 (define-const divmax Float32 ((_ to_fp 8 24) #x5e800000))
+(define-const sqrtmin Float32 ((_ to_fp 8 24) #x00800000))
 (define-const zero Float32 ((_ to_fp 8 24) #x00000000))
 (define-const one Float32 ((_ to_fp 8 24) #x3f800000))
 (define-const two Float32 ((_ to_fp 8 24) #x40000000))
@@ -83,6 +83,12 @@
 (define-fun fp32_underflow ((val Float32) (lim Float32)) Float32 
   (ite (fp.lt (fp.abs val) lim) (copysign zero val) val)
 )
+(define-fun fp32_underflow_pos ((val Float32) (lim Float32)) Float32 
+  (ite (fp.lt val lim) zero val)
+)
+(define-fun fp32_underflow_neg ((val Float32) (lim Float32)) Float32 
+  (ite (fp.gt val (fp.neg lim)) (fp.neg zero) val)
+)
 
 ; overflow a value above `lim` to infinity
 (define-fun fp32_overflow ((val Float32) (lim Float32)) Float32 
@@ -91,7 +97,7 @@
 
 ; clamp a value to the range `[lo,hi]`, over/under-flowing as needed
 (define-fun fp32_clamp ((x Float32) (lo Float32) (hi Float32)) Float32
-  (fp32_overflow hi (fp32_underflow lo x))
+  (fp32_overflow (fp32_underflow x lo) hi)
 )
 
 
@@ -222,11 +228,100 @@
 
 ;; RESTRICT DIVIDE PRE/POST
 
+; divide, part 0
+(define-fun restrict_div_f32_pre0 ((a Float32) (b Float32)) Bool
+  true
+)
+(define-fun restrict_div_f32_post0 ((ret Float32) (a Float32) (b Float32)) Bool
+  (= ret (fp.div RNE (fp32_clamp a mulmin divmax) (fp32_clamp b mulmin divmax)))
+)
+
+; divide, part 1
+(define-fun restrict_div_f32_pre1 ((a Float32) (b Float32)) Bool
+  (and
+    (or (fp.isPositive a) (fp.isNaN a))
+    (or (fp.isPositive b) (fp.isNaN b))
+  )
+)
+(define-fun restrict_div_f32_post1 ((ret Float32) (a Float32) (b Float32)) Bool
+  (= ret (fp.div RNE (fp32_clamp a mulmin divmax) (fp32_clamp b mulmin divmax)))
+)
+
+; divide, part 2
+(define-fun restrict_div_f32_pre2 ((a Float32) (b Float32)) Bool
+  (and
+    (or (= a zero) (fp.geq a mulmin) (fp.isNaN a))
+    (or (fp.isPositive b) (fp.isNaN b))
+  )
+)
+(define-fun restrict_div_f32_post2 ((ret Float32) (a Float32) (b Float32)) Bool
+  (= ret (fp.div RNE (fp32_overflow a divmax) (fp32_clamp b mulmin divmax)))
+)
+
+; divide, part 3
+(define-fun restrict_div_f32_pre3 ((a Float32) (b Float32)) Bool
+  (and
+    (or (= a zero) (fp.geq a mulmin) (fp.isNaN a))
+    (or (= b zero) (fp.geq b mulmin) (fp.isNaN b))
+  )
+)
+(define-fun restrict_div_f32_post3 ((ret Float32) (a Float32) (b Float32)) Bool
+  (= ret (fp.div RNE (fp32_overflow a divmax) (fp32_overflow b divmax)))
+)
+
+; divide, part 4
+(define-fun restrict_div_f32_pre4 ((a Float32) (b Float32)) Bool
+  (and
+    (or (= a zero) (= a inf) (and (fp.geq a mulmin) (fp.leq a divmax)) (fp.isNaN a))
+    (or (= b zero) (fp.geq b mulmin) (fp.isNaN b))
+  )
+)
+(define-fun restrict_div_f32_post4 ((ret Float32) (a Float32) (b Float32)) Bool
+  (= ret (fp.div RNE a (fp32_overflow b divmax)))
+)
+
+; divide, part 5
+(define-fun restrict_div_f32_pre5 ((a Float32) (b Float32)) Bool
+  (and
+    (or (= a zero) (= a inf) (and (fp.geq a mulmin) (fp.leq a divmax)) (fp.isNaN a))
+    (or (= b zero) (= b inf) (and (fp.geq b mulmin) (fp.leq b divmax)) (fp.isNaN b))
+  )
+)
+(define-fun restrict_div_f32_post5 ((ret Float32) (a Float32) (b Float32)) Bool
+  (= ret (fp.div RNE a b))
+)
+
+; divide, part 6
+(define-fun restrict_div_f32_pre6 ((a Float32) (b Float32)) Bool
+  (and
+    (or (= a zero) (= a inf) (and (fp.geq a mulmin) (fp.leq a divmax)))
+    (or (= b zero) (= b inf) (and (fp.geq b mulmin) (fp.leq b divmax)))
+    (not (and (= a zero) (= b zero)))
+    (not (and (= a inf) (= b inf)))
+  )
+)
+(define-fun restrict_div_f32_post6 ((ret Float32) (a Float32) (b Float32)) Bool
+  (= ret (fp.div RNE a b))
+)
+
+; divide, part 7
+(define-fun restrict_div_f32_pre7 ((a Float32) (b Float32)) Bool
+  (and
+    (or (= a zero) (= a inf) (and (fp.geq a mulmin) (fp.leq a divmax)))
+    (or (= b zero) (= b inf) (and (fp.geq b mulmin) (fp.leq b divmax)))
+    (not (= a inf))
+    (not (= b zero))
+  )
+)
+(define-fun restrict_div_f32_post7 ((ret Float32) (a Float32) (b Float32)) Bool
+  (= ret (fp.div RNE a b))
+)
+
 ; division, part 8
 (define-fun restrict_div_f32_pre8 ((a Float32) (b Float32)) Bool
   (and
-    (fp32_between a mulmin divmax)
-    (fp32_between b mulmin divmax)
+    (and (fp.geq a mulmin) (fp.leq a divmax))
+    (and (fp.geq b mulmin) (fp.leq b divmax))
   )
 )
 (define-fun restrict_div_f32_post8 ((ret Float32) (a Float32) (b Float32)) Bool

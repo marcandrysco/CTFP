@@ -1,7 +1,7 @@
 ; Function Attrs: nounwind readnone
 declare float @llvm.fabs.f32(float) #0
 ;@ requires true 
-;@ ensures  (fp.eq %ret (fp.abs %arg0))
+;@ ensures  (= %ret (fp.abs %arg0))
 
 ; Function Attrs: nounwind readnone
 declare float @llvm.copysign.f32(float, float) #0
@@ -11,8 +11,8 @@ declare float @llvm.copysign.f32(float, float) #0
 
 ; Function Attrs: alwaysinline
 define weak float @ctfp_restrict_div_f32v1(float %a, float %b) #2 {
-; requires true 
-; ensures  (= %ret (fp_div (fp_clamp mulmin divmax %a) (fp_clamp mulmin divmax %b)))
+;@ requires (restrict_div_f32_pre0 %a %b)
+;@ ensures  (restrict_div_f32_post0 %ret %a %b)
   %1 = call float @llvm.fabs.f32(float %a)
   %2 = call float @llvm.fabs.f32(float %b)
   %3 = call float @ctfp_restrict_div_f32v1_1(float %1, float %2)
@@ -26,6 +26,8 @@ define weak float @ctfp_restrict_div_f32v1(float %a, float %b) #2 {
 
 ; Function Attrs: alwaysinline
 define weak float @ctfp_restrict_div_f32v1_1(float %a, float %b) #2 {
+;@ requires (restrict_div_f32_pre1 %a %b)
+;@ ensures  (restrict_div_f32_post1 %ret %a %b)
   %1 = call float @llvm.fabs.f32(float %a)
   %2 = fcmp olt float %1, 0x3C00000000000000
   %3 = select i1 %2, i32 -1, i32 0
@@ -33,13 +35,14 @@ define weak float @ctfp_restrict_div_f32v1_1(float %a, float %b) #2 {
   %5 = bitcast float %a to i32
   %6 = and i32 %4, %5
   %7 = bitcast i32 %6 to float
-  %8 = call float @llvm.copysign.f32(float %7, float %a)
-  %9 = call float @ctfp_restrict_div_f32v1_2(float %8, float %b)
-  ret float %9
+  %8 = call float @ctfp_restrict_div_f32v1_2(float %7, float %b)
+  ret float %8
 }
 
 ; Function Attrs: alwaysinline
 define weak float @ctfp_restrict_div_f32v1_2(float %a, float %b) #2 {
+;@ requires (restrict_div_f32_pre2 %a %b)
+;@ ensures  (restrict_div_f32_post2 %ret %a %b)
   %1 = call float @llvm.fabs.f32(float %b)
   %2 = fcmp olt float %1, 0x3C00000000000000
   %3 = select i1 %2, i32 -1, i32 0
@@ -47,13 +50,14 @@ define weak float @ctfp_restrict_div_f32v1_2(float %a, float %b) #2 {
   %5 = bitcast float %b to i32
   %6 = and i32 %4, %5
   %7 = bitcast i32 %6 to float
-  %8 = call float @llvm.copysign.f32(float %7, float %b)
-  %9 = call float @ctfp_restrict_div_f32v1_3(float %a, float %8)
-  ret float %9
+  %8 = call float @ctfp_restrict_div_f32v1_3(float %a, float %7)
+  ret float %8
 }
 
 ; Function Attrs: alwaysinline
 define weak float @ctfp_restrict_div_f32v1_3(float %a, float %b) #2 {
+;@ requires (restrict_div_f32_pre3 %a %b)
+;@ ensures  (restrict_div_f32_post3 %ret %a %b)
   %1 = call float @llvm.fabs.f32(float %a)
   %2 = fcmp ogt float %1, 0x43D0000000000000
   %3 = select i1 %2, i32 -1, i32 0
@@ -69,6 +73,8 @@ define weak float @ctfp_restrict_div_f32v1_3(float %a, float %b) #2 {
 
 ; Function Attrs: alwaysinline
 define weak float @ctfp_restrict_div_f32v1_4(float %a, float %b) #2 {
+;@ requires (restrict_div_f32_pre4 %a %b)
+;@ ensures  (restrict_div_f32_post4 %ret %a %b)
   %1 = call float @llvm.fabs.f32(float %b)
   %2 = fcmp ogt float %1, 0x43D0000000000000
   %3 = select i1 %2, i32 -1, i32 0
@@ -84,6 +90,8 @@ define weak float @ctfp_restrict_div_f32v1_4(float %a, float %b) #2 {
 
 ; Function Attrs: alwaysinline
 define weak float @ctfp_restrict_div_f32v1_5(float %a, float %b) #2 {
+;@ requires (restrict_div_f32_pre5 %a %b)
+;@ ensures  (restrict_div_f32_post5 %ret %a %b)
   %1 = fcmp une float %a, %a
   %2 = select i1 %1, i32 -1, i32 0
   %3 = fcmp une float %b, %b
@@ -122,6 +130,8 @@ define weak float @ctfp_restrict_div_f32v1_5(float %a, float %b) #2 {
 
 ; Function Attrs: alwaysinline
 define weak float @ctfp_restrict_div_f32v1_6(float %a, float %b) #2 {
+;@ requires (restrict_div_f32_pre6 %a %b)
+;@ ensures  (restrict_div_f32_post6 %ret %a %b)
   %1 = fcmp oeq float 0x7FF0000000000000, %a
   %2 = select i1 %1, i32 -1, i32 0
   %3 = fcmp oeq float 0x0000000000000000, %b
@@ -148,6 +158,8 @@ define weak float @ctfp_restrict_div_f32v1_6(float %a, float %b) #2 {
 
 ; Function Attrs: alwaysinline
 define weak float @ctfp_restrict_div_f32v1_7(float %a, float %b) #2 {
+;@ requires (restrict_div_f32_pre7 %a %b)
+;@ ensures  (restrict_div_f32_post7 %ret %a %b)
   %1 = fcmp oeq float 0x0000000000000000, %a
   %2 = select i1 %1, i32 -1, i32 0
   %3 = fcmp oeq float 0x7FF0000000000000, %b
@@ -172,6 +184,8 @@ define weak float @ctfp_restrict_div_f32v1_7(float %a, float %b) #2 {
 
 ; Function Attrs: alwaysinline
 define weak float @ctfp_restrict_div_f32v1_8(float %a, float %b) #2 {
+;@ requires (restrict_div_f32_pre8 %a %b)
+;@ ensures  (restrict_div_f32_post8 %ret %a %b)
   %1 = bitcast float %b to i32
   %2 = and i32 %1, 2139095040
   %3 = bitcast i32 %2 to float
@@ -185,6 +199,8 @@ define weak float @ctfp_restrict_div_f32v1_8(float %a, float %b) #2 {
 
 ; Function Attrs: alwaysinline
 define weak float @ctfp_restrict_div_f32v1_9(float %a, float %b) #2 {
+;@ requires (restrict_div_f32_pre9 %a %b)
+;@ ensures  (restrict_div_f32_post9 %ret %a %b)
   %1 = fcmp oeq float %b, 0x3FF0000000000000
   %2 = select i1 %1, i32 -1, i32 0
   %3 = bitcast float %a to i32
@@ -208,6 +224,8 @@ define weak float @ctfp_restrict_div_f32v1_9(float %a, float %b) #2 {
 
 ; Function Attrs: alwaysinline
 define weak float @ctfp_restrict_div_f32v1_10(float %a, float %b) #2 {
+;@ requires (restrict_div_f32_pre10 %a %b)
+;@ ensures  (restrict_div_f32_post10 %ret %a %b)
   %1 = fcmp oeq float %a, 0x0000000000000000
   %2 = select i1 %1, i32 -1, i32 0
   %3 = xor i32 %2, -1
@@ -229,6 +247,8 @@ define weak float @ctfp_restrict_div_f32v1_10(float %a, float %b) #2 {
 
 ; Function Attrs: alwaysinline
 define weak float @ctfp_restrict_div_f32v1_11(float %a, float %b) #2 {
+;@ requires (restrict_div_f32_pre11 %a %b)
+;@ ensures  (restrict_div_f32_post11 %ret %a %b)
   %1 = fcmp oeq float %a, 0x7FF0000000000000
   %2 = select i1 %1, i32 -1, i32 0
   %3 = and i32 %2, 2139095040
@@ -252,8 +272,8 @@ define weak float @ctfp_restrict_div_f32v1_11(float %a, float %b) #2 {
 
 ; Function Attrs: alwaysinline
 define weak float @ctfp_restrict_div_f32v1_12(float %a, float %b) #2 {
-;@ requires (and true)
-;@ ensures  (= %ret (fp_div %a %b))
+;@ requires (restrict_div_f32_pre12 %a %b)
+;@ ensures  (restrict_div_f32_post12 %ret %a %b)
   %1 = fdiv float %a, %b
   ret float %1
 }
