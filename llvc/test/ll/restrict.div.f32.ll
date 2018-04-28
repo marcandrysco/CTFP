@@ -8,6 +8,14 @@ declare float @llvm.copysign.f32(float, float) #0
 ;@ requires true 
 ;@ ensures (= (to_ieee_bv %ret) (bvor (bvand (to_ieee_bv %arg0) #x7fffffff) (bvand (to_ieee_bv %arg1) #x80000000))) 
 
+declare float @fdiv_sig(float, float)
+;@ requires (fdiv32sig_pre %a %b)
+;@ ensures (fdiv32sig_post %ret %a %b)
+
+declare float @fdiv_exp(float, float)
+;@ requires (fdiv32exp_pre %a %b)
+;@ ensures (fdiv32exp_post %ret %a %b)
+
 
 ; Function Attrs: alwaysinline
 define weak float @ctfp_restrict_div_f32v1(float %a, float %b) #2 {
@@ -190,6 +198,7 @@ define weak float @ctfp_restrict_div_f32v1_8(float %a, float %b) #2 {
   %2 = and i32 %1, 2139095040
   %3 = bitcast i32 %2 to float
   %4 = fdiv float %a, %3
+  %1 = call float @fdiv_exp(float %a, float %b)
   %5 = and i32 %1, 8388607
   %6 = or i32 %5, 1065353216
   %7 = bitcast i32 %6 to float
@@ -274,7 +283,7 @@ define weak float @ctfp_restrict_div_f32v1_11(float %a, float %b) #2 {
 define weak float @ctfp_restrict_div_f32v1_12(float %a, float %b) #2 {
 ;@ requires (restrict_div_f32_pre12 %a %b)
 ;@ ensures  (restrict_div_f32_post12 %ret %a %b)
-  %1 = fdiv float %a, %b
+  %1 = call float @fdiv_sig(float %a, float %b)
   ret float %1
 }
 

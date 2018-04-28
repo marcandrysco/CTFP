@@ -492,11 +492,23 @@
   (not (or
     (fp_isspec_f32 a)
     (fp_isspec_f32 b)
-    ;; TODO: power-of-two
     (fp.isSubnormal (fp.div RNE a b)))
   )
 )
 (define-fun fdiv32_post ((ret Float32) (a Float32) (b Float32)) Bool
+  (= ret (fp.div RNE a b))
+)
+
+; fdiv exponent
+(define-fun fdiv32exp_pre ((a Float32) (b Float32)) Bool
+  (and
+    (not (fp_isspec_f32 a))
+    (not (fp_isspec_f32 b))
+    (fp32_ispow2 b)
+    (not (fp.isSubnormal (fp.div RNE a b)))
+  )
+)
+(define-fun fdiv32exp_post ((ret Float32) (a Float32) (b Float32)) Bool
   (= ret (fp.div RNE a b))
 )
 
