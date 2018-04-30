@@ -470,8 +470,9 @@
 
 ; fsub
 (define-fun fsub32_pre ((a Float32) (b Float32)) Bool
-  (not (or
-    (fp.isSubnormal (fp.sub RNE a b)))
+  (not (or (fp.isSubnormal a) 
+           (fp.isSubnormal b) 
+	   (fp.isSubnormal (fp.add RNE a b)))
   )
 )
 (define-fun fsub32_post ((ret Float32) (a Float32) (b Float32)) Bool
@@ -480,8 +481,9 @@
 
 ; fmul
 (define-fun fmul32_pre ((a Float32) (b Float32)) Bool
-  (not (or
-    (fp.isSubnormal (fp.mul RNE a b)))
+  (not (or (fp.isSubnormal a) 
+           (fp.isSubnormal b) 
+	   (fp.isSubnormal (fp.add RNE a b)))
   )
 )
 (define-fun fmul32_post ((ret Float32) (a Float32) (b Float32)) Bool
