@@ -459,8 +459,9 @@
 
 ; fadd
 (define-fun fadd32_pre ((a Float32) (b Float32)) Bool
-  (not (or
-    (fp.isSubnormal (fp.add RNE a b)))
+  (not (or (fp.isSubnormal a) 
+           (fp.isSubnormal b) 
+	   (fp.isSubnormal (fp.add RNE a b)))
   )
 )
 (define-fun fadd32_post ((ret Float32) (a Float32) (b Float32)) Bool

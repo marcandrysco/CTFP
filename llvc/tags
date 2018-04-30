@@ -1,423 +1,480 @@
 !_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
 !_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
 !_TAG_PROGRAM_NAME	hasktags
->->	src/Language/LLVC/Utils.hs	/^(>->) :: (a -> Either e b) -> (b -> c) -> a -> Either e c$/;"	ft	line:23
-Arg	src/Language/LLVC/Types.hs	/^data Arg a $/;"	d	line:64
-BareArg	src/Language/LLVC/Types.hs	/^type BareArg       = Arg       UX.SourceSpan $/;"	t	line:326
-BareBody	src/Language/LLVC/Types.hs	/^type BareBody      = FnBody    UX.SourceSpan $/;"	t	line:329
-BareDef	src/Language/LLVC/Types.hs	/^type BareDef       = FnDef     UX.SourceSpan $/;"	t	line:327
-BareExpr	src/Language/LLVC/Types.hs	/^type BareExpr      = Expr      UX.SourceSpan $/;"	t	line:328
-BareProgram	src/Language/LLVC/Types.hs	/^type BareProgram   = Program   UX.SourceSpan $/;"	t	line:324
-BareStmt	src/Language/LLVC/Types.hs	/^type BareStmt      = Stmt      UX.SourceSpan $/;"	t	line:325
-BareTypedArg	src/Language/LLVC/Types.hs	/^type BareTypedArg  = TypedArg  UX.SourceSpan $/;"	t	line:323
-BareVar	src/Language/LLVC/Types.hs	/^type BareVar       = (Var,     UX.SourceSpan)$/;"	t	line:330
-BvAnd	src/Language/LLVC/Types.hs	/^  | BvAnd $/;"	cons	line:273
-BvOr	src/Language/LLVC/Types.hs	/^  | BvOr$/;"	cons	line:271
-BvXor	src/Language/LLVC/Types.hs	/^  | BvXor$/;"	cons	line:272
-Cmd	src/Language/LLVC/Smt.hs	/^data Cmd    = Say  !Smt $/;"	d	line:139
-Context	src/Language/LLVC/Smt.hs	/^data Context = Ctx$/;"	d	line:241
-Contract	src/Language/LLVC/Types.hs	/^data Contract = Ct$/;"	d	line:141
-Ct	src/Language/LLVC/Types.hs	/^data Contract = Ct$/;"	d	line:141
-Ctx	src/Language/LLVC/Smt.hs	/^data Context = Ctx$/;"	d	line:241
-ECall	src/Language/LLVC/Types.hs	/^  = ECall Fn [TypedArg a] Type a -- ^ Function name, args, result type $/;"	d	line:72
-ECon	src/Language/LLVC/Types.hs	/^  | ECon  !UX.Text       a    -- ^ smt-string-literal e.g. #x00000005$/;"	cons	line:68
-ELit	src/Language/LLVC/Types.hs	/^  = ELit  !Integer       a    -- ^ integer $/;"	d	line:65
-ETLit	src/Language/LLVC/Types.hs	/^  | ETLit !Integer !Type a    -- ^ integer interpreted at a type$/;"	cons	line:66
-EVar	src/Language/LLVC/Types.hs	/^  | EVar  !Var           a    -- ^ variable $/;"	cons	line:67
-Env	src/Language/LLVC/Verify.hs	/^type Env = M.HashMap Fn Contract $/;"	t	line:71
-Eq	src/Language/LLVC/Types.hs	/^  | Eq$/;"	cons	line:275
-Error	src/Language/LLVC/UX.hs	/^data UserError = Error$/;"	d	line:169
-Expr	src/Language/LLVC/Types.hs	/^data Expr a $/;"	d	line:71
-Fail	src/Language/LLVC/Smt.hs	/^  | Fail !UX.SourceSpan $/;"	cons	line:239
+>->	src/Language/LLVC/Utils.hs	/^(>->) :: (a -> Either e b) -> (b -> c) -> a -> Either e c$/;"	ft	line:24
+Arg	src/Language/LLVC/Types.hs	/^data Arg a $/;"	d	line:70
+BareArg	src/Language/LLVC/Types.hs	/^type BareArg       = Arg       UX.SourceSpan $/;"	t	line:344
+BareBody	src/Language/LLVC/Types.hs	/^type BareBody      = FnBody    UX.SourceSpan $/;"	t	line:347
+BareDef	src/Language/LLVC/Types.hs	/^type BareDef       = FnDef     UX.SourceSpan $/;"	t	line:345
+BareExpr	src/Language/LLVC/Types.hs	/^type BareExpr      = Expr      UX.SourceSpan $/;"	t	line:346
+BareProgram	src/Language/LLVC/Types.hs	/^type BareProgram   = Program   UX.SourceSpan $/;"	t	line:342
+BareStmt	src/Language/LLVC/Types.hs	/^type BareStmt      = Stmt      UX.SourceSpan $/;"	t	line:343
+BareTypedArg	src/Language/LLVC/Types.hs	/^type BareTypedArg  = TypedArg  UX.SourceSpan $/;"	t	line:341
+BareVar	src/Language/LLVC/Types.hs	/^type BareVar       = (Var,     UX.SourceSpan)$/;"	t	line:348
+BvAnd	src/Language/LLVC/Types.hs	/^  | BvAnd $/;"	cons	line:286
+BvOr	src/Language/LLVC/Types.hs	/^  | BvOr$/;"	cons	line:284
+BvXor	src/Language/LLVC/Types.hs	/^  | BvXor$/;"	cons	line:285
+Cmd	src/Language/LLVC/Smt.hs	/^data Cmd    = Say  !Smt $/;"	d	line:103
+Context	src/Language/LLVC/Smt.hs	/^data Context = Ctx$/;"	d	line:139
+Contract	src/Language/LLVC/Types.hs	/^data Contract = Ct$/;"	d	line:152
+Crash	src/Language/LLVC/Utils.hs	/^  | Crash $/;"	cons	line:110
+Ct	src/Language/LLVC/Types.hs	/^data Contract = Ct$/;"	d	line:152
+Ctx	src/Language/LLVC/Smt.hs	/^data Context = Ctx$/;"	d	line:139
+ECall	src/Language/LLVC/Types.hs	/^  = ECall Fn [TypedArg a] Type a -- ^ Function name, args, result type $/;"	d	line:79
+ECon	src/Language/LLVC/Types.hs	/^  | ECon  !UX.Text       a    -- ^ smt-string-literal e.g. #x00000005$/;"	cons	line:75
+EFlt	src/Language/LLVC/Types.hs	/^  | EFlt  !Float         a    -- ^ float literal$/;"	cons	line:72
+ELit	src/Language/LLVC/Types.hs	/^  = ELit  !Integer       a    -- ^ integer $/;"	d	line:71
+ETLit	src/Language/LLVC/Types.hs	/^  | ETLit !Integer !Type a    -- ^ integer interpreted at a type$/;"	cons	line:73
+EVar	src/Language/LLVC/Types.hs	/^  | EVar  !Var           a    -- ^ variable $/;"	cons	line:74
+Env	src/Language/LLVC/Verify.hs	/^data Env a = Env $/;"	d	line:131
+Env	src/Language/LLVC/Verify.hs	/^data Env a = Env $/;"	d	line:131
+Eq	src/Language/LLVC/Types.hs	/^  | Eq$/;"	cons	line:288
+Error	src/Language/LLVC/UX.hs	/^data UserError = Error$/;"	d	line:171
+ExitStatus	src/Language/LLVC/Utils.hs	/^data ExitStatus $/;"	d	line:107
+Expr	src/Language/LLVC/Types.hs	/^data Expr a $/;"	d	line:78
+Fail	src/Language/LLVC/Smt.hs	/^  | Fail  !UX.UserError $/;"	cons	line:114
 Float	src/Language/LLVC/Types.hs	/^  = Float $/;"	d	line:18
 Fn	src/Language/LLVC/Types.hs	/^data Fn $/;"	d	line:31
 FnBin	src/Language/LLVC/Types.hs	/^  | FnBin     Op           -- ^ binary operation $/;"	cons	line:33
 FnBitcast	src/Language/LLVC/Types.hs	/^  | FnBitcast Type Type    -- ^ 'bitcast' $/;"	cons	line:35
-FnBody	src/Language/LLVC/Types.hs	/^data FnBody a = FnBody $/;"	d	line:125
-FnBody	src/Language/LLVC/Types.hs	/^data FnBody a = FnBody $/;"	d	line:125
+FnBody	src/Language/LLVC/Types.hs	/^data FnBody a = FnBody $/;"	d	line:136
+FnBody	src/Language/LLVC/Types.hs	/^data FnBody a = FnBody $/;"	d	line:136
 FnCmp	src/Language/LLVC/Types.hs	/^  = FnCmp     Type Rel     -- ^ 'fcmp' olt $/;"	d	line:32
-FnDef	src/Language/LLVC/Types.hs	/^data FnDef a = FnDef $/;"	d	line:131
-FnDef	src/Language/LLVC/Types.hs	/^data FnDef a = FnDef $/;"	d	line:131
+FnDef	src/Language/LLVC/Types.hs	/^data FnDef a = FnDef $/;"	d	line:142
+FnDef	src/Language/LLVC/Types.hs	/^data FnDef a = FnDef $/;"	d	line:142
 FnFunc	src/Language/LLVC/Types.hs	/^  | FnFunc    Var          -- ^ something that is 'call'ed $/;"	cons	line:36
 FnSelect	src/Language/LLVC/Types.hs	/^  | FnSelect               -- ^ ternary 'select' $/;"	cons	line:34
-FpAbs	src/Language/LLVC/Types.hs	/^  | FpAbs $/;"	cons	line:267
-FpAdd	src/Language/LLVC/Types.hs	/^  | FpAdd $/;"	cons	line:269
-FpEq	src/Language/LLVC/Types.hs	/^  = FpEq $/;"	d	line:266
-FpLt	src/Language/LLVC/Types.hs	/^  | FpLt $/;"	cons	line:268
-Hear	src/Language/LLVC/Smt.hs	/^            | Hear !Smt !UX.SourceSpan$/;"	cons	line:140
+FpAbs	src/Language/LLVC/Types.hs	/^  | FpAbs $/;"	cons	line:277
+FpAdd	src/Language/LLVC/Types.hs	/^  | FpAdd $/;"	cons	line:279
+FpDiv	src/Language/LLVC/Types.hs	/^  | FpDiv $/;"	cons	line:282
+FpEq	src/Language/LLVC/Types.hs	/^  = FpEq $/;"	d	line:276
+FpLt	src/Language/LLVC/Types.hs	/^  | FpLt $/;"	cons	line:278
+FpMul	src/Language/LLVC/Types.hs	/^  | FpMul $/;"	cons	line:281
+FpSub	src/Language/LLVC/Types.hs	/^  | FpSub $/;"	cons	line:280
+Hear	src/Language/LLVC/Smt.hs	/^            | Hear !Smt !Response !UX.UserError $/;"	cons	line:104
 I	src/Language/LLVC/Types.hs	/^  | I Int                      -- ^ Int of a given size 1, 16, 32 etc.$/;"	cons	line:19
-Ite	src/Language/LLVC/Types.hs	/^  | Ite $/;"	cons	line:274
-Labeled	src/Language/LLVC/Types.hs	/^class Labeled thing where $/;"	c	line:177
-Labeled	src/Language/LLVC/Types.hs	/^class Labeled thing where $/;"	c	line:177
+Ite	src/Language/LLVC/Types.hs	/^  | Ite $/;"	cons	line:287
+Labeled	src/Language/LLVC/Types.hs	/^class Labeled thing where $/;"	c	line:187
+Labeled	src/Language/LLVC/Types.hs	/^class Labeled thing where $/;"	c	line:187
 Language.LLVC.Parse	src/Language/LLVC/Parse.hs	/^module Language.LLVC.Parse where -- ( parse, parseFile ) where$/;"	m	line:3
-Language.LLVC.Smt	src/Language/LLVC/Smt.hs	/^module Language.LLVC.Smt $/;"	m	line:5
+Language.LLVC.Smt	src/Language/LLVC/Smt.hs	/^module Language.LLVC.Smt $/;"	m	line:6
 Language.LLVC.Types	src/Language/LLVC/Types.hs	/^module Language.LLVC.Types where $/;"	m	line:7
 Language.LLVC.UX	src/Language/LLVC/UX.hs	/^module Language.LLVC.UX$/;"	m	line:7
 Language.LLVC.Utils	src/Language/LLVC/Utils.hs	/^module Language.LLVC.Utils where$/;"	m	line:1
 Language.LLVC.Verify	src/Language/LLVC/Verify.hs	/^module Language.LLVC.Verify (vcs) where $/;"	m	line:4
 Lib	src/Lib.hs	/^module Lib$/;"	m	line:1
-Located	src/Language/LLVC/UX.hs	/^class Located a where$/;"	c	line:54
-Located	src/Language/LLVC/UX.hs	/^class Located a where$/;"	c	line:54
-Ok	src/Language/LLVC/Smt.hs	/^  = Ok $/;"	d	line:238
+Located	src/Language/LLVC/UX.hs	/^class Located a where$/;"	c	line:56
+Located	src/Language/LLVC/UX.hs	/^class Located a where$/;"	c	line:56
+Oeq	src/Language/LLVC/Types.hs	/^  | Oeq $/;"	cons	line:42
+Ogt	src/Language/LLVC/Types.hs	/^  | Ogt $/;"	cons	line:41
+Ok	src/Language/LLVC/Smt.hs	/^  = Ok $/;"	d	line:111
 Olt	src/Language/LLVC/Types.hs	/^  = Olt $/;"	d	line:40
-Op	src/Language/LLVC/Types.hs	/^data Op $/;"	d	line:265
-PAnd	src/Language/LLVC/Types.hs	/^  | PAnd   [Pred]$/;"	cons	line:300
-PArg	src/Language/LLVC/Types.hs	/^  = PArg   !BareArg$/;"	d	line:297
-PAtom	src/Language/LLVC/Types.hs	/^  | PAtom  !Op ![Pred] $/;"	cons	line:298
-PNot	src/Language/LLVC/Types.hs	/^  | PNot   !Pred $/;"	cons	line:299
-POr	src/Language/LLVC/Types.hs	/^  | POr    [Pred]$/;"	cons	line:301
-PPrint	src/Language/LLVC/UX.hs	/^class PPrint a where$/;"	c	line:48
-PPrint	src/Language/LLVC/UX.hs	/^class PPrint a where$/;"	c	line:48
-PTrue	src/Language/LLVC/Types.hs	/^  | PTrue $/;"	cons	line:302
-Parser	src/Language/LLVC/Parse.hs	/^type Parser = Parsec SourcePos Text$/;"	t	line:15
-Phase	src/Language/LLVC/Utils.hs	/^data Phase = Start | Stop deriving (Show)$/;"	d	line:64
-Pred	src/Language/LLVC/Types.hs	/^data Pred $/;"	d	line:296
-Program	src/Language/LLVC/Types.hs	/^type Program a = M.HashMap Var (FnDef a)  -- ^ A list of function declarations$/;"	t	line:118
+Op	src/Language/LLVC/Types.hs	/^data Op $/;"	d	line:275
+PAnd	src/Language/LLVC/Types.hs	/^  | PAnd   [Pred]$/;"	cons	line:314
+PArg	src/Language/LLVC/Types.hs	/^  = PArg   !BareArg$/;"	d	line:311
+PAtom	src/Language/LLVC/Types.hs	/^  | PAtom  !Op ![Pred] $/;"	cons	line:312
+PNot	src/Language/LLVC/Types.hs	/^  | PNot   !Pred $/;"	cons	line:313
+POr	src/Language/LLVC/Types.hs	/^  | POr    [Pred]$/;"	cons	line:315
+PPrint	src/Language/LLVC/UX.hs	/^class PPrint a where$/;"	c	line:50
+PPrint	src/Language/LLVC/UX.hs	/^class PPrint a where$/;"	c	line:50
+PTrue	src/Language/LLVC/Types.hs	/^  | PTrue $/;"	cons	line:316
+Parser	src/Language/LLVC/Parse.hs	/^type Parser = Parsec SourcePos Text$/;"	t	line:14
+Phase	src/Language/LLVC/Utils.hs	/^data Phase = Start | Stop deriving (Show)$/;"	d	line:63
+Pred	src/Language/LLVC/Types.hs	/^data Pred $/;"	d	line:310
+Program	src/Language/LLVC/Types.hs	/^type Program a = M.HashMap Var (FnDef a)  -- ^ A list of function declarations$/;"	t	line:129
 Rel	src/Language/LLVC/Types.hs	/^data Rel $/;"	d	line:39
-Response	src/Language/LLVC/Smt.hs	/^data Response $/;"	d	line:237
-Result	src/Language/LLVC/UX.hs	/^type Result a = Either [UserError] a$/;"	t	line:164
-SAsgn	src/Language/LLVC/Types.hs	/^  = SAsgn   !Var (Expr a) a          -- ^ Assignments for each variable$/;"	d	line:121
-SAssert	src/Language/LLVC/Types.hs	/^  | SAssert !Pred         a          -- ^ Assertion to be checked at a point.$/;"	cons	line:122
-SS	src/Language/LLVC/UX.hs	/^data SourceSpan = SS$/;"	d	line:63
-Say	src/Language/LLVC/Smt.hs	/^data Cmd    = Say  !Smt $/;"	d	line:139
-Slt	src/Language/LLVC/Types.hs	/^  | Slt  $/;"	cons	line:41
-Smt	src/Language/LLVC/Smt.hs	/^type    Smt = UX.Text$/;"	t	line:137
-SmtOp	src/Language/LLVC/Types.hs	/^  | SmtOp !Var$/;"	cons	line:276
-SourceSpan	src/Language/LLVC/UX.hs	/^data SourceSpan = SS$/;"	d	line:63
-Start	src/Language/LLVC/Utils.hs	/^data Phase = Start | Stop deriving (Show)$/;"	d	line:64
-Stmt	src/Language/LLVC/Types.hs	/^data Stmt a $/;"	d	line:120
-Stop	src/Language/LLVC/Utils.hs	/^data Phase = Start | Stop deriving (Show)$/;"	cons	line:64
-Text	src/Language/LLVC/UX.hs	/^type Text = String$/;"	t	line:46
-ToFp32	src/Language/LLVC/Types.hs	/^  | ToFp32    -- ((_ to_fp 8 24) RNE r3)  $/;"	cons	line:270
-ToSmt	src/Language/LLVC/Smt.hs	/^class ToSmt a where $/;"	c	line:57
-ToSmt	src/Language/LLVC/Smt.hs	/^class ToSmt a where $/;"	c	line:57
+Response	src/Language/LLVC/Smt.hs	/^data Response $/;"	d	line:110
+Result	src/Language/LLVC/UX.hs	/^type Result a = Either [UserError] a$/;"	t	line:166
+SAsgn	src/Language/LLVC/Types.hs	/^  = SAsgn   !Var (Expr a) a          -- ^ Assignments for each variable$/;"	d	line:132
+SAssert	src/Language/LLVC/Types.hs	/^  | SAssert !Pred         a          -- ^ Assertion to be checked at a point.$/;"	cons	line:133
+SP	src/Language/LLVC/Smt.hs	/^newtype SmtPred = SP Pred$/;"	cons	line:64
+SS	src/Language/LLVC/UX.hs	/^data SourceSpan = SS$/;"	d	line:65
+Safe	src/Language/LLVC/Utils.hs	/^  = Safe $/;"	d	line:108
+Sat	src/Language/LLVC/Smt.hs	/^  | Sat $/;"	cons	line:112
+Say	src/Language/LLVC/Smt.hs	/^data Cmd    = Say  !Smt $/;"	d	line:103
+Sig	src/Language/LLVC/Verify.hs	/^data Sig = SigC !Contract             -- ^ function with specification$/;"	d	line:128
+SigC	src/Language/LLVC/Verify.hs	/^data Sig = SigC !Contract             -- ^ function with specification$/;"	d	line:128
+SigI	src/Language/LLVC/Verify.hs	/^         | SigI !Int                  -- ^ function to be inlined$/;"	cons	line:129
+Slt	src/Language/LLVC/Types.hs	/^  | Slt  $/;"	cons	line:44
+Smt	src/Language/LLVC/Smt.hs	/^type    Smt = UX.Text$/;"	t	line:101
+SmtOp	src/Language/LLVC/Types.hs	/^  | SmtOp !Var$/;"	cons	line:289
+SmtPred	src/Language/LLVC/Smt.hs	/^newtype SmtPred = SP Pred$/;"	nt	line:64
+SourceSpan	src/Language/LLVC/UX.hs	/^data SourceSpan = SS$/;"	d	line:65
+Start	src/Language/LLVC/Utils.hs	/^data Phase = Start | Stop deriving (Show)$/;"	d	line:63
+Stmt	src/Language/LLVC/Types.hs	/^data Stmt a $/;"	d	line:131
+Stop	src/Language/LLVC/Utils.hs	/^data Phase = Start | Stop deriving (Show)$/;"	cons	line:63
+Text	src/Language/LLVC/UX.hs	/^type Text = String$/;"	t	line:48
+ToFp32	src/Language/LLVC/Types.hs	/^  | ToFp32    -- ((_ to_fp 8 24) RNE r3)  $/;"	cons	line:283
+ToSmt	src/Language/LLVC/Smt.hs	/^class ToSmt a where $/;"	c	line:206
+ToSmt	src/Language/LLVC/Smt.hs	/^class ToSmt a where $/;"	c	line:206
 Type	src/Language/LLVC/Types.hs	/^data Type $/;"	d	line:17
-TypedArg	src/Language/LLVC/Types.hs	/^type TypedArg  a = (Type, Arg  a)$/;"	t	line:75
-TypedExpr	src/Language/LLVC/Types.hs	/^type TypedExpr a = (Type, Expr a)$/;"	t	line:76
-UserError	src/Language/LLVC/UX.hs	/^data UserError = Error$/;"	d	line:169
-VC	src/Language/LLVC/Smt.hs	/^newtype VC  = VC [Cmd] $/;"	nt	line:138
-VC	src/Language/LLVC/Smt.hs	/^newtype VC  = VC [Cmd] $/;"	cons	line:138
+TypedArg	src/Language/LLVC/Types.hs	/^type TypedArg  a = (Type, Arg  a)$/;"	t	line:82
+TypedExpr	src/Language/LLVC/Types.hs	/^type TypedExpr a = (Type, Expr a)$/;"	t	line:83
+Une	src/Language/LLVC/Types.hs	/^  | Une $/;"	cons	line:43
+Unsafe	src/Language/LLVC/Utils.hs	/^  | Unsafe $/;"	cons	line:109
+Unsat	src/Language/LLVC/Smt.hs	/^  | Unsat $/;"	cons	line:113
+UserError	src/Language/LLVC/UX.hs	/^data UserError = Error$/;"	d	line:171
+VC	src/Language/LLVC/Smt.hs	/^newtype VC  = VC [Cmd] $/;"	nt	line:102
+VC	src/Language/LLVC/Smt.hs	/^newtype VC  = VC [Cmd] $/;"	cons	line:102
 Var	src/Language/LLVC/Types.hs	/^type Var   = UX.Text $/;"	t	line:26
-a	src/Language/LLVC/Types.hs	/^type TypedArg  a = (Type, Arg  a)$/;"	fi	line:75
-a	src/Language/LLVC/UX.hs	/^type Result a = Either [UserError] a$/;"	fi	line:164
-abort	src/Language/LLVC/UX.hs	/^abort :: UserError -> b$/;"	ft	line:193
-abort	src/Language/LLVC/UX.hs	/^abort e = throw [e]$/;"	fi	line:195
-annotationP	src/Language/LLVC/Parse.hs	/^annotationP :: String -> Parser Pred$/;"	ft	line:83
-annotationP	src/Language/LLVC/Parse.hs	/^annotationP kw = symbol ";@" >> rWord kw >> predP$/;"	fi	line:84
-argP	src/Language/LLVC/Parse.hs	/^argP :: Parser BareArg $/;"	ft	line:115
-argP	src/Language/LLVC/Parse.hs	/^argP $/;"	fi	line:116
-argTypeP	src/Language/LLVC/Parse.hs	/^argTypeP :: Parser (Var, Type)$/;"	ft	line:86
-argTypeP	src/Language/LLVC/Parse.hs	/^argTypeP = do $/;"	fi	line:87
-argTypesP	src/Language/LLVC/Parse.hs	/^argTypesP :: Parser [(Var, Type)] $/;"	ft	line:105
-argTypesP	src/Language/LLVC/Parse.hs	/^argTypesP = parens (sepBy argTypeP comma) $/;"	fi	line:106
-assert	src/Language/LLVC/Smt.hs	/^assert :: (UX.Located l) => l -> Pred -> VC $/;"	ft	line:156
-assert	src/Language/LLVC/Smt.hs	/^assert _ PTrue = mempty $/;"	fi	line:157
-atom1	src/Language/LLVC/Parse.hs	/^atom1 :: Text -> Op -> Parser Pred $/;"	ft	line:225
-atom1	src/Language/LLVC/Parse.hs	/^atom1 kw o = (\\x1 -> PAtom o [x1]) $/;"	fi	line:226
-atom2	src/Language/LLVC/Parse.hs	/^atom2 :: Text -> Op -> Parser Pred $/;"	ft	line:229
-atom2	src/Language/LLVC/Parse.hs	/^atom2 kw o = (\\x1 x2 -> PAtom o [x1, x2]) $/;"	fi	line:230
-atom3	src/Language/LLVC/Parse.hs	/^atom3 :: Text -> Op -> Parser Pred $/;"	ft	line:234
-atom3	src/Language/LLVC/Parse.hs	/^atom3 kw o = (\\x1 x2 x3 -> PAtom o [x1, x2, x3]) $/;"	fi	line:235
-atomOp	src/Language/LLVC/Parse.hs	/^atomOp :: Parser Pred $/;"	ft	line:222
-atomOp	src/Language/LLVC/Parse.hs	/^atomOp = PAtom <$> (SmtOp . fst <$> smtId) <*> many pArgP $/;"	fi	line:223
-attrP	src/Language/LLVC/Parse.hs	/^attrP :: Parser () $/;"	ft	line:57
-attrP	src/Language/LLVC/Parse.hs	/^attrP = symbol "#" >> integer >> return ()$/;"	fi	line:58
-attribDef	src/Language/LLVC/Parse.hs	/^attribDef :: Parser ()$/;"	ft	line:48
-attribDef	src/Language/LLVC/Parse.hs	/^attribDef = attrP >> symbol "=" >> braces (many attributeP) >> return ()$/;"	fi	line:49
-betweenS	src/Language/LLVC/Parse.hs	/^betweenS :: String -> String -> Parser a -> Parser a$/;"	ft	line:282
-betweenS	src/Language/LLVC/Parse.hs	/^betweenS l r = between (symbol l) (symbol r)$/;"	fi	line:283
-binExprP	src/Language/LLVC/Parse.hs	/^binExprP :: Parser BareExpr$/;"	ft	line:133
-binExprP	src/Language/LLVC/Parse.hs	/^binExprP = do $/;"	fi	line:134
-bitcastP	src/Language/LLVC/Parse.hs	/^bitcastP :: Parser BareExpr $/;"	ft	line:147
-bitcastP	src/Language/LLVC/Parse.hs	/^bitcastP = do $/;"	fi	line:148
-bodyP	src/Language/LLVC/Parse.hs	/^bodyP :: Parser BareBody$/;"	ft	line:92
-bodyP	src/Language/LLVC/Parse.hs	/^bodyP = FnBody <$> many stmtP <*> retP $/;"	fi	line:93
-braces	src/Language/LLVC/Parse.hs	/^braces :: Parser a -> Parser a$/;"	ft	line:279
-braces	src/Language/LLVC/Parse.hs	/^braces = betweenS "{" "}"$/;"	fi	line:280
-brackets	src/Language/LLVC/Parse.hs	/^brackets :: Parser a -> Parser a$/;"	ft	line:275
-brackets	src/Language/LLVC/Parse.hs	/^brackets = betweenS "[" "]"$/;"	fi	line:276
-check	src/Language/LLVC/Smt.hs	/^check :: (UX.Located l) => l -> Pred -> VC $/;"	ft	line:160
-check	src/Language/LLVC/Smt.hs	/^check _ PTrue = mempty $/;"	fi	line:161
-checkId	src/Language/LLVC/Parse.hs	/^checkId :: Text -> Parser Text$/;"	ft	line:340
-checkSat	src/Language/LLVC/Smt.hs	/^checkSat :: UX.SourceSpan -> VC$/;"	ft	line:173
-checkSat	src/Language/LLVC/Smt.hs	/^checkSat l = VC [ Hear "(check-sat)" l ]$/;"	fi	line:174
-cmpP	src/Language/LLVC/Parse.hs	/^cmpP :: Parser BareExpr $/;"	ft	line:166
-cmpP	src/Language/LLVC/Parse.hs	/^cmpP = do $/;"	fi	line:167
-colon	src/Language/LLVC/Parse.hs	/^colon :: Parser String$/;"	ft	line:267
-colon	src/Language/LLVC/Parse.hs	/^colon = symbol ":"$/;"	fi	line:268
-comma	src/Language/LLVC/Parse.hs	/^comma :: Parser String$/;"	ft	line:264
-comma	src/Language/LLVC/Parse.hs	/^comma = symbol ","$/;"	fi	line:265
-command	src/Language/LLVC/Smt.hs	/^command              :: Context -> Cmd -> IO Response$/;"	ft	line:220
-command	src/Language/LLVC/Smt.hs	/^command me !cmd     = say cmd >> hear cmd$/;"	fi	line:222
-comment	src/Language/LLVC/Smt.hs	/^comment :: UX.Text -> VC $/;"	ft	line:150
-comment	src/Language/LLVC/Smt.hs	/^comment s = say $ printf "; %s" s$/;"	fi	line:151
-contract	src/Language/LLVC/Types.hs	/^contract :: [Var] -> Pred -> Pred -> Contract $/;"	ft	line:230
-contract	src/Language/LLVC/Types.hs	/^contract xs pre post = Ct $/;"	fi	line:231
-contract	src/Language/LLVC/Verify.hs	/^contract :: Env -> Fn -> SourceSpan -> Contract$/;"	ft	line:73
-contract	src/Language/LLVC/Verify.hs	/^contract env fn l = Mb.fromMaybe err (M.lookup fn env)$/;"	fi	line:74
-contractAt	src/Language/LLVC/Verify.hs	/^contractAt :: (Located a) => Env -> Fn -> Var -> [TypedArg a] -> a -> (Pred, Pred)$/;"	ft	line:50
-contractAt	src/Language/LLVC/Verify.hs	/^contractAt env fn rv tys l = (pre, post) $/;"	fi	line:51
-convTable	src/Language/LLVC/Smt.hs	/^convTable :: M.HashMap (Integer, Type) String$/;"	ft	line:88
-convTable	src/Language/LLVC/Smt.hs	/^convTable = M.fromList $/;"	fi	line:89
-ctParams	src/Language/LLVC/Types.hs	/^  { ctParams :: ![Var]               -- ^ Parameter names $/;"	c_a	line:142
-ctPost	src/Language/LLVC/Types.hs	/^  , ctPost   :: !Pred                -- ^ Postcondition \/ "ensures" clause               $/;"	c_a	line:144
-ctPre	src/Language/LLVC/Types.hs	/^  , ctPre    :: !Pred                -- ^ Precondition \/ "requires" clause               $/;"	c_a	line:143
-ctxCin	src/Language/LLVC/Smt.hs	/^  , ctxCin     :: !Handle$/;"	c_a	line:243
-ctxCout	src/Language/LLVC/Smt.hs	/^  , ctxCout    :: !Handle$/;"	c_a	line:244
-ctxLog	src/Language/LLVC/Smt.hs	/^  , ctxLog     :: !(Maybe Handle)$/;"	c_a	line:245
-ctxPid	src/Language/LLVC/Smt.hs	/^  { ctxPid     :: !ProcessHandle$/;"	c_a	line:242
-cursorLine	src/Language/LLVC/UX.hs	/^cursorLine :: Int -> String -> String$/;"	ft	line:142
-cursorLine	src/Language/LLVC/UX.hs	/^cursorLine l s = printf "%s|  %s" (lineString l) s$/;"	fi	line:143
-decl	src/Language/LLVC/Types.hs	/^decl :: Var -> [Type] -> Type -> Pred -> Pred -> a -> FnDef a $/;"	ft	line:219
-decl	src/Language/LLVC/Types.hs	/^decl f ts t pre post l = FnDef $/;"	fi	line:220
-declare	src/Language/LLVC/Smt.hs	/^declare :: (UX.Located l) => l -> (Var, Type) -> VC $/;"	ft	line:153
-declare	src/Language/LLVC/Smt.hs	/^declare _ (x, t) = say $ printf "(declare-const %s %s)" (toSmt x) (toSmt t)$/;"	fi	line:154
-declareP	src/Language/LLVC/Parse.hs	/^declareP :: Parser BareDef $/;"	ft	line:61
-declareP	src/Language/LLVC/Parse.hs	/^declareP = do $/;"	fi	line:62
-defineP	src/Language/LLVC/Parse.hs	/^defineP :: Parser BareDef $/;"	ft	line:70
-defineP	src/Language/LLVC/Parse.hs	/^defineP = do $/;"	fi	line:71
-defn	src/Language/LLVC/Types.hs	/^defn :: Var -> [(Var, Type)] -> FnBody a -> Type -> Pred -> Pred -> a -> FnDef a $/;"	ft	line:238
-defn	src/Language/LLVC/Types.hs	/^defn f xts b t pre post l = FnDef $/;"	fi	line:239
-dupBy	src/Language/LLVC/Utils.hs	/^dupBy :: (Ord k) => (a -> k) -> [a] -> [[a]]$/;"	ft	line:43
-dupBy	src/Language/LLVC/Utils.hs	/^dupBy f xs = [ xs' | (_, xs') <- groupBy f xs, 2 <= length xs' ]$/;"	fi	line:44
-eCallP	src/Language/LLVC/Parse.hs	/^eCallP :: Parser BareExpr $/;"	ft	line:180
-eCallP	src/Language/LLVC/Parse.hs	/^eCallP = do $/;"	fi	line:181
-eMsg	src/Language/LLVC/UX.hs	/^  { eMsg  :: !Text$/;"	c_a	line:170
-eSpan	src/Language/LLVC/UX.hs	/^  , eSpan :: !SourceSpan$/;"	c_a	line:171
-elem	src/Language/LLVC/Parse.hs	/^  | x `elem` keywords = fail $ "keyword " ++ show x ++ " cannot be an identifier"$/;"	fi	line:342
-ensurePath	src/Language/LLVC/Utils.hs	/^ensurePath :: FilePath -> IO ()$/;"	ft	line:72
-ensurePath	src/Language/LLVC/Utils.hs	/^ensurePath = createDirectoryIfMissing True . takeDirectory$/;"	fi	line:73
-ensuresP	src/Language/LLVC/Parse.hs	/^requiresP, ensuresP :: Parser Pred$/;"	ft	line:79
-ensuresP	src/Language/LLVC/Parse.hs	/^ensuresP  = annotationP "ensures"$/;"	fi	line:81
-executeShellCommand	src/Language/LLVC/Utils.hs	/^executeShellCommand :: Maybe FilePath -> String -> Int -> IO ExitCode$/;"	ft	line:52
-executeShellCommand	src/Language/LLVC/Utils.hs	/^executeShellCommand logMb cmd n = fromMaybe (ExitFailure 100) <$> body$/;"	fi	line:53
-exprP	src/Language/LLVC/Parse.hs	/^exprP :: Parser BareExpr $/;"	ft	line:124
-exprP	src/Language/LLVC/Parse.hs	/^exprP $/;"	fi	line:125
-f	src/Language/LLVC/Utils.hs	/^f >-> g = f >=> safe g$/;"	fi	line:25
-fnArgTys	src/Language/LLVC/Types.hs	/^fnArgTys    :: FnDef a -> [(Var, Type)]$/;"	ft	line:155
-fnArgTys	src/Language/LLVC/Types.hs	/^fnArgTys fd = zip (ctParams (fnCon fd)) (fnArgs fd)$/;"	fi	line:156
-fnArgs	src/Language/LLVC/Types.hs	/^  , fnArgs :: ![Type]                -- ^ Parameters and their types $/;"	c_a	line:133
-fnBody	src/Language/LLVC/Types.hs	/^  , fnBody :: Maybe (FnBody a)       -- ^ 'Nothing' for 'declare', 'Just fb' for 'define' $/;"	c_a	line:136
-fnCon	src/Language/LLVC/Types.hs	/^  , fnCon  :: !Contract              -- ^ Specification $/;"	c_a	line:135
-fnDefnP	src/Language/LLVC/Parse.hs	/^fnDefnP :: Parser (Maybe BareDef) $/;"	ft	line:41
-fnDefnP	src/Language/LLVC/Parse.hs	/^fnDefnP $/;"	fi	line:42
-fnLab	src/Language/LLVC/Types.hs	/^  , fnLab  :: a                     $/;"	c_a	line:137
-fnName	src/Language/LLVC/Types.hs	/^  { fnName :: !Var                   -- ^ Name$/;"	c_a	line:132
-fnOut	src/Language/LLVC/Types.hs	/^  , fnOut  :: !Type                  -- ^ Output type $/;"	c_a	line:134
-fnRet	src/Language/LLVC/Types.hs	/^  , fnRet   :: !(TypedArg a)         -- ^ Return value$/;"	c_a	line:127
-fnStmts	src/Language/LLVC/Types.hs	/^  { fnStmts :: ![Stmt a]             -- ^ Statements $/;"	c_a	line:126
-getLabel	src/Language/LLVC/Types.hs	/^  getLabel :: thing a -> a $/;"	ft	line:178
-getRange	src/Language/LLVC/Utils.hs	/^getRange :: Int -> Int -> [a] -> [a]$/;"	ft	line:88
-getRange	src/Language/LLVC/Utils.hs	/^getRange i1 i2$/;"	fi	line:89
-getSpan	src/Language/LLVC/UX.hs	/^getSpan :: SourceSpan -> String -> String$/;"	ft	line:113
-getSpan	src/Language/LLVC/UX.hs	/^getSpan sp$/;"	fi	line:114
-getSpanMulti	src/Language/LLVC/UX.hs	/^getSpanMulti :: Int -> Int -> String -> String$/;"	ft	line:127
-getSpanMulti	src/Language/LLVC/UX.hs	/^getSpanMulti l1 l2$/;"	fi	line:128
-getSpanSingle	src/Language/LLVC/UX.hs	/^getSpanSingle :: Int -> Int -> Int -> String -> String$/;"	ft	line:120
-getSpanSingle	src/Language/LLVC/UX.hs	/^getSpanSingle l c1 c2$/;"	fi	line:121
-groupBy	src/Language/LLVC/Utils.hs	/^groupBy :: (Ord k) => (a -> k) -> [a] -> [(k, [a])]$/;"	ft	line:37
-groupBy	src/Language/LLVC/Utils.hs	/^groupBy f = M.toList . L.foldl' (\\m x -> inserts (f x) x m) M.empty$/;"	fi	line:38
-hPutStrLnNow	src/Language/LLVC/Smt.hs	/^hPutStrLnNow     :: Handle -> T.Text -> IO ()$/;"	ft	line:215
-hPutStrLnNow	src/Language/LLVC/Smt.hs	/^hPutStrLnNow h !s = TIO.hPutStrLn h s >> hFlush h$/;"	fi	line:216
-handleIO	src/Language/LLVC/Utils.hs	/^handleIO :: FilePath -> IOException -> IO (Either String a)$/;"	ft	line:78
-handleIO	src/Language/LLVC/Utils.hs	/^handleIO f e = return . Left $ "Warning: Couldn't open " <> f <> ": " <> show e$/;"	fi	line:79
-highlight	src/Language/LLVC/UX.hs	/^highlight :: Int -> Int -> Int -> String -> String$/;"	ft	line:133
-highlight	src/Language/LLVC/UX.hs	/^highlight l c1 c2 s = unlines$/;"	fi	line:134
-highlights	src/Language/LLVC/UX.hs	/^highlights :: Int -> [String] -> String$/;"	ft	line:139
-highlights	src/Language/LLVC/UX.hs	/^highlights i ls = unlines $ L.zipWith cursorLine [i..] ls$/;"	fi	line:140
-identChar	src/Language/LLVC/Parse.hs	/^identChar :: Parser Char$/;"	ft	line:345
-identChar	src/Language/LLVC/Parse.hs	/^identChar = oneOf ok <?> "identifier-char"$/;"	fi	line:346
-identifier	src/Language/LLVC/Parse.hs	/^identifier :: Text -> Parser (String, SourceSpan)$/;"	ft	line:330
-identifier	src/Language/LLVC/Parse.hs	/^identifier s = lexeme (p >>= checkId)$/;"	fi	line:331
-inserts	src/Language/LLVC/Utils.hs	/^inserts :: (Ord k) => k -> v -> M.Map k [v] -> M.Map k [v]$/;"	ft	line:40
-inserts	src/Language/LLVC/Utils.hs	/^inserts k v m = M.insert k (v : M.findWithDefault [] k m) m$/;"	fi	line:41
-instance	src/Language/LLVC/Smt.hs	/^instance ToSmt VC where $/;"	fi	line:60
+a	src/Language/LLVC/Types.hs	/^type TypedArg  a = (Type, Arg  a)$/;"	fi	line:82
+a	src/Language/LLVC/UX.hs	/^type Result a = Either [UserError] a$/;"	fi	line:166
+abort	src/Language/LLVC/UX.hs	/^abort :: UserError -> b$/;"	ft	line:196
+abort	src/Language/LLVC/UX.hs	/^abort e = throw [e]$/;"	fi	line:198
+annotationP	src/Language/LLVC/Parse.hs	/^annotationP :: String -> Parser Pred$/;"	ft	line:88
+annotationP	src/Language/LLVC/Parse.hs	/^annotationP kw = symbol ";@" >> rWord kw >> predP$/;"	fi	line:89
+argP	src/Language/LLVC/Parse.hs	/^argP :: Parser BareArg $/;"	ft	line:120
+argP	src/Language/LLVC/Parse.hs	/^argP $/;"	fi	line:121
+argTypeP	src/Language/LLVC/Parse.hs	/^argTypeP :: Parser (Var, Type)$/;"	ft	line:91
+argTypeP	src/Language/LLVC/Parse.hs	/^argTypeP = do $/;"	fi	line:92
+argTypesP	src/Language/LLVC/Parse.hs	/^argTypesP :: Parser [(Var, Type)] $/;"	ft	line:110
+argTypesP	src/Language/LLVC/Parse.hs	/^argTypesP = parens (sepBy argTypeP comma) $/;"	fi	line:111
+assert	src/Language/LLVC/Smt.hs	/^assert :: SmtPred -> VC $/;"	ft	line:68
+assert	src/Language/LLVC/Smt.hs	/^assert (SP PTrue) = mempty $/;"	fi	line:69
+atom1	src/Language/LLVC/Parse.hs	/^atom1 :: Text -> Op -> Parser Pred $/;"	ft	line:244
+atom1	src/Language/LLVC/Parse.hs	/^atom1 kw o = (\\x1 -> PAtom o [x1]) $/;"	fi	line:245
+atom2	src/Language/LLVC/Parse.hs	/^atom2 :: Text -> Op -> Parser Pred $/;"	ft	line:248
+atom2	src/Language/LLVC/Parse.hs	/^atom2 kw o = (\\x1 x2 -> PAtom o [x1, x2]) $/;"	fi	line:249
+atom3	src/Language/LLVC/Parse.hs	/^atom3 :: Text -> Op -> Parser Pred $/;"	ft	line:253
+atom3	src/Language/LLVC/Parse.hs	/^atom3 kw o = (\\x1 x2 x3 -> PAtom o [x1, x2, x3]) $/;"	fi	line:254
+atomOp	src/Language/LLVC/Parse.hs	/^atomOp :: Parser Pred $/;"	ft	line:241
+atomOp	src/Language/LLVC/Parse.hs	/^atomOp = PAtom <$> (SmtOp . fst <$> smtId) <*> many pArgP $/;"	fi	line:242
+attrP	src/Language/LLVC/Parse.hs	/^attrP :: Parser () $/;"	ft	line:56
+attrP	src/Language/LLVC/Parse.hs	/^attrP = symbol "#" >> integer >> return ()$/;"	fi	line:57
+attribDef	src/Language/LLVC/Parse.hs	/^attribDef :: Parser ()$/;"	ft	line:47
+attribDef	src/Language/LLVC/Parse.hs	/^attribDef = attrP >> symbol "=" >> braces (many attributeP) >> return ()$/;"	fi	line:48
+betweenS	src/Language/LLVC/Parse.hs	/^betweenS :: String -> String -> Parser a -> Parser a$/;"	ft	line:301
+betweenS	src/Language/LLVC/Parse.hs	/^betweenS l r = between (symbol l) (symbol r)$/;"	fi	line:302
+binExprP	src/Language/LLVC/Parse.hs	/^binExprP :: Parser BareExpr$/;"	ft	line:141
+binExprP	src/Language/LLVC/Parse.hs	/^binExprP = do $/;"	fi	line:142
+bitcastP	src/Language/LLVC/Parse.hs	/^bitcastP :: Parser BareExpr $/;"	ft	line:158
+bitcastP	src/Language/LLVC/Parse.hs	/^bitcastP = do $/;"	fi	line:159
+bodyP	src/Language/LLVC/Parse.hs	/^bodyP :: Parser BareBody$/;"	ft	line:97
+bodyP	src/Language/LLVC/Parse.hs	/^bodyP = FnBody <$> many stmtP <*> retP $/;"	fi	line:98
+braces	src/Language/LLVC/Parse.hs	/^braces :: Parser a -> Parser a$/;"	ft	line:298
+braces	src/Language/LLVC/Parse.hs	/^braces = betweenS "{" "}"$/;"	fi	line:299
+brackets	src/Language/LLVC/Parse.hs	/^brackets :: Parser a -> Parser a$/;"	ft	line:294
+brackets	src/Language/LLVC/Parse.hs	/^brackets = betweenS "[" "]"$/;"	fi	line:295
+check	src/Language/LLVC/Smt.hs	/^check :: UX.UserError -> SmtPred -> VC $/;"	ft	line:72
+check	src/Language/LLVC/Smt.hs	/^check _ (SP PTrue) = mempty $/;"	fi	line:73
+checkId	src/Language/LLVC/Parse.hs	/^checkId :: Text -> Parser Text$/;"	ft	line:359
+checkSat	src/Language/LLVC/Smt.hs	/^checkSat :: UX.UserError -> VC$/;"	ft	line:83
+checkSat	src/Language/LLVC/Smt.hs	/^checkSat e = VC [ Hear "(check-sat)" Unsat e ]$/;"	fi	line:84
+cmpP	src/Language/LLVC/Parse.hs	/^cmpP :: Parser BareExpr $/;"	ft	line:177
+cmpP	src/Language/LLVC/Parse.hs	/^cmpP = do $/;"	fi	line:178
+colon	src/Language/LLVC/Parse.hs	/^colon :: Parser String$/;"	ft	line:286
+colon	src/Language/LLVC/Parse.hs	/^colon = symbol ":"$/;"	fi	line:287
+comma	src/Language/LLVC/Parse.hs	/^comma :: Parser String$/;"	ft	line:283
+comma	src/Language/LLVC/Parse.hs	/^comma = symbol ","$/;"	fi	line:284
+command	src/Language/LLVC/Smt.hs	/^command :: Context -> Cmd -> IO Response$/;"	ft	line:122
+command	src/Language/LLVC/Smt.hs	/^command me !cmd = do $/;"	fi	line:123
+comment	src/Language/LLVC/Smt.hs	/^comment :: UX.Text -> VC $/;"	ft	line:58
+comment	src/Language/LLVC/Smt.hs	/^comment s = say $ printf "; %s" s$/;"	fi	line:59
+contract	src/Language/LLVC/Types.hs	/^contract :: [Var] -> Maybe (Pred, Pred) -> Contract $/;"	ft	line:241
+contract	src/Language/LLVC/Types.hs	/^contract xs prop = Ct $/;"	fi	line:242
+contractAt	src/Language/LLVC/Verify.hs	/^contractAt :: (Located a) => Contract -> Var -> [TypedArg a] -> a -> (Pred, Pred)$/;"	ft	line:91
+contractAt	src/Language/LLVC/Verify.hs	/^contractAt ct rv tys l = (pre, post) $/;"	fi	line:92
+convTable	src/Language/LLVC/Smt.hs	/^convTable :: M.HashMap (Integer, Type) String$/;"	ft	line:241
+convTable	src/Language/LLVC/Smt.hs	/^convTable = M.fromList $/;"	fi	line:242
+ctParams	src/Language/LLVC/Types.hs	/^  { ctParams :: ![Var]                -- ^ Parameter names $/;"	c_a	line:153
+ctProps	src/Language/LLVC/Types.hs	/^  , ctProps  :: !(Maybe (Pred, Pred)) -- ^ Precondition \/ "requires" clause               $/;"	c_a	line:154
+ctxCin	src/Language/LLVC/Smt.hs	/^  , ctxCin     :: !Handle$/;"	c_a	line:141
+ctxCout	src/Language/LLVC/Smt.hs	/^  , ctxCout    :: !Handle$/;"	c_a	line:142
+ctxLog	src/Language/LLVC/Smt.hs	/^  , ctxLog     :: !(Maybe Handle)$/;"	c_a	line:143
+ctxPid	src/Language/LLVC/Smt.hs	/^  { ctxPid     :: !ProcessHandle$/;"	c_a	line:140
+cursorLine	src/Language/LLVC/UX.hs	/^cursorLine :: Int -> String -> String$/;"	ft	line:144
+cursorLine	src/Language/LLVC/UX.hs	/^cursorLine l s = printf "%s|  %s" (lineString l) s$/;"	fi	line:145
+decl	src/Language/LLVC/Types.hs	/^decl :: Var -> [Type] -> Type -> Pred -> Pred -> a -> FnDef a $/;"	ft	line:230
+decl	src/Language/LLVC/Types.hs	/^decl f ts t pre post l = FnDef $/;"	fi	line:231
+declare	src/Language/LLVC/Smt.hs	/^declare ::  (Var, Type) -> VC $/;"	ft	line:61
+declare	src/Language/LLVC/Smt.hs	/^declare (x, t) = say $ printf "(declare-const %s %s)" (toSmt x) (toSmt t)$/;"	fi	line:62
+declareP	src/Language/LLVC/Parse.hs	/^declareP :: Parser BareDef $/;"	ft	line:60
+declareP	src/Language/LLVC/Parse.hs	/^declareP = do $/;"	fi	line:61
+defineP	src/Language/LLVC/Parse.hs	/^defineP :: Parser BareDef $/;"	ft	line:69
+defineP	src/Language/LLVC/Parse.hs	/^defineP = do $/;"	fi	line:70
+defn	src/Language/LLVC/Types.hs	/^defn :: Var -> [(Var, Type)] -> FnBody a -> Type -> Maybe (Pred, Pred) -> a -> FnDef a $/;"	ft	line:248
+defn	src/Language/LLVC/Types.hs	/^defn f xts b t prop l = FnDef $/;"	fi	line:249
+dupBy	src/Language/LLVC/Utils.hs	/^dupBy :: (Ord k) => (a -> k) -> [a] -> [[a]]$/;"	ft	line:42
+dupBy	src/Language/LLVC/Utils.hs	/^dupBy f xs = [ xs' | (_, xs') <- groupBy f xs, 2 <= length xs' ]$/;"	fi	line:43
+eCallP	src/Language/LLVC/Parse.hs	/^eCallP :: Parser BareExpr $/;"	ft	line:196
+eCallP	src/Language/LLVC/Parse.hs	/^eCallP = do $/;"	fi	line:197
+eDef	src/Language/LLVC/Verify.hs	/^  , eDef   :: M.HashMap Var (FnDef a) -- ^ definitions of functions$/;"	c_a	line:134
+eExt	src/Language/LLVC/UX.hs	/^  , eExt  :: !Text$/;"	c_a	line:174
+eId	src/Language/LLVC/Verify.hs	/^  , eId    :: M.HashMap Var Int       -- ^ unique id per function $/;"	c_a	line:133
+eMsg	src/Language/LLVC/UX.hs	/^  { eMsg  :: !Text$/;"	c_a	line:172
+eSig	src/Language/LLVC/Verify.hs	/^  { eSig   :: M.HashMap Fn  Contract  -- ^ map from functions to code $/;"	c_a	line:132
+eSpan	src/Language/LLVC/UX.hs	/^  , eSpan :: !SourceSpan$/;"	c_a	line:173
+eStack	src/Language/LLVC/Verify.hs	/^  , eStack :: [Int]                   -- ^ non-empty stack of function names$/;"	c_a	line:135
+elem	src/Language/LLVC/Parse.hs	/^  | x `elem` keywords = fail $ "keyword " ++ show x ++ " cannot be an identifier"$/;"	fi	line:361
+ensurePath	src/Language/LLVC/Utils.hs	/^ensurePath :: FilePath -> IO ()$/;"	ft	line:71
+ensurePath	src/Language/LLVC/Utils.hs	/^ensurePath = createDirectoryIfMissing True . takeDirectory$/;"	fi	line:72
+ensuresP	src/Language/LLVC/Parse.hs	/^requiresP, ensuresP :: Parser Pred$/;"	ft	line:84
+ensuresP	src/Language/LLVC/Parse.hs	/^ensuresP  = annotationP "ensures"$/;"	fi	line:86
+equate	src/Language/LLVC/Verify.hs	/^equate :: (Located a) => Env a -> [Arg a] -> Env a -> [Arg a] -> a -> VC$/;"	ft	line:82
+equate	src/Language/LLVC/Verify.hs	/^equate env1 x1s env2 x2s l = assert $ smtPred $ PAnd $ zipWith eq x1s' x2s'$/;"	fi	line:83
+errMissing	src/Language/LLVC/Verify.hs	/^errMissing :: (Located l, Show x) => String -> x -> l -> a $/;"	ft	line:158
+errMissing	src/Language/LLVC/Verify.hs	/^errMissing thing x l = panic msg (sourceSpan l)$/;"	fi	line:159
+executeShellCommand	src/Language/LLVC/Utils.hs	/^executeShellCommand :: Maybe FilePath -> String -> Int -> IO ExitCode$/;"	ft	line:51
+executeShellCommand	src/Language/LLVC/Utils.hs	/^executeShellCommand logMb cmd n = fromMaybe (ExitFailure 100) <$> body$/;"	fi	line:52
+exitStatus	src/Language/LLVC/Utils.hs	/^exitStatus :: ExitStatus -> IO () $/;"	ft	line:112
+exitStatus	src/Language/LLVC/Utils.hs	/^exitStatus Safe   = withColor Green  $ putStrLn "\\nYay! Safe!"$/;"	fi	line:113
+exprP	src/Language/LLVC/Parse.hs	/^exprP :: Parser BareExpr $/;"	ft	line:132
+exprP	src/Language/LLVC/Parse.hs	/^exprP $/;"	fi	line:133
+extError	src/Language/LLVC/UX.hs	/^extError :: UserError -> Text -> UserError $/;"	ft	line:206
+extError	src/Language/LLVC/UX.hs	/^extError e s = e { eExt = s }$/;"	fi	line:208
+f	src/Language/LLVC/Utils.hs	/^f >-> g = f >=> safe g$/;"	fi	line:26
+float	src/Language/LLVC/Parse.hs	/^float :: Parser (Float, SourceSpan) $/;"	ft	line:129
+float	src/Language/LLVC/Parse.hs	/^float = lexeme L.float $/;"	fi	line:130
+fnArgTys	src/Language/LLVC/Types.hs	/^fnArgTys    :: FnDef a -> [(Var, Type)]$/;"	ft	line:165
+fnArgTys	src/Language/LLVC/Types.hs	/^fnArgTys fd = zip (ctParams (fnCon fd)) (fnArgs fd)$/;"	fi	line:166
+fnArgs	src/Language/LLVC/Types.hs	/^  , fnArgs :: ![Type]                -- ^ Parameters and their types $/;"	c_a	line:144
+fnBody	src/Language/LLVC/Types.hs	/^  , fnBody :: Maybe (FnBody a)       -- ^ 'Nothing' for 'declare', 'Just fb' for 'define' $/;"	c_a	line:147
+fnCon	src/Language/LLVC/Types.hs	/^  , fnCon  :: !Contract              -- ^ Specification $/;"	c_a	line:146
+fnDef	src/Language/LLVC/Verify.hs	/^fnDef :: (Located l) => Env a -> Var -> l -> FnDef a $/;"	ft	line:148
+fnDef	src/Language/LLVC/Verify.hs	/^fnDef env v l = Mb.fromMaybe err (M.lookup v (eDef env))$/;"	fi	line:149
+fnDefnP	src/Language/LLVC/Parse.hs	/^fnDefnP :: Parser (Maybe BareDef) $/;"	ft	line:40
+fnDefnP	src/Language/LLVC/Parse.hs	/^fnDefnP $/;"	fi	line:41
+fnId	src/Language/LLVC/Verify.hs	/^fnId :: (Located l) => Env a -> Var -> l -> Int $/;"	ft	line:153
+fnId	src/Language/LLVC/Verify.hs	/^fnId env v l = Mb.fromMaybe err (M.lookup v (eId env)) $/;"	fi	line:154
+fnLab	src/Language/LLVC/Types.hs	/^  , fnLab  :: a                     $/;"	c_a	line:148
+fnName	src/Language/LLVC/Types.hs	/^  { fnName :: !Var                   -- ^ Name$/;"	c_a	line:143
+fnOut	src/Language/LLVC/Types.hs	/^  , fnOut  :: !Type                  -- ^ Output type $/;"	c_a	line:145
+fnRet	src/Language/LLVC/Types.hs	/^  , fnRet   :: !(TypedArg a)         -- ^ Return value$/;"	c_a	line:138
+fnStmts	src/Language/LLVC/Types.hs	/^  { fnStmts :: ![Stmt a]             -- ^ Statements $/;"	c_a	line:137
+getLabel	src/Language/LLVC/Types.hs	/^  getLabel :: thing a -> a $/;"	ft	line:188
+getRange	src/Language/LLVC/Utils.hs	/^getRange :: Int -> Int -> [a] -> [a]$/;"	ft	line:87
+getRange	src/Language/LLVC/Utils.hs	/^getRange i1 i2$/;"	fi	line:88
+getSpan	src/Language/LLVC/UX.hs	/^getSpan :: SourceSpan -> String -> String$/;"	ft	line:115
+getSpan	src/Language/LLVC/UX.hs	/^getSpan sp$/;"	fi	line:116
+getSpanMulti	src/Language/LLVC/UX.hs	/^getSpanMulti :: Int -> Int -> String -> String$/;"	ft	line:129
+getSpanMulti	src/Language/LLVC/UX.hs	/^getSpanMulti l1 l2$/;"	fi	line:130
+getSpanSingle	src/Language/LLVC/UX.hs	/^getSpanSingle :: Int -> Int -> Int -> String -> String$/;"	ft	line:122
+getSpanSingle	src/Language/LLVC/UX.hs	/^getSpanSingle l c1 c2$/;"	fi	line:123
+groupBy	src/Language/LLVC/Utils.hs	/^groupBy :: (Ord k) => (a -> k) -> [a] -> [(k, [a])]$/;"	ft	line:36
+groupBy	src/Language/LLVC/Utils.hs	/^groupBy f = M.toList . L.foldl' (\\m x -> inserts (f x) x m) M.empty$/;"	fi	line:37
+hPutStrLnNow	src/Language/LLVC/Smt.hs	/^hPutStrLnNow    :: Handle -> T.Text -> IO ()$/;"	ft	line:187
+hPutStrLnNow	src/Language/LLVC/Smt.hs	/^hPutStrLnNow h s = TIO.hPutStrLn h s >> hFlush h$/;"	fi	line:188
+handleIO	src/Language/LLVC/Utils.hs	/^handleIO :: FilePath -> IOException -> IO (Either String a)$/;"	ft	line:77
+handleIO	src/Language/LLVC/Utils.hs	/^handleIO f e = return . Left $ "Warning: Couldn't open " <> f <> ": " <> show e$/;"	fi	line:78
+highlight	src/Language/LLVC/UX.hs	/^highlight :: Int -> Int -> Int -> String -> String$/;"	ft	line:135
+highlight	src/Language/LLVC/UX.hs	/^highlight l c1 c2 s = unlines$/;"	fi	line:136
+highlights	src/Language/LLVC/UX.hs	/^highlights :: Int -> [String] -> String$/;"	ft	line:141
+highlights	src/Language/LLVC/UX.hs	/^highlights i ls = unlines $ L.zipWith cursorLine [i..] ls$/;"	fi	line:142
+identChar	src/Language/LLVC/Parse.hs	/^identChar :: Parser Char$/;"	ft	line:364
+identChar	src/Language/LLVC/Parse.hs	/^identChar = oneOf ok <?> "identifier-char"$/;"	fi	line:365
+identifier	src/Language/LLVC/Parse.hs	/^identifier :: Text -> Parser (String, SourceSpan)$/;"	ft	line:349
+identifier	src/Language/LLVC/Parse.hs	/^identifier s = lexeme (p >>= checkId)$/;"	fi	line:350
+inA	src/Language/LLVC/Verify.hs	/^inA :: Env a -> Arg a -> Arg a $/;"	ft	line:108
+inA	src/Language/LLVC/Verify.hs	/^inA env (EVar v l) = EVar (inV env v) l  $/;"	fi	line:109
+inP	src/Language/LLVC/Verify.hs	/^inP :: Env a -> Pred -> SmtPred$/;"	ft	line:103
+inP	src/Language/LLVC/Verify.hs	/^inP env p = smtPred (substf f p) $/;"	fi	line:104
+inV	src/Language/LLVC/Verify.hs	/^inV :: Env a -> Var -> Var $/;"	ft	line:112
+inV	src/Language/LLVC/Verify.hs	/^inV env x@('%':_) = stackPrefix (eStack env) ++ x $/;"	fi	line:113
+inserts	src/Language/LLVC/Utils.hs	/^inserts :: (Ord k) => k -> v -> M.Map k [v] -> M.Map k [v]$/;"	ft	line:39
+inserts	src/Language/LLVC/Utils.hs	/^inserts k v m = M.insert k (v : M.findWithDefault [] k m) m$/;"	fi	line:40
+instance	src/Language/LLVC/Smt.hs	/^instance Monoid VC where $/;"	fi	line:106
 instance	src/Language/LLVC/Types.hs	/^instance UX.PPrint Type where $/;"	fi	line:22
-instance	src/Language/LLVC/UX.hs	/^instance Located SourceSpan where$/;"	fi	line:57
-integer	src/Language/LLVC/Parse.hs	/^integer :: Parser (Integer, SourceSpan)$/;"	ft	line:290
-integer	src/Language/LLVC/Parse.hs	/^integer = lexeme (   (symbol "0x" *> L.hexadecimal) $/;"	fi	line:292
-integerBinary	src/Language/LLVC/Utils.hs	/^integerBinary :: Integer -> String $/;"	ft	line:96
-integerBinary	src/Language/LLVC/Utils.hs	/^integerBinary i = showIntAtBase 2 intToDigit i "" $/;"	fi	line:97
-integerHex	src/Language/LLVC/Utils.hs	/^integerHex :: Integer -> String $/;"	ft	line:93
-integerHex	src/Language/LLVC/Utils.hs	/^integerHex i = showHex i "" $/;"	fi	line:94
-junkSpan	src/Language/LLVC/UX.hs	/^junkSpan :: SourceSpan$/;"	ft	line:158
-junkSpan	src/Language/LLVC/UX.hs	/^junkSpan = posSpan (initialPos "unknown")$/;"	fi	line:159
-keywords	src/Language/LLVC/Parse.hs	/^keywords :: [Text]$/;"	ft	line:301
-keywords	src/Language/LLVC/Parse.hs	/^keywords =$/;"	fi	line:302
-lexeme	src/Language/LLVC/Parse.hs	/^lexeme :: Parser a -> Parser (a, SourceSpan)$/;"	ft	line:286
-lexeme	src/Language/LLVC/Parse.hs	/^lexeme p = L.lexeme sc (withSpan p)$/;"	fi	line:287
-lineString	src/Language/LLVC/UX.hs	/^lineString :: Int -> String$/;"	ft	line:145
-lineString	src/Language/LLVC/UX.hs	/^lineString n = replicate (10 - nD) ' ' ++ nS$/;"	fi	line:146
-llOpP	src/Language/LLVC/Parse.hs	/^llOpP :: Parser (Op, SourceSpan) $/;"	ft	line:140
-llOpP	src/Language/LLVC/Parse.hs	/^llOpP =   (BvAnd, ) <$> rWord "and" $/;"	fi	line:141
-makeContext	src/Language/LLVC/Smt.hs	/^makeContext :: FilePath -> IO Context$/;"	ft	line:186
-makeContext	src/Language/LLVC/Smt.hs	/^makeContext f = do $/;"	fi	line:187
-makeProcess	src/Language/LLVC/Smt.hs	/^makeProcess :: IO Context$/;"	ft	line:228
-makeProcess	src/Language/LLVC/Smt.hs	/^makeProcess = do $/;"	fi	line:229
-mappendSpan	src/Language/LLVC/UX.hs	/^mappendSpan :: SourceSpan -> SourceSpan -> SourceSpan$/;"	ft	line:73
-mappendSpan	src/Language/LLVC/UX.hs	/^mappendSpan s1 s2$/;"	fi	line:74
-mconcatMap	src/Language/LLVC/Utils.hs	/^mconcatMap :: (Monoid b) => (a -> b) -> [a] -> b $/;"	ft	line:31
-mconcatMap	src/Language/LLVC/Utils.hs	/^mconcatMap f = mconcat . fmap f$/;"	fi	line:33
-mkBitcast	src/Language/LLVC/Types.hs	/^mkBitcast :: TypedArg a -> Type -> a -> Expr a $/;"	ft	line:208
-mkBitcast	src/Language/LLVC/Types.hs	/^mkBitcast (t, e) t' = ECall (FnBitcast t t') [(t, e)] t'$/;"	fi	line:209
-mkCall	src/Language/LLVC/Types.hs	/^mkCall :: Var -> [(Var, Type)] -> Type -> a -> Expr a $/;"	ft	line:214
-mkCall	src/Language/LLVC/Types.hs	/^mkCall f xts t sp = ECall (FnFunc f) tes t sp$/;"	fi	line:215
-mkCmp	src/Language/LLVC/Types.hs	/^mkCmp :: Rel -> Type -> Arg a -> Arg a -> a -> Expr a $/;"	ft	line:196
-mkCmp	src/Language/LLVC/Types.hs	/^mkCmp r t e1 e2 = ECall (FnCmp t r) [tLit (t, e1), tLit (t, e2)] (I 1)$/;"	fi	line:197
-mkContract	src/Language/LLVC/Verify.hs	/^mkContract :: Int -> Text -> Text -> Contract $/;"	ft	line:124
-mkContract	src/Language/LLVC/Verify.hs	/^mkContract n tPre tPost = Ct $/;"	fi	line:125
-mkEnv	src/Language/LLVC/Verify.hs	/^mkEnv :: Program a -> Env $/;"	ft	line:79
-mkEnv	src/Language/LLVC/Verify.hs	/^mkEnv p   = M.fromList (prims ++ defs) $/;"	fi	line:80
-mkError	src/Language/LLVC/UX.hs	/^mkError :: Text -> SourceSpan -> UserError$/;"	ft	line:198
-mkError	src/Language/LLVC/UX.hs	/^mkError = Error$/;"	fi	line:200
-mkOp	src/Language/LLVC/Types.hs	/^mkOp :: Op -> TypedArg a -> Arg a -> a -> Expr a $/;"	ft	line:211
-mkOp	src/Language/LLVC/Types.hs	/^mkOp o (t, e1) e2 = ECall (FnBin o) [tLit (t, e1), tLit (t, e2)] t $/;"	fi	line:212
-mkSelect	src/Language/LLVC/Types.hs	/^mkSelect :: (Show a) => TypedArg a -> TypedArg a -> TypedArg a -> a -> Expr a $/;"	ft	line:199
-mkSelect	src/Language/LLVC/Types.hs	/^mkSelect x@(t1, _) y@(t2, _) z@(t3, _) l $/;"	fi	line:200
-pArgP	src/Language/LLVC/Parse.hs	/^pArgP :: Parser Pred $/;"	ft	line:240
-pArgP	src/Language/LLVC/Parse.hs	/^pArgP =  PArg <$> argP $/;"	fi	line:241
-pAtomP	src/Language/LLVC/Parse.hs	/^pAtomP :: Parser Pred $/;"	ft	line:208
-pAtomP	src/Language/LLVC/Parse.hs	/^pAtomP $/;"	fi	line:209
-panic	src/Language/LLVC/UX.hs	/^panic :: String -> SourceSpan -> a$/;"	ft	line:188
-panic	src/Language/LLVC/UX.hs	/^panic msg sp = throw [Error msg sp]$/;"	fi	line:190
-paramVar	src/Language/LLVC/Types.hs	/^paramVar :: Int -> Var $/;"	ft	line:253
-paramVar	src/Language/LLVC/Types.hs	/^paramVar i = "%arg" ++ show i $/;"	fi	line:254
-paramVars	src/Language/LLVC/Types.hs	/^paramVars :: [Var]$/;"	ft	line:250
-paramVars	src/Language/LLVC/Types.hs	/^paramVars = paramVar <$> [0..] $/;"	fi	line:251
-parens	src/Language/LLVC/Parse.hs	/^parens :: Parser a -> Parser a$/;"	ft	line:271
-parens	src/Language/LLVC/Parse.hs	/^parens = betweenS "(" ")"$/;"	fi	line:272
-parse	src/Language/LLVC/Parse.hs	/^parse :: FilePath -> Text -> BareProgram $/;"	ft	line:23
-parse	src/Language/LLVC/Parse.hs	/^parse = parseWith programP$/;"	fi	line:25
-parseFile	src/Language/LLVC/Parse.hs	/^parseFile :: FilePath -> IO BareProgram $/;"	ft	line:18
-parseFile	src/Language/LLVC/Parse.hs	/^parseFile f = parse f <$> readFile f$/;"	fi	line:20
-parseWith	src/Language/LLVC/Parse.hs	/^parseWith  :: Parser a -> FilePath -> Text -> a$/;"	ft	line:27
-parseWith	src/Language/LLVC/Parse.hs	/^parseWith p f s = case runParser (whole p) f s of$/;"	fi	line:28
-phase	src/Language/LLVC/Utils.hs	/^phase :: Phase -> String -> IO ()$/;"	ft	line:66
-phase	src/Language/LLVC/Utils.hs	/^phase p msg = putStrLn $ printf "**** %s : %s **************************************" (show p) msg$/;"	fi	line:67
-pop	src/Language/LLVC/Smt.hs	/^push, pop :: VC $/;"	ft	line:169
-pop	src/Language/LLVC/Smt.hs	/^pop      = say  "(pop 1)"$/;"	fi	line:171
-posSpan	src/Language/LLVC/UX.hs	/^posSpan :: SourcePos -> SourceSpan$/;"	ft	line:154
-posSpan	src/Language/LLVC/UX.hs	/^posSpan p = SS p p$/;"	fi	line:156
-postCond	src/Language/LLVC/Verify.hs	/^postCond :: Int -> Text -> Contract $/;"	ft	line:121
-postCond	src/Language/LLVC/Verify.hs	/^postCond n = mkContract n "true" $/;"	fi	line:122
-ppCall	src/Language/LLVC/Types.hs	/^ppCall :: Fn -> [TypedArg a] -> Type -> UX.Text $/;"	ft	line:92
-ppCall	src/Language/LLVC/Types.hs	/^ppCall (FnFunc f) tes t   $/;"	fi	line:93
-ppCmp	src/Language/LLVC/Types.hs	/^ppCmp :: Type -> Rel -> UX.Text $/;"	ft	line:87
-ppCmp	src/Language/LLVC/Types.hs	/^ppCmp Float Olt = "fcmp olt"$/;"	fi	line:88
-ppSourceSpan	src/Language/LLVC/UX.hs	/^ppSourceSpan :: SourceSpan -> String$/;"	ft	line:82
-ppSourceSpan	src/Language/LLVC/UX.hs	/^ppSourceSpan s$/;"	fi	line:83
-pprint	src/Language/LLVC/UX.hs	/^  pprint :: a -> Text$/;"	ft	line:49
-pprints	src/Language/LLVC/Types.hs	/^pprints :: (UX.PPrint a) => [a] -> UX.Text$/;"	ft	line:110
-pprints	src/Language/LLVC/Types.hs	/^pprints = L.intercalate ", " . fmap UX.pprint $/;"	fi	line:111
-pred	src/Language/LLVC/Verify.hs	/^pred :: Text -> Pred $/;"	ft	line:132
-pred	src/Language/LLVC/Verify.hs	/^pred = Parse.parseWith Parse.predP "primitive-contracts" $/;"	fi	line:133
-pred0P	src/Language/LLVC/Parse.hs	/^pred0P :: Parser Pred $/;"	ft	line:202
-pred0P	src/Language/LLVC/Parse.hs	/^pred0P =  PAnd        <$> (rWord "and" *> many predP)$/;"	fi	line:203
-predP	src/Language/LLVC/Parse.hs	/^predP :: Parser Pred $/;"	ft	line:196
-predP	src/Language/LLVC/Parse.hs	/^predP =  parens pred0P $/;"	fi	line:197
-primitiveContracts	src/Language/LLVC/Verify.hs	/^primitiveContracts :: [(Fn, Contract)]$/;"	ft	line:86
-primitiveContracts	src/Language/LLVC/Verify.hs	/^primitiveContracts =  $/;"	fi	line:87
-programP	src/Language/LLVC/Parse.hs	/^programP :: Parser BareProgram $/;"	ft	line:36
-programP	src/Language/LLVC/Parse.hs	/^programP = do $/;"	fi	line:37
-push	src/Language/LLVC/Smt.hs	/^push, pop :: VC $/;"	ft	line:169
-push	src/Language/LLVC/Smt.hs	/^push     = say  "(push 1)"$/;"	fi	line:170
-rWord	src/Language/LLVC/Parse.hs	/^rWord   :: String -> Parser SourceSpan$/;"	ft	line:297
-rWord	src/Language/LLVC/Parse.hs	/^rWord w = snd <$> (withSpan (string w) <* notFollowedBy alphaNumChar <* sc)$/;"	fi	line:298
-readFileSpan	src/Language/LLVC/UX.hs	/^readFileSpan :: SourceSpan -> IO String$/;"	ft	line:101
-readFileSpan	src/Language/LLVC/UX.hs	/^readFileSpan sp = do $/;"	fi	line:103
-readPrelude	src/Language/LLVC/Smt.hs	/^readPrelude :: IO UX.Text $/;"	ft	line:50
-readPrelude	src/Language/LLVC/Smt.hs	/^readPrelude = readFile =<< Paths_llvc.getDataFileName "include\/prelude.smt2"$/;"	fi	line:51
-relP	src/Language/LLVC/Parse.hs	/^relP :: Parser Rel $/;"	ft	line:175
-relP	src/Language/LLVC/Parse.hs	/^relP =  (rWord "olt" >> return Olt)$/;"	fi	line:176
-renderError	src/Language/LLVC/UX.hs	/^renderError :: UserError -> IO Text$/;"	ft	line:207
-renderError	src/Language/LLVC/UX.hs	/^renderError e = do$/;"	fi	line:208
-renderErrors	src/Language/LLVC/UX.hs	/^renderErrors :: [UserError] -> IO Text$/;"	ft	line:202
-renderErrors	src/Language/LLVC/UX.hs	/^renderErrors es = do$/;"	fi	line:203
-requiresP	src/Language/LLVC/Parse.hs	/^requiresP, ensuresP :: Parser Pred$/;"	ft	line:79
-requiresP	src/Language/LLVC/Parse.hs	/^requiresP = annotationP "requires"$/;"	fi	line:80
-retP	src/Language/LLVC/Parse.hs	/^retP :: Parser (Type, BareArg)$/;"	ft	line:108
-retP	src/Language/LLVC/Parse.hs	/^retP = do $/;"	fi	line:109
-retVar	src/Language/LLVC/Types.hs	/^retVar :: Var $/;"	ft	line:256
-retVar	src/Language/LLVC/Types.hs	/^retVar = "%ret"$/;"	fi	line:257
-runQuery	src/Language/LLVC/Smt.hs	/^runQuery :: VC -> IO [UX.SourceSpan]$/;"	ft	line:183
-runQuery	src/Language/LLVC/Smt.hs	/^runQuery = error "TODO:runQuery"$/;"	fi	line:184
-safeHead	src/Language/LLVC/Utils.hs	/^safeHead :: a -> [a] -> a$/;"	ft	line:84
-safeHead	src/Language/LLVC/Utils.hs	/^safeHead def []    = def$/;"	fi	line:85
-safeReadFile	src/Language/LLVC/Utils.hs	/^safeReadFile :: FilePath -> IO (Either String String)$/;"	ft	line:75
-safeReadFile	src/Language/LLVC/Utils.hs	/^safeReadFile f = (Right <$> readFile f) `catch` handleIO f$/;"	fi	line:76
-sanitizeChar	src/Language/LLVC/Smt.hs	/^sanitizeChar :: Char -> Char $/;"	ft	line:129
-sanitizeChar	src/Language/LLVC/Smt.hs	/^sanitizeChar '%' = '_'$/;"	fi	line:130
-sanitizeVar	src/Language/LLVC/Smt.hs	/^sanitizeVar :: Var -> Smt $/;"	ft	line:125
-sanitizeVar	src/Language/LLVC/Smt.hs	/^sanitizeVar ('%':cs) = 'r' : (sanitizeChar <$> cs) $/;"	fi	line:126
-say	src/Language/LLVC/Smt.hs	/^say :: UX.Text -> VC$/;"	ft	line:176
-say	src/Language/LLVC/Smt.hs	/^say s = VC [ Say s ]$/;"	fi	line:177
-sc	src/Language/LLVC/Parse.hs	/^sc :: Parser ()$/;"	ft	line:254
-sc	src/Language/LLVC/Parse.hs	/^sc = L.space (void spaceChar) lineCmnt blockCmnt$/;"	fi	line:255
-selectP	src/Language/LLVC/Parse.hs	/^selectP :: Parser BareExpr $/;"	ft	line:155
-selectP	src/Language/LLVC/Parse.hs	/^selectP = do $/;"	fi	line:156
-sigIntHex	src/Language/LLVC/Smt.hs	/^sigIntHex :: Integer -> Type -> Smt $/;"	ft	line:94
-sigIntHex	src/Language/LLVC/Smt.hs	/^sigIntHex n t     = M.lookupDefault res (n, t) convTable $/;"	fi	line:95
-smtId	src/Language/LLVC/Parse.hs	/^smtId :: Parser (String, SourceSpan)$/;"	ft	line:335
-smtId	src/Language/LLVC/Parse.hs	/^smtId = lexeme (p >>= checkId)$/;"	fi	line:336
-smtRead	src/Language/LLVC/Smt.hs	/^smtRead :: Context -> IO Response$/;"	ft	line:201
-smtRead	src/Language/LLVC/Smt.hs	/^smtRead me = strResponse . T.unpack <$> smtReadRaw me$/;"	fi	line:202
-smtReadRaw	src/Language/LLVC/Smt.hs	/^smtReadRaw       :: Context -> IO T.Text$/;"	ft	line:212
-smtReadRaw	src/Language/LLVC/Smt.hs	/^smtReadRaw me    = {-# SCC "smtReadRaw" #-} TIO.hGetLine (ctxCin me)$/;"	fi	line:213
-smtWrite	src/Language/LLVC/Smt.hs	/^smtWrite :: Context -> T.Text -> IO ()$/;"	ft	line:198
-smtWrite	src/Language/LLVC/Smt.hs	/^smtWrite me !s = smtWriteRaw me s$/;"	fi	line:199
-smtWriteRaw	src/Language/LLVC/Smt.hs	/^smtWriteRaw      :: Context -> T.Text -> IO ()$/;"	ft	line:207
-smtWriteRaw	src/Language/LLVC/Smt.hs	/^smtWriteRaw me !s = {-# SCC "smtWriteRaw" #-} do$/;"	fi	line:208
+instance	src/Language/LLVC/UX.hs	/^instance Located SourceSpan where$/;"	fi	line:59
+integer	src/Language/LLVC/Parse.hs	/^integer :: Parser (Integer, SourceSpan)$/;"	ft	line:309
+integer	src/Language/LLVC/Parse.hs	/^integer = lexeme (   (symbol "0x" *> L.hexadecimal) $/;"	fi	line:311
+integerBinary	src/Language/LLVC/Utils.hs	/^integerBinary :: Integer -> String $/;"	ft	line:95
+integerBinary	src/Language/LLVC/Utils.hs	/^integerBinary i = showIntAtBase 2 intToDigit i "" $/;"	fi	line:96
+integerHex	src/Language/LLVC/Utils.hs	/^integerHex :: Integer -> String $/;"	ft	line:92
+integerHex	src/Language/LLVC/Utils.hs	/^integerHex i = showHex i "" $/;"	fi	line:93
+junkSpan	src/Language/LLVC/UX.hs	/^junkSpan :: SourceSpan$/;"	ft	line:160
+junkSpan	src/Language/LLVC/UX.hs	/^junkSpan = posSpan (initialPos "unknown")$/;"	fi	line:161
+keywords	src/Language/LLVC/Parse.hs	/^keywords :: [Text]$/;"	ft	line:320
+keywords	src/Language/LLVC/Parse.hs	/^keywords =$/;"	fi	line:321
+lexeme	src/Language/LLVC/Parse.hs	/^lexeme :: Parser a -> Parser (a, SourceSpan)$/;"	ft	line:305
+lexeme	src/Language/LLVC/Parse.hs	/^lexeme p = L.lexeme sc (withSpan p)$/;"	fi	line:306
+lineString	src/Language/LLVC/UX.hs	/^lineString :: Int -> String$/;"	ft	line:147
+lineString	src/Language/LLVC/UX.hs	/^lineString n = replicate (10 - nD) ' ' ++ nS$/;"	fi	line:148
+llOpP	src/Language/LLVC/Parse.hs	/^llOpP :: Parser (Op, SourceSpan) $/;"	ft	line:148
+llOpP	src/Language/LLVC/Parse.hs	/^llOpP =   (BvAnd, ) <$> rWord "and" $/;"	fi	line:149
+makeContext	src/Language/LLVC/Smt.hs	/^makeContext :: FilePath -> IO Context$/;"	ft	line:147
+makeContext	src/Language/LLVC/Smt.hs	/^makeContext smtFile = do $/;"	fi	line:149
+makeProcess	src/Language/LLVC/Smt.hs	/^makeProcess :: IO Context$/;"	ft	line:158
+makeProcess	src/Language/LLVC/Smt.hs	/^makeProcess = do $/;"	fi	line:159
+mappendSpan	src/Language/LLVC/UX.hs	/^mappendSpan :: SourceSpan -> SourceSpan -> SourceSpan$/;"	ft	line:75
+mappendSpan	src/Language/LLVC/UX.hs	/^mappendSpan s1 s2$/;"	fi	line:76
+mconcatMap	src/Language/LLVC/Utils.hs	/^mconcatMap :: (Monoid b) => (a -> b) -> [a] -> b $/;"	ft	line:32
+mconcatMap	src/Language/LLVC/Utils.hs	/^mconcatMap f = mconcat . fmap f$/;"	fi	line:34
+mkBitcast	src/Language/LLVC/Types.hs	/^mkBitcast :: TypedArg a -> Type -> a -> Expr a $/;"	ft	line:219
+mkBitcast	src/Language/LLVC/Types.hs	/^mkBitcast (t, e) t' = ECall (FnBitcast t t') [tLit (t, e)] t'$/;"	fi	line:220
+mkCall	src/Language/LLVC/Types.hs	/^mkCall :: Var -> [(Var, Type)] -> Type -> a -> Expr a $/;"	ft	line:225
+mkCall	src/Language/LLVC/Types.hs	/^mkCall f xts t sp = ECall (FnFunc f) tes t sp$/;"	fi	line:226
+mkCmp	src/Language/LLVC/Types.hs	/^mkCmp :: Rel -> Type -> Arg a -> Arg a -> a -> Expr a $/;"	ft	line:207
+mkCmp	src/Language/LLVC/Types.hs	/^mkCmp r t e1 e2 = ECall (FnCmp t r) [tLit (t, e1), tLit (t, e2)] (I 1)$/;"	fi	line:208
+mkContract	src/Language/LLVC/Verify.hs	/^mkContract :: Int -> Text -> Text -> Contract $/;"	ft	line:234
+mkContract	src/Language/LLVC/Verify.hs	/^mkContract n tPre tPost = Ct $/;"	fi	line:235
+mkEnv	src/Language/LLVC/Verify.hs	/^mkEnv :: Program a -> Env a $/;"	ft	line:163
+mkEnv	src/Language/LLVC/Verify.hs	/^mkEnv p   = Env (M.fromList sigs) (M.fromList fIds) (M.fromList fDefs) [] $/;"	fi	line:164
+mkError	src/Language/LLVC/UX.hs	/^mkError :: Text -> SourceSpan -> UserError$/;"	ft	line:201
+mkError	src/Language/LLVC/UX.hs	/^mkError s l = Error s l ""$/;"	fi	line:203
+mkOp	src/Language/LLVC/Types.hs	/^mkOp :: Op -> TypedArg a -> Arg a -> a -> Expr a $/;"	ft	line:222
+mkOp	src/Language/LLVC/Types.hs	/^mkOp o (t, e1) e2 = ECall (FnBin o) [tLit (t, e1), tLit (t, e2)] t $/;"	fi	line:223
+mkSelect	src/Language/LLVC/Types.hs	/^mkSelect :: (Show a) => TypedArg a -> TypedArg a -> TypedArg a -> a -> Expr a $/;"	ft	line:210
+mkSelect	src/Language/LLVC/Types.hs	/^mkSelect x@(t1, _) y@(t2, _) z@(t3, _) l $/;"	fi	line:211
+pArgP	src/Language/LLVC/Parse.hs	/^pArgP :: Parser Pred $/;"	ft	line:259
+pArgP	src/Language/LLVC/Parse.hs	/^pArgP =  PArg <$> argP $/;"	fi	line:260
+pAtomP	src/Language/LLVC/Parse.hs	/^pAtomP :: Parser Pred $/;"	ft	line:224
+pAtomP	src/Language/LLVC/Parse.hs	/^pAtomP $/;"	fi	line:225
+panic	src/Language/LLVC/UX.hs	/^panic :: String -> SourceSpan -> a$/;"	ft	line:191
+panic	src/Language/LLVC/UX.hs	/^panic msg sp = throw [Error msg sp ""]$/;"	fi	line:193
+paramVar	src/Language/LLVC/Types.hs	/^paramVar :: Int -> Var $/;"	ft	line:263
+paramVar	src/Language/LLVC/Types.hs	/^paramVar i = "%arg" ++ show i $/;"	fi	line:264
+paramVars	src/Language/LLVC/Types.hs	/^paramVars :: [Var]$/;"	ft	line:260
+paramVars	src/Language/LLVC/Types.hs	/^paramVars = paramVar <$> [0..] $/;"	fi	line:261
+parens	src/Language/LLVC/Parse.hs	/^parens :: Parser a -> Parser a$/;"	ft	line:290
+parens	src/Language/LLVC/Parse.hs	/^parens = betweenS "(" ")"$/;"	fi	line:291
+parse	src/Language/LLVC/Parse.hs	/^parse :: FilePath -> Text -> BareProgram $/;"	ft	line:22
+parse	src/Language/LLVC/Parse.hs	/^parse = parseWith programP$/;"	fi	line:24
+parseFile	src/Language/LLVC/Parse.hs	/^parseFile :: FilePath -> IO BareProgram $/;"	ft	line:17
+parseFile	src/Language/LLVC/Parse.hs	/^parseFile f = parse f <$> readFile f$/;"	fi	line:19
+parseWith	src/Language/LLVC/Parse.hs	/^parseWith  :: Parser a -> FilePath -> Text -> a$/;"	ft	line:26
+parseWith	src/Language/LLVC/Parse.hs	/^parseWith p f s = case runParser (whole p) f s of$/;"	fi	line:27
+phase	src/Language/LLVC/Utils.hs	/^phase :: Phase -> String -> IO ()$/;"	ft	line:65
+phase	src/Language/LLVC/Utils.hs	/^phase p msg = putStrLn $ printf "**** %s : %s **************************************" (show p) msg$/;"	fi	line:66
+pop	src/Language/LLVC/Smt.hs	/^push, pop :: VC $/;"	ft	line:79
+pop	src/Language/LLVC/Smt.hs	/^pop      = say  "(pop 1)"$/;"	fi	line:81
+posSpan	src/Language/LLVC/UX.hs	/^posSpan :: SourcePos -> SourceSpan$/;"	ft	line:156
+posSpan	src/Language/LLVC/UX.hs	/^posSpan p = SS p p$/;"	fi	line:158
+postCond	src/Language/LLVC/Verify.hs	/^postCond :: Int -> Text -> Contract $/;"	ft	line:231
+postCond	src/Language/LLVC/Verify.hs	/^postCond n = mkContract n "true" $/;"	fi	line:232
+ppCall	src/Language/LLVC/Types.hs	/^ppCall :: Fn -> [TypedArg a] -> Type -> UX.Text $/;"	ft	line:103
+ppCall	src/Language/LLVC/Types.hs	/^ppCall (FnFunc f) tes t   $/;"	fi	line:104
+ppCmp	src/Language/LLVC/Types.hs	/^ppCmp :: Type -> Rel -> UX.Text $/;"	ft	line:95
+ppCmp	src/Language/LLVC/Types.hs	/^ppCmp Float Olt = "fcmp olt"$/;"	fi	line:96
+ppSourceSpan	src/Language/LLVC/UX.hs	/^ppSourceSpan :: SourceSpan -> String$/;"	ft	line:84
+ppSourceSpan	src/Language/LLVC/UX.hs	/^ppSourceSpan s$/;"	fi	line:85
+pprint	src/Language/LLVC/UX.hs	/^  pprint :: a -> Text$/;"	ft	line:51
+pprints	src/Language/LLVC/Types.hs	/^pprints :: (UX.PPrint a) => [a] -> UX.Text$/;"	ft	line:121
+pprints	src/Language/LLVC/Types.hs	/^pprints = L.intercalate ", " . fmap UX.pprint $/;"	fi	line:122
+pred	src/Language/LLVC/Verify.hs	/^pred :: Text -> Pred $/;"	ft	line:240
+pred	src/Language/LLVC/Verify.hs	/^pred = Parse.parseWith Parse.predP "primitive-contracts" $/;"	fi	line:241
+pred0P	src/Language/LLVC/Parse.hs	/^pred0P :: Parser Pred $/;"	ft	line:218
+pred0P	src/Language/LLVC/Parse.hs	/^pred0P =  PAnd        <$> (rWord "and" *> many predP)$/;"	fi	line:219
+predP	src/Language/LLVC/Parse.hs	/^predP :: Parser Pred $/;"	ft	line:212
+predP	src/Language/LLVC/Parse.hs	/^predP =  parens pred0P $/;"	fi	line:213
+primitiveContracts	src/Language/LLVC/Verify.hs	/^primitiveContracts :: [(Fn, Contract)]$/;"	ft	line:174
+primitiveContracts	src/Language/LLVC/Verify.hs	/^primitiveContracts =  $/;"	fi	line:175
+programP	src/Language/LLVC/Parse.hs	/^programP :: Parser BareProgram $/;"	ft	line:35
+programP	src/Language/LLVC/Parse.hs	/^programP = do $/;"	fi	line:36
+propertyP	src/Language/LLVC/Parse.hs	/^propertyP :: Parser (Maybe (Pred, Pred))$/;"	ft	line:80
+propertyP	src/Language/LLVC/Parse.hs	/^propertyP =  curry Just <$> requiresP <*> ensuresP$/;"	fi	line:81
+push	src/Language/LLVC/Smt.hs	/^push, pop :: VC $/;"	ft	line:79
+push	src/Language/LLVC/Smt.hs	/^push     = say  "(push 1)"$/;"	fi	line:80
+pushEnv	src/Language/LLVC/Verify.hs	/^pushEnv :: Int -> Env a -> Env a $/;"	ft	line:138
+pushEnv	src/Language/LLVC/Verify.hs	/^pushEnv i env = env { eStack = i : eStack env } $/;"	fi	line:139
+rWord	src/Language/LLVC/Parse.hs	/^rWord   :: String -> Parser SourceSpan$/;"	ft	line:316
+rWord	src/Language/LLVC/Parse.hs	/^rWord w = snd <$> (withSpan (string w) <* notFollowedBy alphaNumChar <* sc)$/;"	fi	line:317
+readFileSpan	src/Language/LLVC/UX.hs	/^readFileSpan :: SourceSpan -> IO String$/;"	ft	line:103
+readFileSpan	src/Language/LLVC/UX.hs	/^readFileSpan sp = do $/;"	fi	line:105
+readPrelude	src/Language/LLVC/Smt.hs	/^readPrelude :: IO T.Text $/;"	ft	line:51
+readPrelude	src/Language/LLVC/Smt.hs	/^readPrelude = TIO.readFile =<< Paths_llvc.getDataFileName "include\/prelude.smt2"$/;"	fi	line:52
+relP	src/Language/LLVC/Parse.hs	/^relP :: Parser Rel $/;"	ft	line:186
+relP	src/Language/LLVC/Parse.hs	/^relP =  (rWord "olt" >> return Olt)$/;"	fi	line:187
+renderError	src/Language/LLVC/UX.hs	/^renderError :: UserError -> IO Text$/;"	ft	line:215
+renderError	src/Language/LLVC/UX.hs	/^renderError e = do$/;"	fi	line:216
+renderErrors	src/Language/LLVC/UX.hs	/^renderErrors :: [UserError] -> IO Text$/;"	ft	line:210
+renderErrors	src/Language/LLVC/UX.hs	/^renderErrors es = do$/;"	fi	line:211
+requiresP	src/Language/LLVC/Parse.hs	/^requiresP, ensuresP :: Parser Pred$/;"	ft	line:84
+requiresP	src/Language/LLVC/Parse.hs	/^requiresP = annotationP "requires"$/;"	fi	line:85
+retP	src/Language/LLVC/Parse.hs	/^retP :: Parser (Type, BareArg)$/;"	ft	line:113
+retP	src/Language/LLVC/Parse.hs	/^retP = do $/;"	fi	line:114
+retVar	src/Language/LLVC/Types.hs	/^retVar :: Var $/;"	ft	line:266
+retVar	src/Language/LLVC/Types.hs	/^retVar = "%ret"$/;"	fi	line:267
+runQuery	src/Language/LLVC/Smt.hs	/^runQuery :: FilePath -> VC -> IO [UX.UserError]$/;"	ft	line:92
+runQuery	src/Language/LLVC/Smt.hs	/^runQuery f (VC cmds) = do $/;"	fi	line:93
+safeHead	src/Language/LLVC/Utils.hs	/^safeHead :: a -> [a] -> a$/;"	ft	line:83
+safeHead	src/Language/LLVC/Utils.hs	/^safeHead def []    = def$/;"	fi	line:84
+safeReadFile	src/Language/LLVC/Utils.hs	/^safeReadFile :: FilePath -> IO (Either String String)$/;"	ft	line:74
+safeReadFile	src/Language/LLVC/Utils.hs	/^safeReadFile f = (Right <$> readFile f) `catch` handleIO f$/;"	fi	line:75
+sanitizeChar	src/Language/LLVC/Smt.hs	/^sanitizeChar :: Char -> Char $/;"	ft	line:286
+sanitizeChar	src/Language/LLVC/Smt.hs	/^sanitizeChar '%' = '_'$/;"	fi	line:287
+sanitizeVar	src/Language/LLVC/Smt.hs	/^sanitizeVar :: Var -> Smt $/;"	ft	line:282
+sanitizeVar	src/Language/LLVC/Smt.hs	/^sanitizeVar ('%':cs) = 'r' : (sanitizeChar <$> cs) $/;"	fi	line:283
+say	src/Language/LLVC/Smt.hs	/^say :: UX.Text -> VC$/;"	ft	line:86
+say	src/Language/LLVC/Smt.hs	/^say s = VC [ Say s ]$/;"	fi	line:87
+sc	src/Language/LLVC/Parse.hs	/^sc :: Parser ()$/;"	ft	line:273
+sc	src/Language/LLVC/Parse.hs	/^sc = L.space (void spaceChar) lineCmnt blockCmnt$/;"	fi	line:274
+selectP	src/Language/LLVC/Parse.hs	/^selectP :: Parser BareExpr $/;"	ft	line:166
+selectP	src/Language/LLVC/Parse.hs	/^selectP = do $/;"	fi	line:167
+sig	src/Language/LLVC/Verify.hs	/^sig :: (Located l) => Env a -> Fn -> l -> Sig $/;"	ft	line:141
+sig	src/Language/LLVC/Verify.hs	/^sig env fn l = case M.lookup fn (eSig env) of $/;"	fi	line:142
+sigIntHex	src/Language/LLVC/Smt.hs	/^sigIntHex :: Integer -> Type -> Smt $/;"	ft	line:253
+sigIntHex	src/Language/LLVC/Smt.hs	/^sigIntHex n t     = M.lookupDefault res (n, t) convTable $/;"	fi	line:254
+smtId	src/Language/LLVC/Parse.hs	/^smtId :: Parser (String, SourceSpan)$/;"	ft	line:354
+smtId	src/Language/LLVC/Parse.hs	/^smtId = lexeme (p >>= checkId)$/;"	fi	line:355
+smtModel	src/Language/LLVC/Smt.hs	/^smtModel :: Context -> IO T.Text $/;"	ft	line:190
+smtModel	src/Language/LLVC/Smt.hs	/^smtModel me = do $/;"	fi	line:191
+smtPred	src/Language/LLVC/Smt.hs	/^smtPred :: Pred -> SmtPred $/;"	ft	line:65
+smtPred	src/Language/LLVC/Smt.hs	/^smtPred = SP$/;"	fi	line:66
+smtRead	src/Language/LLVC/Smt.hs	/^smtRead :: Context -> IO Response$/;"	ft	line:167
+smtRead	src/Language/LLVC/Smt.hs	/^smtRead me = textResponse <$> smtReadRaw me$/;"	fi	line:168
+smtReadRaw	src/Language/LLVC/Smt.hs	/^smtReadRaw       :: Context -> IO T.Text$/;"	ft	line:184
+smtReadRaw	src/Language/LLVC/Smt.hs	/^smtReadRaw me    = TIO.hGetLine (ctxCin me)$/;"	fi	line:185
+smtWrite	src/Language/LLVC/Smt.hs	/^smtWrite :: Context -> T.Text -> IO ()$/;"	ft	line:177
+smtWrite	src/Language/LLVC/Smt.hs	/^smtWrite me !s = do$/;"	fi	line:178
 someFunc	src/Lib.hs	/^someFunc :: IO ()$/;"	ft	line:5
 someFunc	src/Lib.hs	/^someFunc = putStrLn "someFunc"$/;"	fi	line:6
-sourceSpan	src/Language/LLVC/UX.hs	/^  sourceSpan :: a -> SourceSpan$/;"	ft	line:55
-spanFile	src/Language/LLVC/UX.hs	/^spanFile :: SourceSpan -> FilePath$/;"	ft	line:110
-spanFile	src/Language/LLVC/UX.hs	/^spanFile = sourceName . ssBegin$/;"	fi	line:111
-spanInfo	src/Language/LLVC/UX.hs	/^spanInfo :: SourceSpan -> (FilePath, Int, Int, Int, Int)$/;"	ft	line:89
-spanInfo	src/Language/LLVC/UX.hs	/^spanInfo s = (f s, l1 s, c1 s, l2 s, c2 s)$/;"	fi	line:90
-ssBegin	src/Language/LLVC/UX.hs	/^  { ssBegin :: !SourcePos$/;"	c_a	line:64
-ssEnd	src/Language/LLVC/UX.hs	/^  , ssEnd   :: !SourcePos$/;"	c_a	line:65
-stmtP	src/Language/LLVC/Parse.hs	/^stmtP :: Parser BareStmt $/;"	ft	line:95
-stmtP	src/Language/LLVC/Parse.hs	/^stmtP $/;"	fi	line:96
-strResponse	src/Language/LLVC/Smt.hs	/^strResponse :: String -> Response $/;"	ft	line:204
-strResponse	src/Language/LLVC/Smt.hs	/^strResponse = undefined $/;"	fi	line:205
-stretch	src/Language/LLVC/Parse.hs	/^stretch :: (Monoid a) => [Expr a] -> a$/;"	ft	line:350
-stretch	src/Language/LLVC/Parse.hs	/^stretch = mconcat . fmap getLabel$/;"	fi	line:351
-subst	src/Language/LLVC/Types.hs	/^subst :: (UX.Located a) => [(Var, Arg a)] -> Pred -> Pred$/;"	ft	line:305
-subst	src/Language/LLVC/Types.hs	/^subst su             = go $/;"	fi	line:306
-symbol	src/Language/LLVC/Parse.hs	/^symbol :: String -> Parser String$/;"	ft	line:261
-symbol	src/Language/LLVC/Parse.hs	/^symbol = L.symbol sc$/;"	fi	line:262
-tLit	src/Language/LLVC/Types.hs	/^tLit :: TypedArg a -> TypedArg a $/;"	ft	line:204
-tLit	src/Language/LLVC/Types.hs	/^tLit (t, ELit n l) = (t, ETLit n t l) $/;"	fi	line:205
-toSmt	src/Language/LLVC/Smt.hs	/^  toSmt :: a -> Smt $/;"	ft	line:58
-toSmts	src/Language/LLVC/Smt.hs	/^toSmts :: (ToSmt a) => [a] -> Smt$/;"	ft	line:113
-toSmts	src/Language/LLVC/Smt.hs	/^toSmts = unwords . fmap toSmt$/;"	fi	line:114
-traceShow	src/Language/LLVC/Utils.hs	/^traceShow :: (Show a) => String -> a -> a$/;"	ft	line:81
-traceShow	src/Language/LLVC/Utils.hs	/^traceShow msg x = trace (printf "TRACE: %s = %s" msg (show x)) x$/;"	fi	line:82
-trim	src/Language/LLVC/Utils.hs	/^trim :: String -> String$/;"	ft	line:46
-trim	src/Language/LLVC/Utils.hs	/^trim = f . f  where f = reverse . dropWhile isSpace$/;"	fi	line:47
-trimEnd	src/Language/LLVC/Utils.hs	/^trimEnd :: String -> String$/;"	ft	line:49
-trimEnd	src/Language/LLVC/Utils.hs	/^trimEnd = reverse . dropWhile isSpace . reverse  $/;"	fi	line:50
-typeP	src/Language/LLVC/Parse.hs	/^typeP :: Parser Type $/;"	ft	line:187
-typeP	src/Language/LLVC/Parse.hs	/^typeP =  (rWord "float" >> return Float)  $/;"	fi	line:188
-typedArgP	src/Language/LLVC/Parse.hs	/^typedArgP :: Parser BareTypedArg  $/;"	ft	line:163
-typedArgP	src/Language/LLVC/Parse.hs	/^typedArgP = (,) <$> typeP <*> argP$/;"	fi	line:164
-varP	src/Language/LLVC/Parse.hs	/^varP :: Text -> Parser Var$/;"	ft	line:327
-varP	src/Language/LLVC/Parse.hs	/^varP s = fst <$> identifier s $/;"	fi	line:328
-vcFun	src/Language/LLVC/Verify.hs	/^vcFun :: (Located a) => Env -> FnDef a -> FnBody a -> VC $/;"	ft	line:26
-vcFun	src/Language/LLVC/Verify.hs	/^vcFun env fd fb = comment    ("VC for: " ++  fnName fd)$/;"	fi	line:27
-vcStmt	src/Language/LLVC/Verify.hs	/^vcStmt :: (Located a) => Env -> Stmt a -> VC $/;"	ft	line:39
-vcStmt	src/Language/LLVC/Verify.hs	/^vcStmt _ (SAssert p l) $/;"	fi	line:40
-vcs	src/Language/LLVC/Verify.hs	/^vcs :: (Located a) => Program a -> [(Var, VC)] $/;"	ft	line:17
-vcs	src/Language/LLVC/Verify.hs	/^vcs p   = [ (f, vcFun env fd fb)$/;"	fi	line:19
-whole	src/Language/LLVC/Parse.hs	/^whole :: Parser a -> Parser a$/;"	ft	line:250
-whole	src/Language/LLVC/Parse.hs	/^whole p = sc *> p <* eof$/;"	fi	line:251
-withBracket	src/Language/LLVC/Smt.hs	/^withBracket :: VC -> VC $/;"	ft	line:166
-withBracket	src/Language/LLVC/Smt.hs	/^withBracket vc = push <> vc <> pop $/;"	fi	line:167
-withSpan	src/Language/LLVC/Parse.hs	/^withSpan :: Parser a -> Parser (a, SourceSpan)$/;"	ft	line:320
-withSpan	src/Language/LLVC/Parse.hs	/^withSpan p = do$/;"	fi	line:321
-withSpan'	src/Language/LLVC/Parse.hs	/^withSpan' :: Parser (SourceSpan -> a) -> Parser a$/;"	ft	line:313
-withSpan'	src/Language/LLVC/Parse.hs	/^withSpan' p = do$/;"	fi	line:314
-writeLoud	src/Language/LLVC/Utils.hs	/^writeLoud :: String -> IO ()$/;"	ft	line:69
-writeLoud	src/Language/LLVC/Utils.hs	/^writeLoud s = whenLoud $ putStrLn s >> hFlush stdout$/;"	fi	line:70
-writeQuery	src/Language/LLVC/Smt.hs	/^writeQuery :: FilePath -> VC -> IO () $/;"	ft	line:45
-writeQuery	src/Language/LLVC/Smt.hs	/^writeQuery f vc = do $/;"	fi	line:46
+sourceSpan	src/Language/LLVC/UX.hs	/^  sourceSpan :: a -> SourceSpan$/;"	ft	line:57
+spanFile	src/Language/LLVC/UX.hs	/^spanFile :: SourceSpan -> FilePath$/;"	ft	line:112
+spanFile	src/Language/LLVC/UX.hs	/^spanFile = sourceName . ssBegin$/;"	fi	line:113
+spanInfo	src/Language/LLVC/UX.hs	/^spanInfo :: SourceSpan -> (FilePath, Int, Int, Int, Int)$/;"	ft	line:91
+spanInfo	src/Language/LLVC/UX.hs	/^spanInfo s = (f s, l1 s, c1 s, l2 s, c2 s)$/;"	fi	line:92
+ssBegin	src/Language/LLVC/UX.hs	/^  { ssBegin :: !SourcePos$/;"	c_a	line:66
+ssEnd	src/Language/LLVC/UX.hs	/^  , ssEnd   :: !SourcePos$/;"	c_a	line:67
+stackPrefix	src/Language/LLVC/Verify.hs	/^stackPrefix :: [Int] -> String $/;"	ft	line:118
+stackPrefix	src/Language/LLVC/Verify.hs	/^stackPrefix [] = "" $/;"	fi	line:119
+stmtP	src/Language/LLVC/Parse.hs	/^stmtP :: Parser BareStmt $/;"	ft	line:100
+stmtP	src/Language/LLVC/Parse.hs	/^stmtP $/;"	fi	line:101
+stretch	src/Language/LLVC/Parse.hs	/^stretch :: (Monoid a) => [Expr a] -> a$/;"	ft	line:369
+stretch	src/Language/LLVC/Parse.hs	/^stretch = mconcat . fmap getLabel$/;"	fi	line:370
+subst	src/Language/LLVC/Types.hs	/^subst :: (UX.Located a) => [(Var, Arg a)] -> Pred -> Pred$/;"	ft	line:319
+subst	src/Language/LLVC/Types.hs	/^subst su = substf (\\x _ -> M.lookup x m)$/;"	fi	line:320
+substf	src/Language/LLVC/Types.hs	/^substf :: (Var -> UX.SourceSpan -> Maybe BareArg) -> Pred -> Pred$/;"	ft	line:324
+substf	src/Language/LLVC/Types.hs	/^substf f             = go $/;"	fi	line:325
+symbol	src/Language/LLVC/Parse.hs	/^symbol :: String -> Parser String$/;"	ft	line:280
+symbol	src/Language/LLVC/Parse.hs	/^symbol = L.symbol sc$/;"	fi	line:281
+tLit	src/Language/LLVC/Types.hs	/^tLit :: TypedArg a -> TypedArg a $/;"	ft	line:215
+tLit	src/Language/LLVC/Types.hs	/^tLit (t, ELit n l) = (t, ETLit n t l) $/;"	fi	line:216
+textResponse	src/Language/LLVC/Smt.hs	/^textResponse :: T.Text -> Response $/;"	ft	line:170
+textResponse	src/Language/LLVC/Smt.hs	/^textResponse s $/;"	fi	line:171
+toSmt	src/Language/LLVC/Smt.hs	/^  toSmt :: a -> Smt $/;"	ft	line:207
+toSmts	src/Language/LLVC/Smt.hs	/^toSmts :: (ToSmt a) => [a] -> Smt$/;"	ft	line:270
+toSmts	src/Language/LLVC/Smt.hs	/^toSmts = unwords . fmap toSmt$/;"	fi	line:271
+traceShow	src/Language/LLVC/Utils.hs	/^traceShow :: (Show a) => String -> a -> a$/;"	ft	line:80
+traceShow	src/Language/LLVC/Utils.hs	/^traceShow msg x = trace (printf "TRACE: %s = %s" msg (show x)) x$/;"	fi	line:81
+trim	src/Language/LLVC/Utils.hs	/^trim :: String -> String$/;"	ft	line:45
+trim	src/Language/LLVC/Utils.hs	/^trim = f . f  where f = reverse . dropWhile isSpace$/;"	fi	line:46
+trimEnd	src/Language/LLVC/Utils.hs	/^trimEnd :: String -> String$/;"	ft	line:48
+trimEnd	src/Language/LLVC/Utils.hs	/^trimEnd = reverse . dropWhile isSpace . reverse  $/;"	fi	line:49
+typeP	src/Language/LLVC/Parse.hs	/^typeP :: Parser Type $/;"	ft	line:203
+typeP	src/Language/LLVC/Parse.hs	/^typeP =  (rWord "float" >> return Float)  $/;"	fi	line:204
+typedArgP	src/Language/LLVC/Parse.hs	/^typedArgP :: Parser BareTypedArg  $/;"	ft	line:174
+typedArgP	src/Language/LLVC/Parse.hs	/^typedArgP = (,) <$> typeP <*> argP$/;"	fi	line:175
+varP	src/Language/LLVC/Parse.hs	/^varP :: Text -> Parser Var$/;"	ft	line:346
+varP	src/Language/LLVC/Parse.hs	/^varP s = fst <$> identifier s $/;"	fi	line:347
+vcFun	src/Language/LLVC/Verify.hs	/^vcFun :: (Located a) => Env a -> FnDef a -> FnBody a -> Maybe (Pred, Pred) -> VC $/;"	ft	line:29
+vcFun	src/Language/LLVC/Verify.hs	/^vcFun env fd fb prop $/;"	fi	line:30
+vcSig	src/Language/LLVC/Verify.hs	/^vcSig :: (Located a) => Env a -> Fn -> Var -> [TypedArg a] -> Sig -> a -> VC $/;"	ft	line:58
+vcSig	src/Language/LLVC/Verify.hs	/^vcSig env _ x tys (SigC ct) l $/;"	fi	line:59
+vcStmt	src/Language/LLVC/Verify.hs	/^vcStmt :: (Located a) => Env a -> Stmt a -> VC $/;"	ft	line:48
+vcStmt	src/Language/LLVC/Verify.hs	/^vcStmt env (SAssert p l) $/;"	fi	line:49
+vcs	src/Language/LLVC/Verify.hs	/^vcs :: (Located a) => Program a -> [(Var, VC)] $/;"	ft	line:19
+vcs	src/Language/LLVC/Verify.hs	/^vcs p   = [ (f, vcFun env fd fb (Just (pre, post)))$/;"	fi	line:21
+whole	src/Language/LLVC/Parse.hs	/^whole :: Parser a -> Parser a$/;"	ft	line:269
+whole	src/Language/LLVC/Parse.hs	/^whole p = sc *> p <* eof$/;"	fi	line:270
+withBracket	src/Language/LLVC/Smt.hs	/^withBracket :: VC -> VC $/;"	ft	line:76
+withBracket	src/Language/LLVC/Smt.hs	/^withBracket vc = push <> vc <> pop $/;"	fi	line:77
+withColor	src/Language/LLVC/Utils.hs	/^withColor :: Color -> IO () -> IO ()$/;"	ft	line:101
+withColor	src/Language/LLVC/Utils.hs	/^withColor c act = do $/;"	fi	line:102
+withSpan	src/Language/LLVC/Parse.hs	/^withSpan :: Parser a -> Parser (a, SourceSpan)$/;"	ft	line:339
+withSpan	src/Language/LLVC/Parse.hs	/^withSpan p = do$/;"	fi	line:340
+withSpan'	src/Language/LLVC/Parse.hs	/^withSpan' :: Parser (SourceSpan -> a) -> Parser a$/;"	ft	line:332
+withSpan'	src/Language/LLVC/Parse.hs	/^withSpan' p = do$/;"	fi	line:333
+writeLoud	src/Language/LLVC/Utils.hs	/^writeLoud :: String -> IO ()$/;"	ft	line:68
+writeLoud	src/Language/LLVC/Utils.hs	/^writeLoud s = whenLoud $ putStrLn s >> hFlush stdout$/;"	fi	line:69
+writeQuery	src/Language/LLVC/Smt.hs	/^writeQuery :: FilePath -> VC -> IO () $/;"	ft	line:46
+writeQuery	src/Language/LLVC/Smt.hs	/^writeQuery f vc = do $/;"	fi	line:47

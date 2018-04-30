@@ -449,7 +449,7 @@
 (declare-const r3 Float32)
 (push 1)
 (assert (not (restrict_mul_f32_pre1 r1 r2)))
-(check-sat)
+(check-sat-using smt)
 (pop 1)
 (assert (restrict_mul_f32_post1 r3 r1 r2))
 ;   %4 = bitcast float %a to i32
@@ -471,4 +471,4 @@
 (assert (and (= rret r8)))
 (push 1)
 (assert (not (restrict_mul_f32_post0 rret ra rb)))
-(check-sat)
+(check-sat-using smt)
