@@ -665,6 +665,153 @@
 )
 
 
+;; FULL DIVIDE PRE/POST
+
+; divide, part 0
+(define-fun full_div_f32_pre0 ((a Float32) (b Float32)) Bool
+  true
+)
+(define-fun full_div_f32_post0 ((ret Float32) (a Float32) (b Float32)) Bool
+  (= ret
+    (fp32_underflow (fp.div RNE (fp32_underflow a fltmin) (fp32_underflow b fltmin)) fltmin)
+  )
+)
+
+; divide, part 1
+(define-fun full_div_f32_pre1 ((a Float32) (b Float32)) Bool
+  (and
+    (or (fp.isPositive a) (fp.isNaN a))
+    (or (fp.isPositive b) (fp.isNaN b))
+  )
+)
+(define-fun full_div_f32_post1 ((ret Float32) (a Float32) (b Float32)) Bool
+  (= ret
+    (fp32_underflow (fp.div RNE (fp32_underflow a fltmin) (fp32_underflow b fltmin)) fltmin)
+  )
+)
+
+; divide, part 2
+(define-fun full_div_f32_pre2 ((a Float32) (b Float32)) Bool
+  (and
+    (or (= a zero) (fp.geq a fltmin) (fp.isNaN a))
+    (or (fp.isPositive b) (fp.isNaN b))
+  )
+)
+(define-fun full_div_f32_post2 ((ret Float32) (a Float32) (b Float32)) Bool
+  (= ret
+    (fp32_underflow (fp.div RNE (fp32_underflow a fltmin) (fp32_underflow b fltmin)) fltmin)
+  )
+)
+
+; divide, part 3
+(define-fun full_div_f32_pre3 ((a Float32) (b Float32)) Bool
+  (and
+    (or (= a zero) (fp.geq a fltmin) (fp.isNaN a))
+    (or (= b zero) (fp.geq b fltmin) (fp.isNaN b))
+  )
+)
+(define-fun full_div_f32_post3 ((ret Float32) (a Float32) (b Float32)) Bool
+  (= ret
+    (fp32_underflow (fp.div RNE (fp32_underflow a fltmin) (fp32_underflow b fltmin)) fltmin)
+  )
+)
+
+; divide, part 4
+(define-fun full_div_f32_pre4 ((a Float32) (b Float32)) Bool
+  ; (and
+  ;   (or (= a zero) (= a inf) (and (fp.geq a mulmin) (fp.leq a divmax)))
+  ;   (or (= b zero) (= b inf) (and (fp.geq b mulmin) (fp.leq b divmax)))
+  ;   (not (and (= a zero) (= b zero)))
+  ;   (not (and (= a inf) (= b inf)))
+  ; )
+  (and
+    (not (fp.isSubnormal a))
+    (not (fp.isSubnormal b))
+    (not (fp.isSubnormal (fp.div RNE a b)))
+  )
+)
+(define-fun full_div_f32_post4 ((ret Float32) (a Float32) (b Float32)) Bool
+  (= ret (fp.div RNE a b))
+)
+
+; divide, part 5
+(define-fun full_div_f32_pre5 ((a Float32) (b Float32)) Bool
+ ; XXX: todo
+  true
+)
+(define-fun full_div_f32_post5 ((ret Float32) (a Float32) (b Float32)) Bool
+  ; XXX: todo
+  true
+)
+
+; division, part 15
+(define-fun full_div_f32_pre15 ((a Float32) (b Float32)) Bool
+  (and
+    (and (fp.geq a mulmin) (fp.leq a divmax))
+    (and (fp.geq b mulmin) (fp.leq b divmax))
+  )
+)
+(define-fun full_div_f32_post15 ((ret Float32) (a Float32) (b Float32)) Bool
+  (= ret (fp.div RNE a b))
+)
+
+; divide, part 14
+(define-fun full_div_f32_pre14 ((a Float32) (b Float32)) Bool
+  (and
+    (or (= a zero) (= a inf) (and (fp.geq a mulmin) (fp.leq a divmax)))
+    (or (= b zero) (= b inf) (and (fp.geq b mulmin) (fp.leq b divmax)))
+    (not (= a inf))
+    (not (= b zero))
+  )
+)
+(define-fun full_div_f32_post14 ((ret Float32) (a Float32) (b Float32)) Bool
+  (= ret (fp.div RNE a b))
+)
+
+; division, part 16
+(define-fun full_div_f32_pre16 ((a Float32) (b Float32)) Bool
+  (and
+    (or (fp32_range a divlo fltmax) (= a inf) (= a zero))
+    (or (fp32_between b one two) (= b one))
+  )
+)
+(define-fun full_div_f32_post16 ((ret Float32) (a Float32) (b Float32)) Bool
+  (= ret (fp.div RNE a b))
+)
+
+; division, part 17
+(define-fun full_div_f32_pre17 ((a Float32) (b Float32)) Bool
+  (and
+    (or (fp32_range a divlo fltmax) (= a inf) (= a zero))
+    (fp32_between b one two)
+  )
+)
+(define-fun full_div_f32_post17 ((ret Float32) (a Float32) (b Float32)) Bool
+  (= ret (fp.div RNE a b))
+)
+
+; division, part 18
+(define-fun full_div_f32_pre18 ((a Float32) (b Float32)) Bool
+  (and
+    (or (fp32_range a divlo fltmax) (= a inf))
+    (fp32_between b one two)
+  )
+)
+(define-fun full_div_f32_post18 ((ret Float32) (a Float32) (b Float32)) Bool
+  (= ret (fp.div RNE a b))
+)
+
+; division, part 19
+(define-fun full_div_f32_pre19 ((a Float32) (b Float32)) Bool
+  (and
+    (fp32_range a divlo fltmax)
+    (fp32_between b one two)
+  )
+)
+(define-fun full_div_f32_post19 ((ret Float32) (a Float32) (b Float32)) Bool
+  (= ret (fp.div RNE a b))
+)
+
 ;; PRIMITIVE OPERATION SAFETY
 
 ; fadd
