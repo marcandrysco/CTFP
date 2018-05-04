@@ -50,6 +50,7 @@ data Expr
   | FCmpOEQ  (Expr, Expr)
   | FCmpUNE  (Expr, Expr)
   | FCmpOLT  (Expr, Expr)
+  | FCmpULT  (Expr, Expr)
   | FCmpOGT  (Expr, Expr)
   | CopySign (Expr, Expr)
   | Call1    (Expr, Expr)
@@ -450,7 +451,7 @@ do_big :: (FP2 -> FP1) -> FP2 -> FP1
 do_big =
   withBlind
     (\(u,v) -> And (FCmpOGT (u, val_one), FCmpOLT (v, val_one)))
-    (\(u,v) -> (FMul (u, val_half), v))
+    (\(u,v) -> (u , FMul (v, val_two)))
     (\_ r -> FMul (r, val_two))
 
 
@@ -631,11 +632,14 @@ trymul =
 
 -- trial division
 trydiv :: (FP2 -> FP1) -> FP2 -> FP1
-trydiv =
-  trial
-    (\v w -> safediv (FMul (v, divoff), w))
-    divcmp
-    (val_zero, val_one)
+trydiv op (a, b) =
+  let big = FCmpOGT (b, val_one) in
+    trial
+      (\v w -> safediv (FMul (v, divoff), FMul (w, ite big divoff2 val_one)))
+      (ite big divcmp2 divcmp)
+      (val_zero, val_one)
+      op
+      (a, b)
 
 
 -- ## CONSTANTS ## --
@@ -672,8 +676,10 @@ addcmp = Float ( "1.97215226305252951e-31", "4.00833672002e-292" )
 muloff = Float ( "8.50705917302346159e+37", "6.70390396497129855e+153" )
 mulcmp = Float ( "1.0", "1.0" )
 
-divoff = Float ( "8.50705917302346159e+37", "6.70390396497129855e+153" )
-divcmp = Float ( "1.0", "1.0" )
+divoff = Float ( "8.50705917302346159e+37", "1.7014118346046923e+38" )
+divoff2 = Float ( "0.25", "1.7014118346046923e+38" )
+divcmp = Float ( "1.0", "8.0" )
+divcmp2 = Float ( "4.0", "8.0" )
 
 
 -- ## RESTRICT ## --
@@ -744,8 +750,8 @@ full_sub =
 full_mul :: FP2 -> FP1
 full_mul =
   do_sign @@
-  with_underflow1 fltmin True @@
-  with_underflow2 fltmin True @@
+  with_underflow1 fltmin False @@
+  with_underflow2 fltmin False @@
   trymul @@
   FMul
 
@@ -900,6 +906,7 @@ gen_expr (FDivSig (a, b), env) = if env_dbg env then gen_call2 ("dbg_fdiv_sig_" 
 gen_expr (FDivExp (a, b), env) = if env_dbg env then gen_call2 ("dbg_fdiv_exp_" ++ (env2vec env), a, b, env) else gen_fop2 ("fdiv", a, b, env)
 gen_expr (FCmpOEQ (a, b), env) = gen_fcmp ("fcmp oeq", a, b, env)
 gen_expr (FCmpOLT (a, b), env) = gen_fcmp ("fcmp olt", a, b, env)
+gen_expr (FCmpULT (a, b), env) = gen_fcmp ("fcmp ult", a, b, env)
 gen_expr (FCmpOGT (a, b), env) = gen_fcmp ("fcmp ogt", a, b, env)
 gen_expr (FCmpUNE (a, b), env) = gen_fcmp ("fcmp une", a, b, env)
 gen_expr (CopySign (a, b), env) = gen_call2 ("llvm.copysign." ++ (env2vec env), a, b, env)

@@ -94,7 +94,7 @@ static inline bool ispow4(double f)
 #define DBG_GEN1(NAM, TY, OP, COND) \
 	TY dbg_##NAM(TY a) { \
 	  TY r = OP(a); \
-	  if(COND) fprintf(stderr, "unsafe " #NAM "(%g)\n", a); \
+	  if(COND) fprintf(stderr, "unsafe " #NAM "(%.9g)\n", a); \
 	  return r; \
 	}
 
@@ -108,7 +108,8 @@ static inline bool ispow4(double f)
 #define DBG_GEN2(NAM, TY, OP, COND) \
 	TY dbg_##NAM(TY a, TY b) { \
 	  TY r = a OP b; \
-	  if(COND) fprintf(stderr, "unsafe " #NAM "(%g, %g)\n", a, b); \
+	  /*fprintf(stderr, #NAM "(%.9g, %.9g) = %.9g\n", a, b, r);*/ \
+	  if(COND) fprintf(stderr, "unsafe " #NAM "(%.9g, %.9g) = %.9g\n", a, b, r); \
 	  return r; \
 	}
 
@@ -138,7 +139,7 @@ static inline bool ispow4(double f)
 		return r; \
 	}
 
-#define COND_STD       (issub(a) || issub(b) || issub(r))
+#define COND_STD       (issubf(a) || issubf(b) || issubf(r))
 #define COND_ISSPEC(a) ((a == INFINITY) || (a == -INFINITY) || isnan(a) || (a == 0.0))
 #define COND_DIVSIG    ((COND_STD) || COND_ISSPEC(a) || COND_ISSPEC(b) || ispow2(b))
 #define COND_DIVEXP    ((COND_STD) || COND_ISSPEC(a) || COND_ISSPEC(b) || !ispow2(b))
@@ -262,10 +263,22 @@ int main(int argc, char **argv)
 
 	setbuf(stdout, NULL);
 
-	if(0) {
-		float x = 0.0;
+	// x / FLTMAX = FLT_MIN
+		//printf("%.17g\n", FLT_MAX * FLT_MIN);
+		//exit(0);
 
-		printf("%g (expected %g)\n", ctfp_restrict_sqrt_f32v1(x), sqrtf(x));
+	if(0) {
+
+		// / -
+		float x = 1.72092e-15; //FLT_MIN;
+		float y = 7.88972e+22; //FLT_MAX;
+		//printf("%.9g\n", 2*FLT_MIN * 1.7014118346046923e+38 / FLT_MAX);
+		//printf("%g\n", FLT_MIN * (FLT_MAX / 2));
+		//exit(0);
+		printf("%g\n", x * 8.50705917302346159e+37);
+		printf("%g\n", (x * 8.50705917302346159e+37) / y);
+		//printf("%g\n", (x * 1.7014118346046923e+38) / y);
+		printf("%g (expected %g)\n", ctfp_full_div_f32v1_hack(x, y), x / y);
 		
 		return 0;
 	}
@@ -295,7 +308,6 @@ int main(int argc, char **argv)
 		for(j = 0; j < ARRSIZE(val32); j++) {
 			float y = val32[j];
 
-			//printf("... %g %g\n", x, y);
 			if(!isequal32(ctfp_restrict_add_f32v1_hack(x, y), simul_restrict_add_f32(x, y)))
 				printf("RESTRICT %g + %g = %g (expected %g)\n", x, y, ctfp_restrict_add_f32v1_hack(x, y), simul_restrict_add_f32(x, y));
 
