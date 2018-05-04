@@ -59,10 +59,10 @@ ctfp-clean.so: clean.cpp Makefile
 
 ## Math Library
 
-ctfp-math-1.so: $(MATH) Makefile ctfp-llvm.so math/libm.h
+ctfp-math-1.so: $(MATH) Makefile ctfp-llvm.so math/libm.h ctfp.bc
 	CTFP_VER=1 CTFP_DIR=. clang -shared -O2 -Wall -march=native -fpic $(MATH) -o $@ -fplugin=./ctfp-llvm.so -nostdlib
 
-ctfp-math-2.so: $(MATH) Makefile ctfp-llvm.so math/libm.h
+ctfp-math-2.so: $(MATH) Makefile ctfp-llvm.so math/libm.h ctfp.bc
 	CTFP_VER=2 CTFP_DIR=. clang -shared -O2 -Wall -march=native -fpic $(MATH) -o $@ -fplugin=./ctfp-llvm.so -nostdlib
 
 

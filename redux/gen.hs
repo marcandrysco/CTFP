@@ -676,10 +676,10 @@ addcmp = Float ( "1.97215226305252951e-31", "4.00833672002e-292" )
 muloff = Float ( "8.50705917302346159e+37", "6.70390396497129855e+153" )
 mulcmp = Float ( "1.0", "1.0" )
 
-divoff = Float ( "8.50705917302346159e+37", "1.7014118346046923e+38" )
-divoff2 = Float ( "0.25", "1.7014118346046923e+38" )
-divcmp = Float ( "1.0", "8.0" )
-divcmp2 = Float ( "4.0", "8.0" )
+divoff = Float ( "8.50705917302346159e+37", "6.70390396497129855e+153" )
+divoff2 = Float ( "0.25", "0.25" )
+divcmp = Float ( "1.0", "1.0" )
+divcmp2 = Float ( "4.0", "4.0" )
 
 
 -- ## RESTRICT ## --
@@ -702,8 +702,8 @@ restrict_sub =
 restrict_mul :: FP2 -> FP1
 restrict_mul =
   do_sign @@
-  with_underflow1 mulmin False @@
-  with_underflow2 mulmin False @@
+  with_underflow1 mulmin True @@
+  with_underflow2 mulmin True @@
   FMul
 
 -- division
