@@ -46,6 +46,8 @@ vcFun env fd fb prop
                             Just (p, q) -> (fnArgTys fd, p, q) 
 
 vcStmt :: (Located a) => Env a -> Stmt a -> VC 
+vcStmt env (SAssume p _) 
+  = assert (inP env p)
 vcStmt env (SAssert p l) 
   = check err (inP env p) 
   where 

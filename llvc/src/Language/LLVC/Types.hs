@@ -131,6 +131,7 @@ type Program a = M.HashMap Var (FnDef a)  -- ^ A list of function declarations
 data Stmt a 
   = SAsgn   !Var (Expr a) a          -- ^ Assignments for each variable
   | SAssert !Pred         a          -- ^ Assertion to be checked at a point.
+  | SAssume !Pred         a          -- ^ Assumption to be used at a point.
   deriving (Eq, Show, Functor)
 
 data FnBody a = FnBody 
@@ -174,8 +175,9 @@ instance UX.PPrint (FnBody a) where
       ppRet                 = printf "  ret %s"     . UX.pprint  
 
 instance UX.PPrint (Stmt a) where 
-  pprint (SAsgn x e _) = printf "  %s = %s"    x (UX.pprint e)
+  pprint (SAsgn x e _) = printf "  %s = %s" x  (UX.pprint e)
   pprint (SAssert _ _) = ";@ assert TODO"  -- (UX.pprint p)  
+  pprint (SAssume _ _) = ";@ assume TODO"  -- (UX.pprint p)  
 
 instance UX.PPrint (Program a) where 
   pprint p = L.intercalate "\n\n" (UX.pprint <$> M.elems p)

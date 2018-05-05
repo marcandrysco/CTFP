@@ -99,13 +99,11 @@ bodyP = FnBody <$> many stmtP <*> retP
 
 stmtP :: Parser BareStmt 
 stmtP 
-  =  flip SAssert <$> (symbol ";@" *> rWord "assert") <*> predP
+  =  (symbol ";@" >> (( flip SAssert <$> rWord "assert" <*> predP )  <|> 
+                      ( flip SAssume <$> rWord "assume" <*> predP ) ))
  <|> mkAsgn       <$> (identifier "%" <* symbol "=")  <*> exprP
   where 
     mkAsgn (x,l) e = SAsgn x e l 
-
--- assignP :: Parser (BareVar, BareExpr) 
--- assignP = (,) <$> identifier "%" <* symbol "=" <*> exprP
 
 argTypesP :: Parser [(Var, Type)] 
 argTypesP = parens (sepBy argTypeP comma) 
