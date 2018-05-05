@@ -59,10 +59,10 @@ ctfp-clean.so: clean.cpp Makefile
 
 ## Math Library
 
-ctfp-math-1.so: $(MATH) Makefile ctfp-llvm.so math/libm.h
+ctfp-math-1.so: $(MATH) Makefile ctfp-llvm.so math/libm.h ctfp.bc
 	CTFP_VER=1 CTFP_DIR=. clang -shared -O2 -Wall -march=native -fpic $(MATH) -o $@ -fplugin=./ctfp-llvm.so -nostdlib
 
-ctfp-math-2.so: $(MATH) Makefile ctfp-llvm.so math/libm.h
+ctfp-math-2.so: $(MATH) Makefile ctfp-llvm.so math/libm.h ctfp.bc
 	CTFP_VER=2 CTFP_DIR=. clang -shared -O2 -Wall -march=native -fpic $(MATH) -o $@ -fplugin=./ctfp-llvm.so -nostdlib
 
 
@@ -95,7 +95,7 @@ bench_full.o: bench.c ctfp-llvm.so ctfp.bc Makefile
 
 ## Run
 
-run: prover
+run8: prover
 	./prover
 
 run4: gen
@@ -105,7 +105,7 @@ run3:
 	runghc gen.hs test > run.out
 	opt -S -early-cse run.out > run.opt
 
-run5: all test
+run: test
 	./test
 
 run1: all test perf

@@ -182,7 +182,7 @@
 )
 
 
-;; RESTRICT MULTIPLICATION SUBTRACTION PRE/POST
+;; RESTRICT MULTIPLICATION PRE/POST
 
 ; multiplication, part 0
 (define-fun restrict_mul_f32_pre0 ((a Float32) (b Float32)) Bool
@@ -455,6 +455,178 @@
 )
 
 
+;; FULL ADDITION PRE/POST
+
+; addition, part 0
+(define-fun full_add_f32_pre0 ((a Float32) (b Float32)) Bool
+  true
+)
+(define-fun full_add_f32_post0 ((ret Float32) (a Float32) (b Float32)) Bool
+  (= ret
+    (fp32_underflow (fp.add RNE (fp32_underflow a fltmin) (fp32_underflow b fltmin)) fltmin)
+  )
+)
+
+; addition, part 1
+(define-fun full_add_f32_pre1 ((a Float32) (b Float32)) Bool
+  (not (fp.isSubnormal a))
+)
+(define-fun full_add_f32_post1 ((ret Float32) (a Float32) (b Float32)) Bool
+  (= ret
+    (fp32_underflow (fp.add RNE (fp32_underflow a fltmin) (fp32_underflow b fltmin)) fltmin)
+  )
+)
+
+; addition, part 2
+(define-fun full_add_f32_pre2 ((a Float32) (b Float32)) Bool
+  (and
+    (not (fp.isSubnormal a))
+    (not (fp.isSubnormal b))
+  )
+)
+(define-fun full_add_f32_post2 ((ret Float32) (a Float32) (b Float32)) Bool
+  (= ret
+    (fp32_underflow (fp.add RNE (fp32_underflow a fltmin) (fp32_underflow b fltmin)) fltmin)
+  )
+)
+
+; addition, part 3
+(define-fun full_add_f32_pre3 ((a Float32) (b Float32)) Bool
+  (and
+    (not (fp.isSubnormal a))
+    (not (fp.isSubnormal b))
+    (not (fp.isSubnormal (fp.add RNE a b)))
+  )
+)
+(define-fun full_add_f32_post3 ((ret Float32) (a Float32) (b Float32)) Bool
+  (= ret
+    (fp32_underflow (fp.add RNE (fp32_underflow a fltmin) (fp32_underflow b fltmin)) fltmin)
+  )
+)
+
+
+;; FULL SUBTRACTION PRE/POST
+
+; subtraction, part 0
+(define-fun full_sub_f32_pre0 ((a Float32) (b Float32)) Bool
+  true
+)
+(define-fun full_sub_f32_post0 ((ret Float32) (a Float32) (b Float32)) Bool
+  (= ret
+    (fp32_underflow (fp.sub RNE (fp32_underflow a fltmin) (fp32_underflow b fltmin)) fltmin)
+  )
+)
+
+; subtraction, part 1
+(define-fun full_sub_f32_pre1 ((a Float32) (b Float32)) Bool
+  (not (fp.isSubnormal a))
+)
+(define-fun full_sub_f32_post1 ((ret Float32) (a Float32) (b Float32)) Bool
+  (= ret
+    (fp32_underflow (fp.sub RNE (fp32_underflow a fltmin) (fp32_underflow b fltmin)) fltmin)
+  )
+)
+
+; subtraction, part 2
+(define-fun full_sub_f32_pre2 ((a Float32) (b Float32)) Bool
+  (and
+    (not (fp.isSubnormal a))
+    (not (fp.isSubnormal b))
+  )
+)
+(define-fun full_sub_f32_post2 ((ret Float32) (a Float32) (b Float32)) Bool
+  (= ret
+    (fp32_underflow (fp.sub RNE (fp32_underflow a fltmin) (fp32_underflow b fltmin)) fltmin)
+  )
+)
+
+; subtraction, part 3
+(define-fun full_sub_f32_pre3 ((a Float32) (b Float32)) Bool
+  (and
+    (not (fp.isSubnormal a))
+    (not (fp.isSubnormal b))
+    (not (fp.isSubnormal (fp.sub RNE a b)))
+  )
+)
+(define-fun full_sub_f32_post3 ((ret Float32) (a Float32) (b Float32)) Bool
+  (= ret
+    (fp32_underflow (fp.sub RNE (fp32_underflow a fltmin) (fp32_underflow b fltmin)) fltmin)
+  )
+)
+
+
+;; FULL MULTIPLICATION PRE/POST
+
+; multiplication, part 0
+(define-fun full_mul_f32_pre0 ((a Float32) (b Float32)) Bool
+  true
+)
+(define-fun full_mul_f32_post0 ((ret Float32) (a Float32) (b Float32)) Bool
+  (= ret
+    (fp32_underflow (fp.mul RNE (fp32_underflow a fltmin) (fp32_underflow b fltmin)) fltmin)
+  )
+)
+
+; multiplication, part 1
+(define-fun full_mul_f32_pre1 ((a Float32) (b Float32)) Bool
+  (and
+    (or (fp.isPositive a) (fp.isNaN a))
+    (or (fp.isPositive b) (fp.isNaN b))
+  )
+)
+(define-fun full_mul_f32_post1 ((ret Float32) (a Float32) (b Float32)) Bool
+  (= ret
+    (fp32_underflow (fp.mul RNE (fp32_underflow a fltmin) (fp32_underflow b fltmin)) fltmin)
+  )
+)
+
+; multiplication, part 2
+(define-fun full_mul_f32_pre2 ((a Float32) (b Float32)) Bool
+  (and
+    (or (= a zero) (fp.geq a fltmin)(fp.isNaN a))
+    (or (fp.isPositive b) (fp.isNaN b))
+  )
+)
+(define-fun full_mul_f32_post2 ((ret Float32) (a Float32) (b Float32)) Bool
+  (= ret
+    (fp32_underflow (fp.mul RNE a (fp32_underflow b fltmin)) fltmin)
+  )
+)
+
+; multiplication, part 3
+(define-fun full_mul_f32_pre3 ((a Float32) (b Float32)) Bool
+  (and
+    (or (= a zero) (fp.geq a fltmin) (fp.isNaN a))
+    (or (= b zero) (fp.geq b fltmin) (fp.isNaN b))
+  )
+)
+(define-fun full_mul_f32_post3 ((ret Float32) (a Float32) (b Float32)) Bool
+  (or
+    (= ret
+       (fp32_underflow (fp.mul RNE a b) fltmin))
+    ; Take into account double rounding issue
+    (and
+      (= ret zero)
+      (= (fp.mul RNE a b) fltmin)
+    )
+  )
+)
+
+; multiplication, part 4
+(define-fun full_mul_f32_pre4 ((a Float32) (b Float32)) Bool
+  (and
+    (not (fp.isSubnormal a))
+    (not (fp.isSubnormal b))
+    (not (fp.isSubnormal (fp.mul RNE a b)))
+  )
+)
+(define-fun full_mul_f32_post4 ((ret Float32) (a Float32) (b Float32)) Bool
+  (= ret
+    (fp32_underflow (fp.mul RNE a b) fltmin)
+  )
+)
+
+
 ;; PRIMITIVE OPERATION SAFETY
 
 ; fadd
@@ -470,8 +642,9 @@
 
 ; fsub
 (define-fun fsub32_pre ((a Float32) (b Float32)) Bool
-  (not (or
-    (fp.isSubnormal (fp.sub RNE a b)))
+  (not (or (fp.isSubnormal a) 
+           (fp.isSubnormal b) 
+	   (fp.isSubnormal (fp.sub RNE a b)))
   )
 )
 (define-fun fsub32_post ((ret Float32) (a Float32) (b Float32)) Bool
@@ -480,8 +653,9 @@
 
 ; fmul
 (define-fun fmul32_pre ((a Float32) (b Float32)) Bool
-  (not (or
-    (fp.isSubnormal (fp.mul RNE a b)))
+  (not (or (fp.isSubnormal a) 
+           (fp.isSubnormal b) 
+	   (fp.isSubnormal (fp.mul RNE a b)))
   )
 )
 (define-fun fmul32_post ((ret Float32) (a Float32) (b Float32)) Bool
