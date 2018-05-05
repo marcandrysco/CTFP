@@ -2,6 +2,18 @@ declare i32 @i32add(i32, i32) #0
 ;@ requires (and (rng32 #x00000005 %arg0) (rng32 #x0000000a %arg1))
 ;@ ensures  (= %ret (plus32 %arg0 %arg1))
 
+define i32 @assume_test(i32 %a, i32 %b) #0 {
+;@ requires true
+;@ ensures (= %ret %a)
+%1 = call i32 @copy(i32 %b)
+;@ assume (= %a %b)
+ret i32 %1
+}
+
+define i32 @copy(i32 %a) #0 {
+  ret i32 %a
+}
+
 define i32 @add_1(i32 %a, i32 %b) #0 {
 ;@ requires true
 ;@ ensures  (= %ret (plus32 (trunc32 #x00000005 %a) (trunc32 #x0000000a %b)))
