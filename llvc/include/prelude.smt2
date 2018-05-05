@@ -601,8 +601,14 @@
   )
 )
 (define-fun full_mul_f32_post3 ((ret Float32) (a Float32) (b Float32)) Bool
-  (= ret
-    (fp32_underflow (fp.mul RNE a b) fltmin)
+  (or
+    (= ret
+       (fp32_underflow (fp.mul RNE a b) fltmin))
+    ; Take into account double rounding issue
+    (and
+      (= ret zero)
+      (= (fp.mul RNE a b) fltmin)
+    )
   )
 )
 
