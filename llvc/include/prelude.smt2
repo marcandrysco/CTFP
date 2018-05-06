@@ -21,10 +21,14 @@
 (define-const fltmax Float32 ((_ to_fp 8 24) #x7f7fffff))
 (define-const divlo Float32 ((_ to_fp 8 24) #x01000000))
 
+(define-const zero1 (_ BitVec 1) (_ bv0 1))
+(define-const zero23 (_ BitVec 23) (_ bv0 23))
+(define-const one8 (_ BitVec 8) (_ bv128 8))
+(define-const bias (_ BitVec 8) (_ bv127 8))
+(define-const muloff Float32 ((_ to_fp 8 24) #x7e800000))
 
 (define-const one_point_zero Float32 ((_ to_fp 8 24) roundTowardZero 1.0))
 (define-const zero_point_zero Float32 ((_ to_fp 8 24) roundTowardZero 0.0))
-
 
 ; (define-fun to_fp_32 ((a Int32)) Float32  ((_ to_fp 8 24) (_ BitVec 32) a))
 ;    ((_ to_fp eb sb) (_ BitVec m) (_ FloatingPoint eb sb))
@@ -78,6 +82,13 @@
   (= #x00800000 (bvand (to_ieee_bv v) #x00ffffff))
 )
 
+(define-fun fp32_exp ((v Float32)) (_ BitVec 8)
+  ((_ extract 30 23) (to_ieee_bv v))
+)
+
+(define-fun fp32_sig ((v Float32)) (_ BitVec 23)
+  ((_ extract 22 0) (to_ieee_bv v))
+)
 
 ; underflow a value below `lim` to zero
 (define-fun fp32_underflow ((val Float32) (lim Float32)) Float32 
@@ -562,8 +573,14 @@
   true
 )
 (define-fun full_mul_f32_post0 ((ret Float32) (a Float32) (b Float32)) Bool
-  (= ret
-    (fp32_underflow (fp.mul RNE (fp32_underflow a fltmin) (fp32_underflow b fltmin)) fltmin)
+  (or
+    (= ret
+       (fp32_underflow (fp.mul RNE (fp32_underflow a fltmin) (fp32_underflow b fltmin)) fltmin))
+    ; Take into account double rounding issue
+    (and
+      (= ret (copysign zero (fp.mul RNE a b)))
+      (= (fp.abs (fp.mul RNE a b)) fltmin)
+    )
   )
 )
 
@@ -575,8 +592,14 @@
   )
 )
 (define-fun full_mul_f32_post1 ((ret Float32) (a Float32) (b Float32)) Bool
-  (= ret
-    (fp32_underflow (fp.mul RNE (fp32_underflow a fltmin) (fp32_underflow b fltmin)) fltmin)
+  (or
+    (= ret
+       (fp32_underflow (fp.mul RNE (fp32_underflow a fltmin) (fp32_underflow b fltmin)) fltmin))
+    ; Take into account double rounding issue
+    (and
+      (= ret zero)
+      (= (fp.mul RNE a b) fltmin)
+    )
   )
 )
 
@@ -588,8 +611,14 @@
   )
 )
 (define-fun full_mul_f32_post2 ((ret Float32) (a Float32) (b Float32)) Bool
-  (= ret
-    (fp32_underflow (fp.mul RNE a (fp32_underflow b fltmin)) fltmin)
+  (or
+    (= ret
+       (fp32_underflow (fp.mul RNE a (fp32_underflow b fltmin)) fltmin))
+    ; Take into account double rounding issue
+    (and
+      (= ret zero)
+      (= (fp.mul RNE a b) fltmin)
+    )
   )
 )
 
@@ -624,6 +653,15 @@
   (= ret
     (fp32_underflow (fp.mul RNE a b) fltmin)
   )
+  ; (or
+  ;   (= ret
+  ;      (fp32_underflow (fp.mul RNE a b) fltmin))
+  ;   ; Take into account double rounding issue
+  ;   (and
+  ;     (= ret zero)
+  ;     (= (fp.mul RNE a b) fltmin)
+  ;   )
+  ; )
 )
 
 
@@ -704,3 +742,6 @@
 (define-fun fp_exponent ((a Float32)) (_ BitVec 8)
   ((_ extract 30 23) (to_ieee_bv a))
 )
+
+; Axiom experiment
+; (assert (forall ((xxx Float32) (yyy Float32)) (=> (not (fp.lt (fp.mul RNE (fp.mul RNE xxx muloff) yyy) one)) (not (fp.isSubnormal (fp.mul RNE xxx yyy))))))
