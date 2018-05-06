@@ -454,6 +454,29 @@ do_big =
     (\(u,v) -> (u , FMul (v, val_two)))
     (\_ r -> FMul (r, val_two))
 
+-- handle small numbers by shifting them up (only division)
+do_small :: (FP2 -> FP1) -> FP2 -> FP1
+do_small =
+  withBlind
+    (\(u,v) -> FCmpOLT (v, val_inf))
+    (\(u,v) -> (u , FMul (v, val_forth)))
+    (\_ r   -> FMul (r, val_forth))
+
+do_extreme :: (FP2 -> FP1) -> FP2 -> FP1
+do_extreme op (a, b) =
+  let
+    isbig  = And (FCmpOGT (a, val_one), FCmpOLT (b, val_one))
+    istiny = And (FCmpOLT (a, val_four), FCmpOGT (b, val_forth))
+    scale = ite isbig val_four (ite istiny val_forth val_one)
+    --scale = ite (FCmpOGT (b, val_four)) val_forth val_two
+  in
+    withBlind
+    (\_     -> val_true)
+    (\(u,v) -> (u, FMul (v, scale)))
+    (\_ r   -> FMul (r, scale))
+    op
+    (a, b)
+
 
 -- ## STRATEGIES ## --
 
@@ -635,8 +658,8 @@ trydiv :: (FP2 -> FP1) -> FP2 -> FP1
 trydiv op (a, b) =
   let big = FCmpOGT (b, val_one) in
     trial
-      (\v w -> safediv (FMul (v, divoff), FMul (w, ite big divoff2 val_one)))
-      (ite big divcmp2 divcmp)
+      (\v w -> safediv (FMul (v, divoff), w))
+      divcmp
       (val_zero, val_one)
       op
       (a, b)
@@ -655,7 +678,9 @@ val_zero = Zero
 val_one = One
 val_dummy = Float ( "1.5", "1.5" )
 val_half = Float ( "0.5", "0.5" )
+val_forth = Float ( "0.25", "0.25" )
 val_two = Float ( "2.0", "2.0" )
+val_four = Float ( "4.0", "4.0" )
 val_nan = Int ( dec "0x7FC00000", dec "0x7FF8000000000000")
 val_inf = Int ( dec "0x7F800000", dec "0x7FF0000000000000")
 val_blind = Int ( "1", "1" )
@@ -678,7 +703,7 @@ mulcmp = Float ( "1.0", "1.0" )
 
 divoff = Float ( "8.50705917302346159e+37", "6.70390396497129855e+153" )
 divoff2 = Float ( "0.25", "0.25" )
-divcmp = Float ( "1.0", "1.0" )
+divcmp = Float ( "4.0", "4.0" )
 divcmp2 = Float ( "4.0", "4.0" )
 
 
@@ -761,8 +786,10 @@ full_div =
   do_sign @@
   with_underflow1 fltmin False @@
   with_underflow2 fltmin False @@
+  --do_small @@
+  do_extreme @@
   trydiv @@
-  do_big @@
+  --do_big @@
   safediv
 
 -- sqrt

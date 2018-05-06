@@ -267,16 +267,18 @@ int main(int argc, char **argv)
 		//printf("%.17g\n", FLT_MAX * FLT_MIN);
 		//exit(0);
 
+	//printf("%f\n", FLT_MAX * FLT_MIN);
 	if(0) {
-
-		// / -
-		float x = 1.72092e-15; //FLT_MIN;
-		float y = 7.88972e+22; //FLT_MAX;
+		float x, y;
+		//float x = 1.5; //FLT_MIN;
+		//float y = 1.17549435e-38; //FLT_MAX;
+		//x = 1.14082; y = 6.96095e+37;
+		x = 2.39691e+38; y = 0.729833;
 		//printf("%.9g\n", 2*FLT_MIN * 1.7014118346046923e+38 / FLT_MAX);
 		//printf("%g\n", FLT_MIN * (FLT_MAX / 2));
 		//exit(0);
 		printf("%g\n", x * 8.50705917302346159e+37);
-		printf("%g\n", (x * 8.50705917302346159e+37) / y);
+		printf("%g\n", (x * 8.50705917302346159e+37) / (y * 0.25));
 		//printf("%g\n", (x * 1.7014118346046923e+38) / y);
 		printf("%g (expected %g)\n", ctfp_full_div_f32v1_hack(x, y), x / y);
 		
@@ -301,12 +303,14 @@ int main(int argc, char **argv)
 
 	unsigned int i, j;
 
-	if(1)
+	if(0)
 	for(i = 0; i < ARRSIZE(val32); i++) {
 		float x = val32[i];
 
 		for(j = 0; j < ARRSIZE(val32); j++) {
 			float y = val32[j];
+
+			//printf("%.9g / %.9g\n", x, y);
 
 			if(!isequal32(ctfp_restrict_add_f32v1_hack(x, y), simul_restrict_add_f32(x, y)))
 				printf("RESTRICT %g + %g = %g (expected %g)\n", x, y, ctfp_restrict_add_f32v1_hack(x, y), simul_restrict_add_f32(x, y));
@@ -338,7 +342,7 @@ int main(int argc, char **argv)
 	}
 
 	if(1)
-	for(i = 0; i < 1000000; i++) {
+	for(i = 0; i < 10000000; i++) {
 		float x = rand_f32(), y = rand_f32();
 
 		if(!isequal32(ctfp_restrict_add_f32v1_hack(x, y), simul_restrict_add_f32(x, y)))
