@@ -1,7 +1,7 @@
 ; Function Attrs: nounwind readnone
 declare float @llvm.fabs.f32(float) #0
 ;@ requires true 
-;@ ensures  (fp.eq %ret (fp.abs %arg0))
+;@ ensures  (= %ret (fp.abs %arg0))
 
 ; Function Attrs: nounwind readnone
 declare float @llvm.copysign.f32(float, float) #0
@@ -65,6 +65,35 @@ define weak float @ctfp_full_div_f32v1_2(float %a, float %b) #2 {
 define weak float @ctfp_full_div_f32v1_3(float %a, float %b) #2 {
 ;@ requires (full_div_f32_pre3 %a %b)
 ;@ ensures  (full_div_f32_post3 %ret %a %b)
+  %1 = fcmp ogt float %a, 1.000000e+00
+  %2 = select i1 %1, i32 -1, i32 0
+  %3 = fcmp olt float %b, 1.000000e+00
+  %4 = select i1 %3, i32 -1, i32 0
+  %5 = and i32 %2, %4
+  %6 = and i32 %5, 1082130432
+  %7 = xor i32 %5, -1
+  %8 = fcmp olt float %a, 4.000000e+00
+  %9 = select i1 %8, i32 -1, i32 0
+  %10 = fcmp ogt float %b, 2.500000e-01
+  %11 = select i1 %10, i32 -1, i32 0
+  %12 = and i32 %9, %11
+  %13 = and i32 %12, 1048576000
+  %14 = xor i32 %12, -1
+  %15 = and i32 %14, 1065353216
+  %16 = or i32 %13, %15
+  %17 = and i32 %7, %16
+  %18 = or i32 %6, %17
+  %19 = bitcast i32 %18 to float
+  %20 = fmul float %b, %19
+  %21 = call float @ctfp_full_div_f32v1_4(float %a, float %20)
+  %22 = fmul float %21, %19
+  ret float %22
+}
+
+; Function Attrs: alwaysinline
+define weak float @ctfp_full_div_f32v1_4(float %a, float %b) #2 {
+;@ requires (full_div_f32_pre4 %a %b)
+;@ ensures  (full_div_f32_post4 %ret %a %b)
   %1 = fmul float %a, 0x47D0000000000000
   %2 = fcmp une float %1, %1
   %3 = select i1 %2, i32 -1, i32 0
@@ -94,13 +123,13 @@ define weak float @ctfp_full_div_f32v1_3(float %a, float %b) #2 {
   %27 = and i32 %20, %26
   %28 = or i32 %21, %27
   %29 = bitcast i32 %28 to float
-  %30 = call float @ctfp_full_div_f32v1_4(float %25, float %29)
+  %30 = call float @ctfp_full_div_f32v1_5(float %25, float %29)
   %31 = bitcast float %30 to i32
   %32 = and i32 %20, %31
   %33 = or i32 %19, %32
   %34 = bitcast i32 %33 to float
   %35 = call float @llvm.fabs.f32(float %34)
-  %36 = fcmp olt float %35, 1.000000e+00
+  %36 = fcmp olt float %35, 4.000000e+00
   %37 = select i1 %36, i32 -1, i32 0
   %38 = xor i32 %37, -1
   %39 = bitcast float %a to i32
@@ -110,7 +139,7 @@ define weak float @ctfp_full_div_f32v1_3(float %a, float %b) #2 {
   %43 = and i32 %38, %26
   %44 = or i32 %42, %43
   %45 = bitcast i32 %44 to float
-  %46 = call float @ctfp_full_div_f32v1_5(float %41, float %45)
+  %46 = call float @ctfp_full_div_f32v1_6(float %41, float %45)
   %47 = call float @llvm.copysign.f32(float %46, float %34)
   %48 = bitcast float %47 to i32
   %49 = and i32 %37, %48
@@ -119,34 +148,6 @@ define weak float @ctfp_full_div_f32v1_3(float %a, float %b) #2 {
   %52 = or i32 %49, %51
   %53 = bitcast i32 %52 to float
   ret float %53
-}
-
-; Function Attrs: alwaysinline
-define weak float @ctfp_full_div_f32v1_5(float %a, float %b) #2 {
-;@ requires (full_div_f32_pre5 %a %b)
-;@ ensures  (full_div_f32_post5 %ret %a %b)
-  %1 = fcmp ogt float %a, 1.000000e+00
-  %2 = select i1 %1, i32 -1, i32 0
-  %3 = fcmp olt float %b, 1.000000e+00
-  %4 = select i1 %3, i32 -1, i32 0
-  %5 = and i32 %2, %4
-  %6 = fmul float %a, 5.000000e-01
-  %7 = bitcast float %6 to i32
-  %8 = and i32 %5, %7
-  %9 = xor i32 %5, -1
-  %10 = bitcast float %a to i32
-  %11 = and i32 %9, %10
-  %12 = or i32 %8, %11
-  %13 = bitcast i32 %12 to float
-  %14 = call float @ctfp_full_div_f32v1_6(float %13, float %b)
-  %15 = fmul float %14, 2.000000e+00
-  %16 = bitcast float %15 to i32
-  %17 = and i32 %5, %16
-  %18 = bitcast float %14 to i32
-  %19 = and i32 %9, %18
-  %20 = or i32 %17, %19
-  %21 = bitcast i32 %20 to float
-  ret float %21
 }
 
 ; Function Attrs: alwaysinline
@@ -250,7 +251,7 @@ define weak float @ctfp_full_div_f32v1_9(float %a, float %b) #2 {
   %1 = bitcast float %b to i32
   %2 = and i32 %1, 2139095040
   %3 = bitcast i32 %2 to float
-  %4 = fdiv float %a, %3
+  %4 = call float @fdiv_exp(float %a, float %3)
   %5 = and i32 %1, 8388607
   %6 = or i32 %5, 1065353216
   %7 = bitcast i32 %6 to float
@@ -340,9 +341,9 @@ define weak float @ctfp_full_div_f32v1_13(float %a, float %b) #2 {
 }
 
 ; Function Attrs: alwaysinline
-define weak float @ctfp_full_div_f32v1_4(float %a, float %b) #2 {
-;@ requires (full_div_f32_pre4 %a %b)
-;@ ensures  (full_div_f32_post4 %ret %a %b)
+define weak float @ctfp_full_div_f32v1_5(float %a, float %b) #2 {
+;@ requires (full_div_f32_pre5 %a %b)
+;@ ensures  (full_div_f32_post5 %ret %a %b)
   %1 = fcmp oeq float 0x7FF0000000000000, %a
   %2 = select i1 %1, i32 -1, i32 0
   %3 = fcmp oeq float 0.000000e+00, %b
@@ -400,7 +401,7 @@ define weak float @ctfp_full_div_f32v1_15(float %a, float %b) #2 {
   %1 = bitcast float %b to i32
   %2 = and i32 %1, 2139095040
   %3 = bitcast i32 %2 to float
-  %4 = call float @fdiv_exp(float %a, float %3)
+  %4 = fdiv float %a, %3
   %5 = and i32 %1, 8388607
   %6 = or i32 %5, 1065353216
   %7 = bitcast i32 %6 to float
@@ -485,7 +486,7 @@ define weak float @ctfp_full_div_f32v1_18(float %a, float %b) #2 {
 define weak float @ctfp_full_div_f32v1_19(float %a, float %b) #2 {
 ;@ requires (full_div_f32_pre19 %a %b)
 ;@ ensures  (full_div_f32_post19 %ret %a %b)
-  %1 = call float @fdiv_sig(float %a, float %b)
+  %1 = fdiv float %a, %b
   ret float %1
 }
 
