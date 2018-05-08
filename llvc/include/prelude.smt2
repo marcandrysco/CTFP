@@ -768,9 +768,14 @@
 
 ; divide, part 6
 (define-fun full_div_f32_pre6 ((a Float32) (b Float32)) Bool
-  (or
-    (not (fp.isSubnormal a))
-    (not (fp.isSubnormal b))
+  (and
+    (or (= a zero) (fp.geq a fltmin) (fp.isNaN a) (= a inf))
+    (or (= b zero) (fp.isNaN b) (= b inf)
+      (ite (and (fp.gt a one) (fp.lt b one))
+        (fp.geq b fltmin4)
+        (ite (and (fp.lt a four) (fp.gt b forth)) (fp32_range b fltmin fltmax4) (fp.geq b fltmin))
+      )
+    )
     (not (fp.isSubnormal (fp.div RNE a b)))
   )
 )
