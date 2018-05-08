@@ -486,7 +486,7 @@ define weak float @ctfp_full_div_f32v1_18(float %a, float %b) #2 {
 define weak float @ctfp_full_div_f32v1_19(float %a, float %b) #2 {
 ;@ requires (full_div_f32_pre19 %a %b)
 ;@ ensures  (full_div_f32_post19 %ret %a %b)
-  %1 = fdiv float %a, %b
+  %1 = call float @fdiv_sig(float %a, float %b)
   ret float %1
 }
 
