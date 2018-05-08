@@ -77,7 +77,9 @@ define weak float @ctfp_full_mul_f32v1_3(float %a, float %b) #2 {
   %10 = bitcast float %b to i32
   %11 = and i32 %6, %10
   %12 = bitcast i32 %11 to float
+;@ assume (full_mul_f32_assume3_1 %9 %12)
   %13 = call float @ctfp_full_mul_f32v1_4(float %9, float %12)
+;@ assume (full_mul_f32_assume3_2 %13 %a %b)
   ret float %13
 }
 

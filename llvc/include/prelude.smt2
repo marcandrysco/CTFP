@@ -646,6 +646,16 @@
     )
   )
 )
+(define-fun full_mul_f32_assume3_1 ((a Float32) (b Float32)) Bool
+  (not (fp.isSubnormal (fp.mul RNE a b)))
+)
+(define-fun full_mul_f32_assume3_2 ((ret Float32) (a Float32) (b Float32)) Bool
+  (=>
+    (not
+      (= ret (fp32_underflow (fp.mul RNE a b) fltmin)))
+    (= (fp.mul RNE a b) fltmin)
+  )
+)
 
 ; multiplication, part 4
 (define-fun full_mul_f32_pre4 ((a Float32) (b Float32)) Bool
@@ -776,6 +786,7 @@
         (ite (and (fp.lt a four) (fp.gt b forth)) (fp32_range b fltmin fltmax4) (fp.geq b fltmin))
       )
     )
+    (=> (and (fp.isNormal a) (fp.isNormal b)) (fp.geq (fp.div RNE (fp.mul RNE a divoff) b) four))
     (not (fp.isSubnormal (fp.div RNE a b)))
   )
 )
