@@ -15,10 +15,14 @@
 (define-const zero Float32 ((_ to_fp 8 24) #x00000000))
 (define-const one Float32 ((_ to_fp 8 24) #x3f800000))
 (define-const two Float32 ((_ to_fp 8 24) #x40000000))
+(define-const four Float32 ((_ to_fp 8 24) #x40800000))
+(define-const forth Float32 ((_ to_fp 8 24) #x3e800000))
 (define-const inf Float32 ((_ to_fp 8 24) #x7f800000))
 
 (define-const fltmin Float32 ((_ to_fp 8 24) #x00800000))
+(define-const fltmin4 Float32 ((_ to_fp 8 24) #x01800000))
 (define-const fltmax Float32 ((_ to_fp 8 24) #x7f7fffff))
+(define-const fltmax4 Float32 ((_ to_fp 8 24) #x7e7fffff))
 (define-const divlo Float32 ((_ to_fp 8 24) #x01000000))
 
 (define-const zero1 (_ BitVec 1) (_ bv0 1))
@@ -26,6 +30,7 @@
 (define-const one8 (_ BitVec 8) (_ bv128 8))
 (define-const bias (_ BitVec 8) (_ bv127 8))
 (define-const muloff Float32 ((_ to_fp 8 24) #x7e800000))
+(define-const divoff Float32 ((_ to_fp 8 24) #x7e800000))
 
 (define-const one_point_zero Float32 ((_ to_fp 8 24) roundTowardZero 1.0))
 (define-const zero_point_zero Float32 ((_ to_fp 8 24) roundTowardZero 0.0))
@@ -711,35 +716,62 @@
   )
 )
 (define-fun full_div_f32_post3 ((ret Float32) (a Float32) (b Float32)) Bool
-  (= ret
-    (fp32_underflow (fp.div RNE (fp32_underflow a fltmin) (fp32_underflow b fltmin)) fltmin)
+  (or
+    (= ret
+      (fp32_underflow (fp.div RNE (fp32_underflow a fltmin) (fp32_underflow b fltmin)) fltmin)
+    )
+    (and (= ret zero)
+         (= (fp.div RNE a b) fltmin))
   )
 )
 
 ; divide, part 4
 (define-fun full_div_f32_pre4 ((a Float32) (b Float32)) Bool
-  ; TODO
-  true
+  (and
+    (or (= a zero) (fp.geq a fltmin) (fp.isNaN a) (= a inf))
+    (or (= b zero) (fp.isNaN b) (= b inf)
+      (ite (and (fp.gt a one) (fp.lt b one))
+        (fp.geq b fltmin4)
+        (ite (and (fp.lt a four) (fp.gt b forth)) (fp32_range b fltmin fltmax4) (fp.geq b fltmin))
+      )
+    )
+  )
 )
 (define-fun full_div_f32_post4 ((ret Float32) (a Float32) (b Float32)) Bool
-  ; TODO
-  true
+  (or true
+  (= ret
+    (fp32_underflow
+      (fp.div RNE a b)
+      (ite (and (fp.lt a four) (fp.gt b forth)) fltmin4 fltmin)
+    )
+  ))
 )
 
 ; divide, part 5
 (define-fun full_div_f32_pre5 ((a Float32) (b Float32)) Bool
- ; XXX: todo
-  true
+  (and
+    (or (= a zero) (fp.geq a (fp.mul RNE fltmin divoff)) (= a inf))
+    (or (= b zero) (= b inf)
+      (ite (and (fp.gt a (fp.mul RNE one divoff)) (fp.lt b one))
+        (fp.geq b fltmin4)
+        (ite (and (fp.lt a (fp.mul RNE four divoff)) (fp.gt b forth)) (fp32_range b fltmin fltmax4) (fp.geq b fltmin))
+      )
+    )
+    (not (and (= a inf) (= b inf)))
+    (not (and (= a zero) (= b zero)))
+  )
 )
 (define-fun full_div_f32_post5 ((ret Float32) (a Float32) (b Float32)) Bool
-  ; XXX: todo
-  true
+  (= ret (fp.div RNE a b))
 )
 
 ; divide, part 6
 (define-fun full_div_f32_pre6 ((a Float32) (b Float32)) Bool
- ; XXX: todo
-  true
+  (or
+    (not (fp.isSubnormal a))
+    (not (fp.isSubnormal b))
+    (not (fp.isSubnormal (fp.div RNE a b)))
+  )
 )
 (define-fun full_div_f32_post6 ((ret Float32) (a Float32) (b Float32)) Bool
   (= ret (fp.div RNE a b))
@@ -808,6 +840,8 @@
     (not (fp.isNaN a))
     (not (fp.isNaN b))
     (not (= b inf))
+    ; (= (fp_exponent b) (_ bv127 8))
+    (not (fp32_ispow2 b))
   )
 )
 (define-fun full_div_f32_post10 ((ret Float32) (a Float32) (b Float32)) Bool
@@ -868,35 +902,50 @@
   (= ret (fp.div RNE a b))
 )
 
-; division, part 15
-(define-fun full_div_f32_pre15 ((a Float32) (b Float32)) Bool
-  (and
-    (and (fp.geq a mulmin) (fp.leq a divmax))
-    (and (fp.geq b mulmin) (fp.leq b divmax))
-  )
-)
-(define-fun full_div_f32_post15 ((ret Float32) (a Float32) (b Float32)) Bool
-  (= ret (fp.div RNE a b))
-)
-
 ; divide, part 14
 (define-fun full_div_f32_pre14 ((a Float32) (b Float32)) Bool
   (and
-    (or (= a zero) (= a inf) (and (fp.geq a mulmin) (fp.leq a divmax)))
-    (or (= b zero) (= b inf) (and (fp.geq b mulmin) (fp.leq b divmax)))
+    (or (= a zero) (fp.geq a (fp.mul RNE fltmin divoff)))
+    (or (= b inf)
+      (ite (and (fp.gt a (fp.mul RNE one divoff)) (fp.lt b one))
+        (fp.geq b fltmin4)
+        (ite (and (fp.lt a (fp.mul RNE four divoff)) (fp.gt b forth)) (fp32_range b fltmin fltmax4) (fp.geq b fltmin))
+      )
+    )
     (not (= a inf))
-    (not (= b zero))
   )
 )
 (define-fun full_div_f32_post14 ((ret Float32) (a Float32) (b Float32)) Bool
   (= ret (fp.div RNE a b))
 )
 
+; division, part 15
+(define-fun full_div_f32_pre15 ((a Float32) (b Float32)) Bool
+  (and
+    (fp.geq a (fp.mul RNE fltmin divoff))
+    (ite (and (fp.gt a (fp.mul RNE one divoff)) (fp.lt b one))
+      (fp.geq b fltmin4)
+      (ite (and (fp.lt a (fp.mul RNE four divoff)) (fp.gt b forth)) (fp32_range b fltmin fltmax4) (fp.geq b fltmin))
+    )
+    (not (= a inf))
+    (not (= b inf))
+  )
+)
+(define-fun full_div_f32_post15 ((ret Float32) (a Float32) (b Float32)) Bool
+  (= ret (fp.div RNE a b))
+)
+
 ; division, part 16
 (define-fun full_div_f32_pre16 ((a Float32) (b Float32)) Bool
   (and
-    (or (fp32_range a divlo fltmax) (= a inf) (= a zero))
-    (or (fp32_between b one two) (= b one))
+    (fp.geq a fltmin)
+    ; (ite (and (fp.gt a (fp.mul RNE one divoff)) (fp.lt b one))
+    ;   (fp.geq b fltmin4)
+    ;   (ite (and (fp.lt a (fp.mul RNE four divoff)) (fp.gt b forth)) (fp32_range b fltmin fltmax4) (fp.geq b fltmin))
+    ; )
+    ; (not (= a inf))
+    ; (not (= b inf))
+    (= (fp32_exp b) (_ bv127 8))
   )
 )
 (define-fun full_div_f32_post16 ((ret Float32) (a Float32) (b Float32)) Bool
@@ -964,7 +1013,8 @@
 (define-fun fmul32_pre ((a Float32) (b Float32)) Bool
   (not (or (fp.isSubnormal a) 
            (fp.isSubnormal b) 
-	   (fp.isSubnormal (fp.mul RNE a b)))
+	         (fp.isSubnormal (fp.mul RNE a b))
+       )
   )
 )
 (define-fun fmul32_post ((ret Float32) (a Float32) (b Float32)) Bool

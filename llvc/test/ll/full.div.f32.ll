@@ -401,7 +401,7 @@ define weak float @ctfp_full_div_f32v1_15(float %a, float %b) #2 {
   %1 = bitcast float %b to i32
   %2 = and i32 %1, 2139095040
   %3 = bitcast i32 %2 to float
-  %4 = fdiv float %a, %3
+  %4 = call float @fdiv_exp(float %a, float %3)
   %5 = and i32 %1, 8388607
   %6 = or i32 %5, 1065353216
   %7 = bitcast i32 %6 to float
