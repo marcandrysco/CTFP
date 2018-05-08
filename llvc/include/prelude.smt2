@@ -8,9 +8,11 @@
 (define-fun fp_sqrt ((a Float32)) Float32 (fp.sqrt RNE a))
 (define-fun fp_div ((a Float32) (b Float32)) Float32 (fp.div RNE a b))
 (define-const addmin Float32 ((_ to_fp 8 24) #x0c000000))
-(define-const submin Float32 ((_ to_fp 8 24) #x0c000000))
+;(define-const addmin Float32 ((_ to_fp 8 24) #x0bffffff)) ; FAILS!
 (define-const mulmin Float32 ((_ to_fp 8 24) #x20000000))
+;(define-const mulmin Float32 ((_ to_fp 8 24) #x1fffffff)) ; FAILS!
 (define-const divmax Float32 ((_ to_fp 8 24) #x5e800000))
+;(define-const divmax Float32 ((_ to_fp 8 24) #x5e800001)) ; FAILS!
 (define-const sqrtmin Float32 ((_ to_fp 8 24) #x00800000))
 (define-const zero Float32 ((_ to_fp 8 24) #x00000000))
 (define-const one Float32 ((_ to_fp 8 24) #x3f800000))
