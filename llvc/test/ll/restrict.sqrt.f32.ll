@@ -1,7 +1,7 @@
 ; Function Attrs: nounwind readnone
 declare float @llvm.fabs.f32(float) #0
 ;@ requires true 
-;@ ensures  (fp.eq %ret (fp.abs %arg0))
+;@ ensures  (= %ret (fp.abs %arg0))
 
 ; Function Attrs: nounwind readnone
 declare float @llvm.sqrt.f32(float) #0
