@@ -87,6 +87,7 @@ define weak float @ctfp_full_div_f32v1_3(float %a, float %b) #2 {
   %20 = fmul float %b, %19
   %21 = call float @ctfp_full_div_f32v1_4(float %a, float %20)
   %22 = fmul float %21, %19
+;@ assume (full_div_f32_assume3 %22 %a %b)
   ret float %22
 }
 
@@ -147,6 +148,7 @@ define weak float @ctfp_full_div_f32v1_4(float %a, float %b) #2 {
   %51 = and i32 %38, %50
   %52 = or i32 %49, %51
   %53 = bitcast i32 %52 to float
+;@ assume (full_div_f32_assume4 %53 %a %b)
   ret float %53
 }
 
@@ -255,7 +257,9 @@ define weak float @ctfp_full_div_f32v1_9(float %a, float %b) #2 {
   %5 = and i32 %1, 8388607
   %6 = or i32 %5, 1065353216
   %7 = bitcast i32 %6 to float
+;@ assume  (full_div_f32_assume9_1 %4 %7)
   %8 = call float @ctfp_full_div_f32v1_10(float %4, float %7)
+;@ assume  (full_div_f32_assume9 %8 %a %b)
   ret float %8
 }
 
@@ -281,6 +285,7 @@ define weak float @ctfp_full_div_f32v1_10(float %a, float %b) #2 {
   %16 = and i32 %5, %15
   %17 = or i32 %4, %16
   %18 = bitcast i32 %17 to float
+;@ assume  (full_div_f32_assume10 %18 %a %b)
   ret float %18
 }
 
@@ -406,6 +411,7 @@ define weak float @ctfp_full_div_f32v1_15(float %a, float %b) #2 {
   %6 = or i32 %5, 1065353216
   %7 = bitcast i32 %6 to float
   %8 = call float @ctfp_full_div_f32v1_16(float %4, float %7)
+;@ assume  (full_div_f32_assume15 %8 %a %b)
   ret float %8
 }
 
