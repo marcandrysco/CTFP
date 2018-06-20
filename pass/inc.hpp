@@ -20,8 +20,9 @@
  * prototypes
  */
 namespace llvm {
-	class Value;
 	class Function;
+	class Instruction;
+	class Value;
 };
 
 /*

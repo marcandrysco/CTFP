@@ -66,11 +66,14 @@ void Fact::Dump() const {
  *   @in: The input fact.
  *   &returns: The new fact.
  */
-Fact Fact::FltAbs64(Fact in) {
-	for(auto &iter : in.ranges)
-		iter = Range::FltAbs64(iter);
+Fact Fact::FltAbs64(Fact &in) {
+	Fact out(FAbs64);
+	out.args.push_back(&in);
 
-	return in;
+	for(auto &iter : in.ranges)
+		out.ranges.push_back(Range::FltAbs64(iter));
+
+	return out;
 }
 
 
