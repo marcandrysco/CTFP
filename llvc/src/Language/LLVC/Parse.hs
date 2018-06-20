@@ -199,9 +199,11 @@ eCallP = do
   return   $ mkCall f xts t sp 
 
 typeP :: Parser Type 
-typeP =  (rWord "float" >> return Float)  
-     <|> (rWord "i32"   >> return (I 32)) 
-     <|> (rWord "i1"    >> return (I  1)) 
+typeP =  (rWord "float"  >> return Float)  
+     <|> (rWord "double" >> return Double) 
+     <|> (rWord "i32"    >> return (I 32)) 
+     <|> (rWord "i64"    >> return (I 64)) 
+     <|> (rWord "i1"     >> return (I  1)) 
      <?> "type"
 
 --------------------------------------------------------------------------------
@@ -318,7 +320,7 @@ rWord w = snd <$> (withSpan (string w) <* notFollowedBy alphaNumChar <* sc)
 keywords :: [Text]
 keywords =
   [ "define", "declare", "weak"
-  , "float", "i32", "i1"
+  , "float", "double", "i64", "i32", "i1"
   , "call"
   , "fcmp", "olt", "ogt", "oeq", "une", "select"
   , "bitcast", "to"

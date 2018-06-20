@@ -1,8 +1,8 @@
--- This file has been generated from package.yaml by hpack version 0.20.0.
+-- This file has been generated from package.yaml by hpack version 0.28.2.
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 4413e456c1128433ecbe709910a45c523141949ddb74bbd2e2194efaefc6b5b5
+-- hash: e6f6fa766f6d66451f338679728185b3f135c68f39fb7f3d86c0a64961e40d61
 
 name:           llvc
 version:        0.1.0.0
@@ -16,11 +16,9 @@ license:        MIT
 license-file:   LICENSE
 build-type:     Simple
 cabal-version:  >= 1.10
-
 extra-source-files:
     ChangeLog.md
     README.md
-
 data-files:
     include/prelude.smt2
 

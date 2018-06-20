@@ -232,6 +232,7 @@ instance ToSmt Op where
 instance ToSmt (Arg a) where 
   toSmt (ETLit n (I 32) _) = sigIntHex n (I 32) 
   toSmt (ETLit n Float _)  = printf "((_ to_fp 8 24) %s)" (sigIntHex n Float)
+  toSmt (ETLit n Double _) = printf "(fp64_cast %s)" (sigIntHex n Double)
   toSmt (ETLit n _ _)      = show n 
   toSmt (EFlt n    _)      = printf "((_ to_fp 8 24) roundTowardZero %s)" (show n)
   toSmt (ELit n    _)      = show n
@@ -241,13 +242,17 @@ instance ToSmt (Arg a) where
 convTable :: M.HashMap (Integer, Type) String
 convTable = M.fromList 
   [ ((0x3980000000000000, Float), "#x0c000000") 
+  , ((0x3980000020000000, Float), "#x0bffffff")
   , ((0x3C00000000000000, Float), "#x20000000") 
+  , ((0x3C00000020000000, Float), "#x1fffffff") 
   , ((0x3FF0000000000000, Float), "#x3f800000") 
   , ((0x7FF0000000000000, Float), "#x7f800000") 
   , ((0x0000000000000000, Float), "#x00000000") 
   , ((0x3810000000000000, Float), "#x00800000")
   , ((0x43D0000000000000, Float), "#x5e800000")
+  , ((0x43D0000020000000, Float), "#x5e800001")
   , ((0x3810000000000000, Float), "#x00800000")
+  , ((0x380E666640000000, Float), "#x00799999")
   , ((0x4170000000000000, Float), "#x4b800000")
   , ((0x3990000000000000, Float), "#x0c800000")
   , ((0x47D0000000000000, Float), "#x7e800000")
@@ -262,7 +267,7 @@ sigIntHex n t     = M.lookupDefault res (n, t) convTable
       | 0 <= n    = "#x" ++ pad ++ nStr 
       | otherwise = UX.panic ("sigIntHex: negative" ++ show n) UX.junkSpan 
     nStr          = Utils.integerHex (abs n)
-    pad           = replicate (8 - length nStr) '0' 
+    pad           = replicate (((fromInteger n) `div` 4) - length nStr) '0' 
 
 instance ToSmt Pred where 
   toSmt (PArg a)     = toSmt a 
@@ -277,8 +282,10 @@ toSmts = unwords . fmap toSmt
 
 instance ToSmt Type where 
   toSmt Float  = "Float32" 
+  toSmt Double = "Float64" 
   toSmt (I 1)  = "Bool" 
   toSmt (I 32) = "Int32" 
+  toSmt (I 64) = "Int64" 
   toSmt (I n)  = UX.panic ("toSmt: Unhandled Int-" ++ show n) UX.junkSpan 
 
 instance ToSmt Var where 

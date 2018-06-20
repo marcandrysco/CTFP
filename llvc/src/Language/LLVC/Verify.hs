@@ -172,18 +172,14 @@ mkEnv p   = Env (M.fromList sigs) (M.fromList fIds) (M.fromList fDefs) []
 -- | We could parse these in too, in due course.
 primitiveContracts :: [(Fn, Contract)]
 primitiveContracts =  
-  [ ( FnCmp Float Olt 
-    , postCond 2 "(= %ret (fp.lt %arg0 %arg1))" 
-    )
-  , ( FnCmp Float Ogt 
-    , postCond 2 "(= %ret (fp.gt %arg0 %arg1))" 
-    )
-  , ( FnCmp Float Une 
-    , postCond 2 "(= %ret (not (fp.eq %arg0 %arg1)))" 
-    )
-  , ( FnCmp Float Oeq 
-    , postCond 2 "(= %ret (fp.eq %arg0 %arg1))" 
-    )
+  [ ( FnCmp Float Olt , postCond 2 "(= %ret (fp.lt %arg0 %arg1))" )
+  , ( FnCmp Float Ogt , postCond 2 "(= %ret (fp.gt %arg0 %arg1))" )
+  , ( FnCmp Float Une , postCond 2 "(= %ret (not (fp.eq %arg0 %arg1)))" )
+  , ( FnCmp Float Oeq , postCond 2 "(= %ret (fp.eq %arg0 %arg1))" )
+  , ( FnCmp Double Olt , postCond 2 "(= %ret (fp.lt %arg0 %arg1))" )
+  , ( FnCmp Double Ogt , postCond 2 "(= %ret (fp.gt %arg0 %arg1))" )
+  , ( FnCmp Double Une , postCond 2 "(= %ret (not (fp.eq %arg0 %arg1)))" )
+  , ( FnCmp Double Oeq , postCond 2 "(= %ret (fp.eq %arg0 %arg1))" )
   , ( FnCmp (I 32) Slt 
     , postCond 2 "(= %ret (lt32 %arg0 %arg1))" 
     )
@@ -222,8 +218,13 @@ primitiveContracts =
   , ( FnBitcast (I 32) Float
     , postCond 1 "(= (to_ieee_bv %ret) %arg0)"
     )
+  , ( FnBitcast (I 64) Double
+    , postCond 1 "(= (to_ieee_bv %ret) %arg0)"
+    )
 
   , ( FnBitcast Float (I 32)
+    , postCond 1 "(= %ret (to_ieee_bv  %arg0))" )
+  , ( FnBitcast Double (I 64)
     , postCond 1 "(= %ret (to_ieee_bv  %arg0))" )
   ] 
 

@@ -1,6 +1,7 @@
 (set-logic QF_FPBV)
 (define-sort Int1    () Bool)
 (define-sort Int32   () (_ BitVec 32))
+(define-sort Int64   () (_ BitVec 64))
 (define-fun to_fp_32 ((a Int32)) Float32  ((_ to_fp 8 24) a))
 (define-fun fp_add ((a Float32) (b Float32)) Float32 (fp.add RNE a b))
 (define-fun fp_sub ((a Float32) (b Float32)) Float32 (fp.sub RNE a b))
@@ -13,7 +14,8 @@
 ;(define-const mulmin Float32 ((_ to_fp 8 24) #x1fffffff)) ; FAILS!
 (define-const divmax Float32 ((_ to_fp 8 24) #x5e800000))
 ;(define-const divmax Float32 ((_ to_fp 8 24) #x5e800001)) ; FAILS!
-(define-const sqrtmin Float32 ((_ to_fp 8 24) #x00800000))
+;(define-const sqrtmin Float32 ((_ to_fp 8 24) #x00800000))
+(define-const sqrtmin Float32 ((_ to_fp 8 24) #x007fffff)) ; FAILS!
 (define-const zero Float32 ((_ to_fp 8 24) #x00000000))
 (define-const one Float32 ((_ to_fp 8 24) #x3f800000))
 (define-const two Float32 ((_ to_fp 8 24) #x40000000))
@@ -73,7 +75,27 @@
 )
 
 
+;; CONSTANTS
+
+; cast a bitvector to a float
+(define-fun fp64_cast ((a Int64)) Float64  ((_ to_fp 11 53) a))
+
+; zero
+(define-const fp64_zero Float64 (fp64_cast #x0000000000000000))
+
+; add limits
+(define-const fp64_addmin Float64 (fp64_cast #x0360000000000000))
+
+
 ;; HELPERS
+
+; copy the sign of b onto the magnitude of a
+(define-fun fp64_copysign ((a Float64) (b Float64)) Float64  
+  (fp64_cast (bvor
+    (bvand (to_ieee_bv a) #x7fffffffffffffff)
+    (bvand (to_ieee_bv b) #x8000000000000000)
+  ))
+)
 
 ; check if a value is special
 (define-fun fp_isspec_f32 ((a Float32)) Bool
@@ -101,6 +123,9 @@
 ; underflow a value below `lim` to zero
 (define-fun fp32_underflow ((val Float32) (lim Float32)) Float32 
   (ite (fp.lt (fp.abs val) lim) (copysign zero val) val)
+)
+(define-fun fp64_underflow ((val Float64) (lim Float64)) Float64 
+  (ite (fp.lt (fp.abs val) lim) (fp64_copysign fp64_zero val) val)
 )
 (define-fun fp32_underflow_pos ((val Float32) (lim Float32)) Float32 
   (ite (fp.lt val lim) zero val)
@@ -153,7 +178,7 @@
 
 ; addition, part 1
 (define-fun restrict_add_f32_pre1 ((a Float32) (b Float32)) Bool
-  (or (fp.eq a zero) (fp.geq (fp.abs a) addmin))
+  (or (fp.eq a zero) (fp.geq (fp.abs a) addmin) (fp.isNaN a))
 )
 (define-fun restrict_add_f32_post1 ((ret Float32) (a Float32) (b Float32)) Bool
   (= ret (fp.add RNE a (fp32_underflow b addmin)))
@@ -162,11 +187,38 @@
 ; addition, part 2
 (define-fun restrict_add_f32_pre2 ((a Float32) (b Float32)) Bool
   (and
-    (or (fp.eq a zero) (fp.geq (fp.abs a) addmin))
-    (or (fp.eq b zero) (fp.geq (fp.abs b) addmin))
+    (or (fp.eq a zero) (fp.geq (fp.abs a) addmin) (fp.isNaN a))
+    (or (fp.eq b zero) (fp.geq (fp.abs b) addmin) (fp.isNaN b))
   )
 )
 (define-fun restrict_add_f32_post2 ((ret Float32) (a Float32) (b Float32)) Bool
+  (= ret (fp.add RNE a b))
+)
+
+; addition f32, part 0
+(define-fun restrict_add_f64_pre0 ((a Float64) (b Float64)) Bool
+  true
+)
+(define-fun restrict_add_f64_post0 ((ret Float64) (a Float64) (b Float64)) Bool
+  (= ret (fp.add RNE (fp64_underflow a fp64_addmin) (fp64_underflow b fp64_addmin)))
+)
+
+; addition f64, part 1
+(define-fun restrict_add_f64_pre1 ((a Float64) (b Float64)) Bool
+  (or (fp.eq a fp64_zero) (fp.geq (fp.abs a) fp64_addmin) (fp.isNaN a))
+)
+(define-fun restrict_add_f64_post1 ((ret Float64) (a Float64) (b Float64)) Bool
+  (= ret (fp.add RNE a (fp64_underflow b fp64_addmin)))
+)
+
+; addition f64, part 2
+(define-fun restrict_add_f64_pre2 ((a Float64) (b Float64)) Bool
+  (and
+    (or (fp.eq a fp64_zero) (fp.geq (fp.abs a) fp64_addmin) (fp.isNaN a))
+    (or (fp.eq b fp64_zero) (fp.geq (fp.abs b) fp64_addmin) (fp.isNaN b))
+  )
+)
+(define-fun restrict_add_f64_post2 ((ret Float64) (a Float64) (b Float64)) Bool
   (= ret (fp.add RNE a b))
 )
 
@@ -183,7 +235,7 @@
 
 ; subtraction, part 1
 (define-fun restrict_sub_f32_pre1 ((a Float32) (b Float32)) Bool
-  (or (fp.eq a zero) (fp.geq (fp.abs a) addmin))
+  (or (fp.eq a zero) (fp.geq (fp.abs a) addmin) (fp.isNaN a))
 )
 (define-fun restrict_sub_f32_post1 ((ret Float32) (a Float32) (b Float32)) Bool
   (= ret (fp.sub RNE a (fp32_underflow b addmin)))
@@ -192,8 +244,8 @@
 ; subtraction, part 2
 (define-fun restrict_sub_f32_pre2 ((a Float32) (b Float32)) Bool
   (and
-    (or (fp.eq a zero) (fp.geq (fp.abs a) addmin))
-    (or (fp.eq b zero) (fp.geq (fp.abs b) addmin))
+    (or (fp.eq a zero) (fp.geq (fp.abs a) addmin) (fp.isNaN a))
+    (or (fp.eq b zero) (fp.geq (fp.abs b) addmin) (fp.isNaN b))
   )
 )
 (define-fun restrict_sub_f32_post2 ((ret Float32) (a Float32) (b Float32)) Bool

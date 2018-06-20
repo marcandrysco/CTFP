@@ -202,7 +202,6 @@ define weak float @ctfp_restrict_div_f32v1_8(float %a, float %b) #2 {
   %6 = or i32 %5, 1065353216
   %7 = bitcast i32 %6 to float
   %8 = call float @ctfp_restrict_div_f32v1_9(float %4, float %7)
-;@ assume  (restrict_div_f32_assume8 %8 %a %b)
   ret float %8
 }
 

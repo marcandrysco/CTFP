@@ -1,7 +1,7 @@
 ; Function Attrs: nounwind readnone
 declare float @llvm.fabs.f32(float) #0
 ;@ requires true 
-;@ ensures  (fp.eq %ret (fp.abs %arg0))
+;@ ensures  (= %ret (fp.abs %arg0))
 
 ; Function Attrs: nounwind readnone
 declare float @llvm.copysign.f32(float, float) #0
@@ -51,4 +51,3 @@ define weak float @ctfp_restrict_add_f32v1_2(float %a, float %b) #2 {
 
 attributes #0 = { nounwind readnone }
 attributes #1 = { alwaysinline }
-

@@ -16,12 +16,14 @@ import           Text.Printf (printf)
 
 data Type 
   = Float 
+  | Double
   | I Int                      -- ^ Int of a given size 1, 16, 32 etc.
   deriving (Eq, Ord, Show, Generic)
 
 instance UX.PPrint Type where 
-  pprint Float = "float"
-  pprint (I n) = "i" ++ show n
+  pprint Float  = "float"
+  pprint Double = "double"
+  pprint (I n)  = "i" ++ show n
 
 type Var   = UX.Text 
 
@@ -57,12 +59,13 @@ instance UX.PPrint Rel where
   pprint Slt = "slt"
 
 instance UX.PPrint Fn where 
-  pprint (FnCmp Float r) = printf "fcmp %s" (UX.pprint r)
-  pprint (FnCmp (I _) r) = printf "icmp %s" (UX.pprint r)
-  pprint (FnBin  o)      = UX.pprint o
-  pprint FnSelect       = "select" 
-  pprint (FnBitcast {}) = "bitcast" 
-  pprint (FnFunc f)     = f
+  pprint (FnCmp Float r)  = printf "fcmp %s" (UX.pprint r)
+  pprint (FnCmp Double r) = printf "fcmp %s" (UX.pprint r)
+  pprint (FnCmp (I _) r)  = printf "icmp %s" (UX.pprint r)
+  pprint (FnBin  o)       = UX.pprint o
+  pprint FnSelect         = "select" 
+  pprint (FnBitcast {})   = "bitcast" 
+  pprint (FnFunc f)       = f
 
 -------------------------------------------------------------------------------
 -- | 'Expr' correspond to the RHS of LLVM assignments 
@@ -97,6 +100,10 @@ ppCmp Float Olt = "fcmp olt"
 ppCmp Float Ogt = "fcmp ogt"
 ppCmp Float Oeq = "fcmp oeq"
 ppCmp Float Une = "fcmp une"
+ppCmp Double Olt = "fcmp olt"
+ppCmp Double Ogt = "fcmp ogt"
+ppCmp Double Oeq = "fcmp oeq"
+ppCmp Double Une = "fcmp une"
 ppCmp (I _) Slt = "icmp slt"
 ppCmp t     r   = error $ "ppCmp: " ++ show (t, r)
 
