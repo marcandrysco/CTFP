@@ -1,6 +1,25 @@
 #include "inc.hpp"
 
 
+Ival64 Ival64::SetPos() const {
+	if(IsPos())
+		return Ival64::Flt(flo, fhi, nan);
+	else if(IsNeg())
+		return Ival64::Flt(-fhi, -flo, nan);
+	else
+		return Ival64::Flt(0, fmax(-flo, fhi), nan);
+}
+
+Ival64 Ival64::SetNeg() const {
+	if(IsNeg())
+		return Ival64::Flt(flo, fhi, nan);
+	else if(IsPos())
+		return Ival64::Flt(-fhi, -flo, nan);
+	else
+		return Ival64::Flt(fmax(flo, -fhi), 0, nan);
+}
+
+
 /**
  * Create an interval covering the entire space.
  *   &returns: The interval.
@@ -34,6 +53,15 @@ Ival64 Ival64::Int(uint64_t ilo, uint64_t ihi) {
 }
 
 /**
+ * Create a constant, integer interval.
+ *   @val: The value.
+ *   &returns: The interval.
+ */
+Ival64 Ival64::IntConst(uint64_t val) {
+	return Ival64::Int(val, val);
+}
+
+/**
  * Create an interval between floats.
  *   @ilo: The low float.
  *   @ihi: The high float.
@@ -51,6 +79,36 @@ Ival64 Ival64::Flt(double flo, double fhi, bool nan) {
 	return res;
 }
 
+
+/**
+ * Integer AND.
+ *   @lhs: Left-hand side.
+ *   @rhs: Right-hand side.
+ *   &returns: The result interval.
+ */
+Ival64 Ival64::IntAnd(const Ival64 &lhs, const Ival64 &rhs) {
+	if(lhs.IsValue(0) || rhs.IsValue(0))
+		return Ival64::IntConst(0);
+	else if(lhs.IsValue(0xFFFFFFFFFFFFFFFF))
+		return rhs;
+	else if(rhs.IsValue(0xFFFFFFFFFFFFFFFF))
+		return lhs;
+	else
+		return Ival64::All();
+}
+
+/**
+ * Integer XOR.
+ *   @lhs: Left-hand side.
+ *   @rhs: Right-hand side.
+ *   &returns: The result interval.
+ */
+Ival64 Ival64::IntXor(const Ival64 &lhs, const Ival64 &rhs) {
+	if(lhs.IsConst() && rhs.IsConst())
+		return Ival64::IntConst(lhs.ilo ^ rhs.ilo);
+	else
+		return Ival64::All();
+}
 
 /**
  * Integer addition.
@@ -120,8 +178,84 @@ Ival64 Ival64::FltAdd(const Ival64 &lhs, const Ival64 &rhs) {
 
 	res.flo = lhs.flo + rhs.flo;
 	res.fhi = lhs.fhi + rhs.fhi;
+	res.nan = lhs.nan || rhs.nan;
+	res.FillInt();
 
 	return res;
+}
+
+
+/**
+ * Compute the relative complement of two intervals.
+ *   @lhs: The left-hand side.
+ *   @rhs: The right-hand side.
+ *   &returns: The intersction set.
+ */
+std::vector<Ival64> Ival64::FltRelComp(const Ival64 &lhs, const Ival64 &rhs)
+{
+	std::vector<Ival64> res;
+
+	if((lhs.fhi < rhs.flo) || (rhs.fhi < lhs.flo))
+		res.push_back(lhs);
+
+	if((lhs.flo < rhs.flo) && (lhs.fhi >= rhs.flo))
+		res.push_back(Ival64::Flt(lhs.flo, Fact::Prev64(rhs.flo), lhs.nan));
+
+	if((lhs.fhi > rhs.fhi) && (lhs.flo <= rhs.fhi))
+		res.push_back(Ival64::Flt(Fact::Next64(rhs.fhi), lhs.fhi, lhs.nan));
+
+	return res;
+}
+
+
+/**
+ * Check if the interval is a constant.
+ *   &returns: True if constant.
+ */
+bool Ival64::IsConst() const {
+	return ilo == ihi;
+}
+
+/**
+ * Check if the interval is given constant value.
+ *   @val: The value.
+ *   &returns: True if is matches.
+ */
+bool Ival64::IsValue(uint64_t val) const {
+	return ((ilo == ihi) && (ilo == val));
+}
+
+
+/**
+ * Check if an interval is strictly positive.
+ *   &returns: True if positive.
+ */
+bool Ival64::IsPos() const {
+	return !signbit(flo);
+}
+
+/**
+ * Check if an interval is strictly negative.
+ *   &returns: True if negative.
+ */
+bool Ival64::IsNeg() const {
+	return signbit(fhi);
+}
+
+/**
+ * Check if the interval has a positive value.
+ *   &returns: True if possibly positive.
+ */
+bool Ival64::HasPos() const {
+	return nan || !signbit(fhi);
+}
+
+/**
+ * Check if the interval has a negative value.
+ *   &returns: True if possibly negative.
+ */
+bool Ival64::HasNeg() const {
+	return nan || signbit(flo);
 }
 
 
@@ -147,7 +281,13 @@ void Ival64::FillInt() {
  * Fill the float range using the integer values.
  */
 void Ival64::FillFlt() {
-	if((ilo >= 0x0) && (ihi <= 0x7ff0000000000000)) {
+	if(ilo == ihi) {
+		memcpy(&flo, &ilo, 8);
+		memcpy(&fhi, &ihi, 8);
+		nan = isnan(flo);
+	}
+	else if((ilo >= 0x0) && (ihi <= 0x7ff0000000000000)) {
+		nan = false;
 		memcpy(&flo, &ilo, 8);
 		memcpy(&fhi, &ihi, 8);
 	}
@@ -180,7 +320,10 @@ void Ival64::FillFlt() {
 std::string Ival64::Str() const {
 	char str[256];
 
-	snprintf(str, sizeof(str), "%s0x%lx:0x%lx,%.17e:%.17e", nan ? "NaN," : "", ilo, ihi, flo, fhi);
+	if(isnan(flo) && isnan(fhi))
+		snprintf(str, sizeof(str), "0x%lx:0x%lx,NaN", ilo, ihi);
+	else
+		snprintf(str, sizeof(str), "%s0x%lx:0x%lx,%.17e:%.17e", nan ? "NaN," : "", ilo, ihi, flo, fhi);
 
 	return std::string(str);
 }
@@ -189,5 +332,8 @@ std::string Ival64::Str() const {
  * Dump an interval to stdout.
  */
 void Ival64::Dump() const {
-	printf("%s0x%lx:0x%lx,%.17e:%.17e", nan ? "NaN," : "", ilo, ihi, flo, fhi);
+	if(isnan(flo) && isnan(fhi))
+		printf("0x%lx:0x%lx,NaN", ilo, ihi);
+	else
+		printf("%s0x%lx:0x%lx,%.17e:%.17e", nan ? "NaN," : "", ilo, ihi, flo, fhi);
 }

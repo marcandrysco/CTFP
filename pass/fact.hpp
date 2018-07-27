@@ -7,20 +7,23 @@
 class Fact {
 public:
 	enum Op {
-		FAdd32, FAbs32, FOlt32,
-		FAdd64, FAbs64, FOlt64
+		Mov,
+		FConst, IConst,
+		IAnd32, IXor32, FAdd32, FAbs32, FOlt32, CopySign32,
+		IAnd64, IXor64, FAdd64, FAbs64, FOlt64, CopySign64,
+		Sel
 	};
 
-	std::vector<void *> vars;
+	std::vector<llvm::Value *> vars;
 	std::vector<Range> ranges;
 
 	Op op;
 	std::vector<Fact *> args;
 
 	Fact() { };
-	Fact(Op op) { op = op; }
-	Fact(Range init) { ranges.push_back(init); }
-	Fact(Range64 init) { ranges.push_back(Range(init)); }
+	Fact(Op opv) { op = opv; }
+	Fact(Op opv, Range init) { op = opv; ranges.push_back(init); }
+	Fact(Op opv, Range64 init) { op = opv; ranges.push_back(Range(init)); }
 	~Fact() {}
 
 	double Lower() const;
@@ -28,12 +31,25 @@ public:
 	std::string Str() const;
 	void Dump() const;
 
-	static Fact FltAbs64(Fact &in);
+	void InvProp();
 
-	static Fact FltOLT64(Fact &lhs, Fact &rhs, void *var);
+	static Fact FltAdd64(Fact &lhs, Fact &rhs);
+	static Fact FltAbs64(Fact &in);
+	static Fact FltOLT64(Fact &lhs, Fact &rhs, llvm::Value *var);
+	static Fact FltCopySign64(Fact &lhs, Fact &rhs);
+	static Fact IntAnd64(Fact &lhs, Fact &rhs);
+	static Fact IntXor64(Fact &lhs, Fact &rhs);
+
+	static Fact Select(Fact &cond, Fact &lhs, Fact &rhs, llvm::Value *var);
 
 	static double Next64(double val) { return std::nextafter(val, INFINITY); }
 	static double Prev64(double val) { return std::nextafter(val, -INFINITY); }
+
+	uint64_t Limit() const;
+	int32_t Index(const llvm::Value *var) const;
+	Range &Map(const std::vector<llvm::Value *> &vars, uint64_t idx);
+
+	static std::vector<llvm::Value *> Cross(const std::vector<llvm::Value *> &lhs, const std::vector<llvm::Value *> &rhs);
 };
 
 

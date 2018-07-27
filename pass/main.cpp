@@ -15,123 +15,6 @@ int llvm_info(llvm::Instruction &inst, std::vector<llvm::Value *> &args);
 
 
 /**
- * Retrieve a fact from a value.
- *   @value: The value.
- *   @map: The value to fact map.
- *   &returns: The fact.
- */
-Fact &getfact(llvm::Value *value, std::map<llvm::Value *,Fact> &map) {
-	auto find = map.find(value);
-	if(find != map.end())
-		return find->second;
-
-	if(llvm::isa<llvm::ConstantFP>(value)) {
-		llvm::ConstantFP *fp = llvm::cast<llvm::ConstantFP>(value);
-
-		if(value->getType()->isFloatTy()) {
-			fatal("stub"); // float val = 
-		}
-		else if(value->getType()->isDoubleTy())
-			map[value] = Fact(Range64::Const(fp->getValueAPF().convertToDouble()));
-		else
-			fatal("Unknown type.");
-
-		return map[value];
-	}
-
-	fatal("Cannot retrieve fact for parameter.");
-}
-
-/*
- * instruction type definitions
- */
-#define MSK64   (0x0100)
-#define FADD32  (0x0001)
-#define FSUB32  (0x0002)
-#define FABS32  (0x0008)
-#define FOLT32  (0x0010)
-#define FADD64  (FADD32 | MSK64)
-#define FSUB64  (FSUB32 | MSK64)
-#define FABS64  (FABS32 | MSK64)
-#define FOLT64  (FOLT32 | MSK64)
-
-/*
- * list of handled functions
- */
-static std::vector<std::pair<const char *,int>> funcs = {
-	{ "llvm.fabs.f32", FABS32 },
-	{ "llvm.fabs.f64", FABS64 }
-};
-
-
-void olt(const Fact &lhs, const Fact &rhs)
-{
-	printf("really olt\n");
-	exit(0);
-}
-
-void go(llvm::Function &func)
-{
-	class Pass pass(&func);
-
-	assert(func.size() == 1);
-
-	std::map<llvm::Value *,Fact> map;
-	printf("func: %s\n", func.getName().data());
-
-	for(auto arg = func.arg_begin(); arg != func.arg_end(); arg++) {
-		map[&*arg] = Fact(Range64::All());
-	}
-
-	llvm::BasicBlock &block = func.front();
-	for(auto inst = block.begin(); inst != block.end(); inst++) {
-		Fact out;
-		std::vector<llvm::Value *> args;
-		int code = llvm_info(*inst, args);
-
-		inst->print(llvm::outs(), false); printf("\n");
-
-		switch(code) {
-		case FADD32:
-		case FSUB32:
-		case FABS32:
-		case FOLT32:
-		case FADD64:
-		case FSUB64:
-			//printf("%s\n", map[args[0]];
-			printf("stub!!!");
-			exit(0);
-
-		case FABS64:
-			out = Fact::FltAbs64(getfact(args[0], map));
-			map[&*inst] = out;
-			break;
-
-		case FOLT64:
-			out = Fact::FltOLT64(getfact(args[0], map), getfact(args[1], map), &*inst);
-
-			printf("------\n");
-			for(auto &iter : block) {
-				//for(auto iter = block.begin(); iter != block.end(); iter++) {
-				iter.print(llvm::outs(), false); printf("\n");
-				printf("%s", map[&iter].Str().c_str());
-				if(&iter == &*inst) break;
-			}
-
-			printf("ok");
-			exit(0);
-			map[&*inst] = out;
-			break;
-
-		default:
-			fatal("Unknown code.");
-		}
-
-		printf("    %s\n", out.Str().c_str());
-	}
-}
-
-/**
  * Main entry function.
  *   @argc: The number of arguments.
  *   @argv: The argument array.
@@ -184,55 +67,6 @@ static std::unique_ptr<llvm::Module> llvm_load(const char *path)
 	return mod;
 }
 
-/**
- * Retrieve the required information about an instruction.
- *   @inst: The instruction.
- *   @args: The argument vector.
- *   &returns: The instruction code.
- */
-int llvm_info(llvm::Instruction &inst, std::vector<llvm::Value *> &args)
-{
-	int mask = inst.getOperand(0)->getType()->isDoubleTy() ? MSK64 : 0;
-	unsigned int i, nargs = inst.getNumOperands();
-
-	if(inst.getOpcode() == llvm::Instruction::Call)
-		nargs--;
-
-	for(i = 0; i < nargs; i++)
-		args.push_back(inst.getOperand(i));
-
-	switch(inst.getOpcode()) {
-	case llvm::Instruction::FAdd: return FADD32 | mask;
-	case llvm::Instruction::FSub: return FSUB32 | mask;
-	case llvm::Instruction::FCmp:
-		{
-			llvm::FCmpInst *fcmp = llvm::cast<llvm::FCmpInst>(&inst);
-
-			switch(fcmp->getPredicate()) {
-			case llvm::CmpInst::FCMP_OLT: return FOLT32 | mask;
-			default: fatal("Unhandled predicate.");
-			}
-		}
-
-	case llvm::Instruction::Call:
-		{
-			llvm::CallInst *call = llvm::cast<llvm::CallInst>(&inst);
-			std::string id = call->getCalledFunction()->getName().str();
-
-			auto find = std::find_if(funcs.begin(), funcs.end(), [id](std::pair<const char *,int> &val) -> bool { return id == val.first; });
-			if(find == std::end(funcs))
-				fatal("Unknown function '%s'.", id.c_str());
-
-			return find->second;
-		}
-
-	default:
-		fatal("stub");
-	}
-
-	return -1;
-}
-
 
 /**
  * Print a fatal error and terminate.
@@ -247,6 +81,7 @@ void dbg_fatal(const char *file, unsigned long line, const char *fmt, ...)
 	va_list args;
 
 	va_start(args, fmt);
+	fprintf(stderr, "%s:%lu: ", file, line);
 	vfprintf(stderr, fmt, args);
 	fprintf(stderr, "\n");
 	va_end(args);
@@ -264,18 +99,44 @@ void Pass::Run() {
 	unsigned int idx = 1;
 
 	for(auto &arg : func->args())
-		map[&arg] = Fact(Range64::All());
+		map[&arg] = Fact(Fact::FConst, Range64::All());
 
 	for(auto &inst : func->front()) {
 		if(!inst.hasName())
-			inst.setName("v" + idx);
+			inst.setName("v" + std::to_string(idx++));
 
 		auto info = Info(inst);
 
 		switch(info.first) {
+		case Fact::Mov:
+			Add(&inst, *info.second[0]);
+			break;
+
+		case Fact::FConst:
+		case Fact::IConst:
+			fatal("Invalid instruction type.");
+
+		case Fact::IAnd32: fatal("stub"); break;
+		case Fact::IXor32: fatal("stub"); break;
 		case Fact::FAdd32: fatal("stub"); break;
-		case Fact::FAdd64: fatal("stub"); break;
 		case Fact::FAbs32: fatal("stub"); break;
+		case Fact::CopySign32: fatal("stub"); break;
+
+		case Fact::IAnd64:
+			Add(&inst, Fact::IntAnd64(*info.second[0], *info.second[1]));
+			break;
+
+		case Fact::IXor64:
+			Add(&inst, Fact::IntXor64(*info.second[0], *info.second[1]));
+			break;
+
+		case Fact::FAdd64: 
+			Add(&inst, Fact::FltAdd64(*info.second[0], *info.second[1]));
+			Dump();
+			printf("here!\n");
+			exit(0);
+			break;
+
 		case Fact::FAbs64:
 			Add(&inst, Fact::FltAbs64(*info.second[0]));
 			break;
@@ -286,12 +147,17 @@ void Pass::Run() {
 		case Fact::FOlt64:
 			Add(&inst, Fact::FltOLT64(*info.second[0], *info.second[1], &inst));
 			break;
+
+		case Fact::CopySign64:
+			Add(&inst, Fact::FltCopySign64(*info.second[0], *info.second[1]));
+			break;
+
+		case Fact::Sel:
+			Add(&inst, Fact::Select(*info.second[0], *info.second[1], *info.second[2], &inst));
+			break;
 		}
 
 		if(info.first == Fact::FOlt64) {
-			Dump();
-			printf("here!\n");
-			exit(0);
 		}
 	}
 }
@@ -324,7 +190,20 @@ Fact &Pass::Get(llvm::Value *value) {
 			fatal("stub"); // float val = 
 		}
 		else if(value->getType()->isDoubleTy())
-			map[value] = Fact(Range64::Const(fp->getValueAPF().convertToDouble()));
+			map[value] = Fact(Fact::FConst, Range64::Const(fp->getValueAPF().convertToDouble()));
+		else
+			fatal("Unknown type.");
+
+		return map[value];
+	}
+	else if(llvm::isa<llvm::ConstantInt>(value)) {
+		llvm::ConstantInt *ival= llvm::cast<llvm::ConstantInt>(value);
+
+		if(value->getType()->isIntegerTy(32))
+			fatal("stub"); // float val = 
+		else if(value->getType()->isIntegerTy(64)) {
+			map[value] = Fact(Fact::IConst, Range64::Int(ival->getZExtValue()));
+		}
 		else
 			fatal("Unknown type.");
 
@@ -342,13 +221,15 @@ Fact &Pass::Get(llvm::Value *value) {
 std::pair<Fact::Op, std::vector<Fact *>> Pass::Info(llvm::Instruction &inst) {
 	static std::vector<std::pair<const char *,Fact::Op>> funcs = {
 		{ "llvm.fabs.f32", Fact::FAbs32 },
-		{ "llvm.fabs.f64", Fact::FAbs64 }
+		{ "llvm.fabs.f64", Fact::FAbs64 },
+		{ "llvm.copysign.f32", Fact::CopySign32 },
+		{ "llvm.copysign.f64", Fact::CopySign64 },
 	};
 
 	Fact::Op op;
 	std::vector<Fact *> args;
 
-	bool dbl = inst.getOperand(0)->getType()->isDoubleTy();
+	bool dbl = inst.getOperand(0)->getType()->isDoubleTy() || inst.getOperand(0)->getType()->isIntegerTy(64);
 
 	unsigned int nargs = inst.getNumOperands();
 	if(inst.getOpcode() == llvm::Instruction::Call)
@@ -356,8 +237,11 @@ std::pair<Fact::Op, std::vector<Fact *>> Pass::Info(llvm::Instruction &inst) {
 
 	for(unsigned int i = 0; i < nargs; i++)
 		args.push_back(&Get(inst.getOperand(i)));
-
+	
 	switch(inst.getOpcode()) {
+	case llvm::Instruction::BitCast: op = Fact::Mov; break;
+	case llvm::Instruction::And: op = (dbl ? Fact::IAnd64 : Fact::IAnd32); break;
+	case llvm::Instruction::Xor: op = (dbl ? Fact::IXor64 : Fact::IXor32); break;
 	case llvm::Instruction::FAdd: op = (dbl ? Fact::FAdd64 : Fact::FAdd32); break;
 	case llvm::Instruction::FCmp:
 		{
@@ -381,6 +265,10 @@ std::pair<Fact::Op, std::vector<Fact *>> Pass::Info(llvm::Instruction &inst) {
 
 			op = find->second;
 		}
+		break;
+
+	case llvm::Instruction::Select:
+		op = Fact::Sel;
 		break;
 	}
 
@@ -420,4 +308,3 @@ std::string llvm_name(llvm::Value *value)
 {
 	return value->getName().data();
 }
-
