@@ -260,6 +260,11 @@ convTable = M.fromList
   , ((-2                , I 32) , "#xfffffffe")
   ]
 
+bwOfType :: Type -> Int
+bwOfType Float = 32
+bwOfType Double = 64
+bwOfType (I n) = n
+
 sigIntHex :: Integer -> Type -> Smt 
 sigIntHex n t     = M.lookupDefault res (n, t) convTable 
   where 
@@ -267,7 +272,7 @@ sigIntHex n t     = M.lookupDefault res (n, t) convTable
       | 0 <= n    = "#x" ++ pad ++ nStr 
       | otherwise = UX.panic ("sigIntHex: negative" ++ show n) UX.junkSpan 
     nStr          = Utils.integerHex (abs n)
-    pad           = replicate (((fromInteger n) `div` 4) - length nStr) '0' 
+    pad           = replicate (((bwOfType t) `div` 4) - length nStr) '0'
 
 instance ToSmt Pred where 
   toSmt (PArg a)     = toSmt a 
