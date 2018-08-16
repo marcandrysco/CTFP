@@ -32,7 +32,7 @@ type Var   = UX.Text
 -------------------------------------------------------------------------------
 data Fn 
   = FnCmp     Type Rel     -- ^ 'fcmp' olt 
-  | FnBin     Op           -- ^ binary operation 
+  | FnBin     Type Op      -- ^ binary operation
   | FnSelect               -- ^ ternary 'select' 
   | FnBitcast Type Type    -- ^ 'bitcast' 
   | FnFunc    Var          -- ^ something that is 'call'ed 
@@ -62,7 +62,7 @@ instance UX.PPrint Fn where
   pprint (FnCmp Float r)  = printf "fcmp %s" (UX.pprint r)
   pprint (FnCmp Double r) = printf "fcmp %s" (UX.pprint r)
   pprint (FnCmp (I _) r)  = printf "icmp %s" (UX.pprint r)
-  pprint (FnBin  o)       = UX.pprint o
+  pprint (FnBin _ o)      = UX.pprint o
   pprint FnSelect         = "select" 
   pprint (FnBitcast {})   = "bitcast" 
   pprint (FnFunc f)       = f
@@ -110,7 +110,7 @@ ppCmp t     r   = error $ "ppCmp: " ++ show (t, r)
 ppCall :: Fn -> [TypedArg a] -> Type -> UX.Text 
 ppCall (FnFunc f) tes t   
   = printf "call %s %s (%s)" (UX.pprint t) f (pprints tes) 
-ppCall (FnBin o) [te1, (_, e2)] _ 
+ppCall (FnBin _ o) [te1, (_, e2)] _
   = printf "%s %s, %s" (UX.pprint o) (UX.pprint te1) (UX.pprint e2) 
 ppCall (FnCmp t r) [te1, (_, e2)] _ 
   = printf "%s %s, %s" (ppCmp t r) (UX.pprint te1) (UX.pprint e2) 
@@ -229,7 +229,7 @@ mkBitcast :: TypedArg a -> Type -> a -> Expr a
 mkBitcast (t, e) t' = ECall (FnBitcast t t') [tLit (t, e)] t'
 
 mkOp :: Op -> TypedArg a -> Arg a -> a -> Expr a 
-mkOp o (t, e1) e2 = ECall (FnBin o) [tLit (t, e1), tLit (t, e2)] t 
+mkOp o (t, e1) e2 = ECall (FnBin t o) [tLit (t, e1), tLit (t, e2)] t
 
 mkCall :: Var -> [(Var, Type)] -> Type -> a -> Expr a 
 mkCall f xts t sp = ECall (FnFunc f) tes t sp
