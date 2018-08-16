@@ -18,8 +18,8 @@
 ;(define-const mulmin Float32 ((_ to_fp 8 24) #x1fffffff)) ; FAILS!
 (define-const divmax Float32 ((_ to_fp 8 24) #x5e800000))
 ;(define-const divmax Float32 ((_ to_fp 8 24) #x5e800001)) ; FAILS!
-;(define-const sqrtmin Float32 ((_ to_fp 8 24) #x00800000))
-(define-const sqrtmin Float32 ((_ to_fp 8 24) #x007fffff)) ; FAILS!
+(define-const sqrtmin Float32 ((_ to_fp 8 24) #x00800000))
+;(define-const sqrtmin Float32 ((_ to_fp 8 24) #x007fffff)) ; FAILS!
 (define-const zero Float32 ((_ to_fp 8 24) #x00000000))
 (define-const one Float32 ((_ to_fp 8 24) #x3f800000))
 (define-const two Float32 ((_ to_fp 8 24) #x40000000))
@@ -296,34 +296,20 @@
 
 ; multiplication, part 1
 (define-fun restrict_mul_f32_pre1 ((a Float32) (b Float32)) Bool
-  (and
-    (or (fp.isPositive a) (fp.isNaN a))
-    (or (fp.isPositive b) (fp.isNaN b))
-  )
+  (or (fp.eq a zero) (fp.geq (fp.abs a) mulmin) (fp.isNaN a))
 )
 (define-fun restrict_mul_f32_post1 ((ret Float32) (a Float32) (b Float32)) Bool
-  (= ret (fp.mul rm (fp32_underflow a mulmin) (fp32_underflow b mulmin)))
+  (= ret (fp.mul rm a (fp32_underflow b mulmin)))
 )
 
 ; multiplication, part 2
 (define-fun restrict_mul_f32_pre2 ((a Float32) (b Float32)) Bool
   (and
-    (or (= a zero) (fp.geq a mulmin) (fp.isNaN a))
-    (or (fp.isPositive b) (fp.isNaN b))
+    (or (fp.eq a zero) (fp.geq (fp.abs a) mulmin) (fp.isNaN a))
+    (or (fp.eq b zero) (fp.geq (fp.abs b) mulmin) (fp.isNaN b))
   )
 )
 (define-fun restrict_mul_f32_post2 ((ret Float32) (a Float32) (b Float32)) Bool
-  (= ret (fp.mul rm a (fp32_underflow b mulmin)))
-)
-
-; multiplication, part 3
-(define-fun restrict_mul_f32_pre3 ((a Float32) (b Float32)) Bool
-  (and
-    (or (= a zero) (fp.geq a mulmin) (fp.isNaN a))
-    (or (= b zero) (fp.geq b mulmin) (fp.isNaN b))
-  )
-)
-(define-fun restrict_mul_f32_post3 ((ret Float32) (a Float32) (b Float32)) Bool
   (= ret (fp.mul rm a b))
 )
 
