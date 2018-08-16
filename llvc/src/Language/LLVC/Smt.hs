@@ -230,6 +230,9 @@ instance ToSmt Op where
   toSmt (SmtOp x) = x 
 
 instance ToSmt (Arg a) where 
+  toSmt (ETFlt n Float _)  = printf "((_ to_fp 8 24) roundTowardZero %s)" (show n)
+  toSmt (ETFlt n Double _) = printf "((_ to_fp 11 53) roundTowardZero %s)" (show n)
+  toSmt (ETFlt n _ _)      = show n -- Should not happen
   toSmt (ETLit n (I i) _)  = sigIntHex n (I i)
   toSmt (ETLit n Float _)  = printf "((_ to_fp 8 24) %s)" (sigIntHex n Float)
   toSmt (ETLit n Double _) = printf "(fp64_cast %s)" (sigIntHex n Double)

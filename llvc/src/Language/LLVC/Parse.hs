@@ -124,8 +124,8 @@ argP
  <|> uncurry EVar <$> smtId 
  <?> "smt-argument"
 
-float :: Parser (Float, SourceSpan) 
-float = lexeme L.float 
+float :: Parser (Double, SourceSpan) 
+float = lexeme L.float
 
 exprP :: Parser BareExpr 
 exprP 
