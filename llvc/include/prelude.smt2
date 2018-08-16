@@ -199,7 +199,7 @@
   (= ret (fp.add rm a b))
 )
 
-; addition f32, part 0
+; addition f64, part 0
 (define-fun restrict_add_f64_pre0 ((a Float64) (b Float64)) Bool
   true
 )
@@ -253,6 +253,33 @@
   )
 )
 (define-fun restrict_sub_f32_post2 ((ret Float32) (a Float32) (b Float32)) Bool
+  (= ret (fp.sub rm a b))
+)
+
+; subtraction f64, part 0
+(define-fun restrict_sub_f64_pre0 ((a Float64) (b Float64)) Bool
+  true
+)
+(define-fun restrict_sub_f64_post0 ((ret Float64) (a Float64) (b Float64)) Bool
+  (= ret (fp.sub rm (fp64_underflow a fp64_addmin) (fp64_underflow b fp64_addmin)))
+)
+
+; subtraction f64, part 1
+(define-fun restrict_sub_f64_pre1 ((a Float64) (b Float64)) Bool
+  (or (fp.eq a fp64_zero) (fp.geq (fp.abs a) fp64_addmin) (fp.isNaN a))
+)
+(define-fun restrict_sub_f64_post1 ((ret Float64) (a Float64) (b Float64)) Bool
+  (= ret (fp.sub rm a (fp64_underflow b fp64_addmin)))
+)
+
+; subtraction f64, part 2
+(define-fun restrict_sub_f64_pre2 ((a Float64) (b Float64)) Bool
+  (and
+    (or (fp.eq a fp64_zero) (fp.geq (fp.abs a) fp64_addmin) (fp.isNaN a))
+    (or (fp.eq b fp64_zero) (fp.geq (fp.abs b) fp64_addmin) (fp.isNaN b))
+  )
+)
+(define-fun restrict_sub_f64_post2 ((ret Float64) (a Float64) (b Float64)) Bool
   (= ret (fp.sub rm a b))
 )
 
@@ -1197,6 +1224,15 @@
 (define-fun fsub32_post ((ret Float32) (a Float32) (b Float32)) Bool
   (= ret (fp.sub rm a b))
 )
+(define-fun fsub64_pre ((a Float64) (b Float64)) Bool
+  (not (or (fp.isSubnormal a) 
+           (fp.isSubnormal b) 
+	   (fp.isSubnormal (fp.sub rm a b)))
+  )
+)
+(define-fun fsub64_post ((ret Float64) (a Float64) (b Float64)) Bool
+  (= ret (fp.sub rm a b))
+)
 
 ; fmul
 (define-fun fmul32_pre ((a Float32) (b Float32)) Bool
@@ -1207,6 +1243,16 @@
   )
 )
 (define-fun fmul32_post ((ret Float32) (a Float32) (b Float32)) Bool
+  (= ret (fp.mul rm a b))
+)
+(define-fun fmul64_pre ((a Float64) (b Float64)) Bool
+  (not (or (fp.isSubnormal a) 
+           (fp.isSubnormal b) 
+	         (fp.isSubnormal (fp.mul rm a b))
+       )
+  )
+)
+(define-fun fmul64_post ((ret Float64) (a Float64) (b Float64)) Bool
   (= ret (fp.mul rm a b))
 )
 
