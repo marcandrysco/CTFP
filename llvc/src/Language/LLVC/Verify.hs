@@ -191,26 +191,47 @@ primitiveContracts =
     ( FnCmp Float Oeq 
     , postCond 2 "(= %ret (fp.eq %arg0 %arg1))" 
     )
-  , ( FnBin BvXor
+  , ( FnBin (I 32) BvXor
     , postCond 2 "(= %ret (bvxor %arg0 %arg1))" 
     )
-  , ( FnBin BvOr
+  , ( FnBin (I 32) BvOr
     , postCond 2 "(= %ret (bvor  %arg0 %arg1))" 
     )
-  , ( FnBin BvAnd
+  , ( FnBin (I 32) BvAnd
     , postCond 2 "(= %ret (bvand %arg0 %arg1))" 
     )
-  , ( FnBin FpAdd
+  , ( FnBin Float FpAdd
     , mkContract 2 "(fadd32_pre %arg0 %arg1)" "(fadd32_post %ret %arg0 %arg1)"
     )
-  , ( FnBin FpSub
+  , ( FnBin Float FpSub
     , mkContract 2 "(fsub32_pre %arg0 %arg1)" "(fsub32_post %ret %arg0 %arg1)"
     )
-  , ( FnBin FpMul
+  , ( FnBin Float FpMul
     , mkContract 2 "(fmul32_pre %arg0 %arg1)" "(fmul32_post %ret %arg0 %arg1)"
     )
-  , ( FnBin FpDiv
+  , ( FnBin Float FpDiv
     , mkContract 2 "(fdiv32_pre %arg0 %arg1)" "(fdiv32_post %ret %arg0 %arg1)"
+    )
+  , ( FnBin (I 64) BvXor
+    , postCond 2 "(= %ret (bvxor %arg0 %arg1))"
+    )
+  , ( FnBin (I 64) BvOr
+    , postCond 2 "(= %ret (bvor  %arg0 %arg1))"
+    )
+  , ( FnBin (I 64) BvAnd
+    , postCond 2 "(= %ret (bvand %arg0 %arg1))"
+    )
+  , ( FnBin Double FpAdd
+    , mkContract 2 "(fadd64_pre %arg0 %arg1)" "(fadd64_post %ret %arg0 %arg1)"
+    )
+  , ( FnBin Double FpSub
+    , mkContract 2 "(fsub64_pre %arg0 %arg1)" "(fsub64_post %ret %arg0 %arg1)"
+    )
+  , ( FnBin Double FpMul
+    , mkContract 2 "(fmul64_pre %arg0 %arg1)" "(fmul64_post %ret %arg0 %arg1)"
+    )
+  , ( FnBin Double FpDiv
+    , mkContract 2 "(fdiv64_pre %arg0 %arg1)" "(fdiv64_post %ret %arg0 %arg1)"
     )
   , ( FnSelect   
     , postCond 3 "(= %ret (ite %arg0 %arg1 %arg2))" 

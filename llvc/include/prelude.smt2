@@ -1177,6 +1177,15 @@
 (define-fun fadd32_post ((ret Float32) (a Float32) (b Float32)) Bool
   (= ret (fp.add rm a b))
 )
+(define-fun fadd64_pre ((a Float64) (b Float64)) Bool
+  (not (or (fp.isSubnormal a)
+           (fp.isSubnormal b)
+	   (fp.isSubnormal (fp.add rm a b)))
+  )
+)
+(define-fun fadd64_post ((ret Float64) (a Float64) (b Float64)) Bool
+  (= ret (fp.add rm a b))
+)
 
 ; fsub
 (define-fun fsub32_pre ((a Float32) (b Float32)) Bool

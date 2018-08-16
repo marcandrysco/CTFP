@@ -230,10 +230,9 @@ instance ToSmt Op where
   toSmt (SmtOp x) = x 
 
 instance ToSmt (Arg a) where 
-  toSmt (ETLit n (I 32) _) = sigIntHex n (I 32) 
+  toSmt (ETLit n (I i) _)  = sigIntHex n (I i)
   toSmt (ETLit n Float _)  = printf "((_ to_fp 8 24) %s)" (sigIntHex n Float)
   toSmt (ETLit n Double _) = printf "(fp64_cast %s)" (sigIntHex n Double)
-  toSmt (ETLit n _ _)      = show n 
   toSmt (EFlt n    _)      = printf "((_ to_fp 8 24) roundTowardZero %s)" (show n)
   toSmt (ELit n    _)      = show n
   toSmt (EVar x    _)      = toSmt x 
@@ -266,13 +265,16 @@ bwOfType Double = 64
 bwOfType (I n) = n
 
 sigIntHex :: Integer -> Type -> Smt 
-sigIntHex n t     = M.lookupDefault res (n, t) convTable 
+sigIntHex n t      = M.lookupDefault res (n, t) convTable
   where 
+    bw             = bwOfType t
+    vMax           = 2 ^ bw
     res 
-      | 0 <= n    = "#x" ++ pad ++ nStr 
-      | otherwise = UX.panic ("sigIntHex: negative" ++ show n) UX.junkSpan 
-    nStr          = Utils.integerHex (abs n)
-    pad           = replicate (((bwOfType t) `div` 4) - length nStr) '0'
+      | 0 <= n     = "#x" ++ pad ++ nStr
+      | n >= -vMax = sigIntHex (vMax + n) t
+      | otherwise  = UX.panic ("sigIntHex: negative" ++ show n) UX.junkSpan
+    nStr           = Utils.integerHex (abs n)
+    pad            = replicate ((bw `div` 4) - length nStr) '0'
 
 instance ToSmt Pred where 
   toSmt (PArg a)     = toSmt a 
