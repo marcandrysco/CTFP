@@ -62,6 +62,7 @@ define weak float @ctfp_restrict_sqrt_f32v1_2(float %a) #2 {
 ;@ ensures  (restrict_sqrt_f32_post2 %ret %a)
   %1 = fcmp oeq float %a, 0x7FF0000000000000
   %2 = select i1 %1, i32 -1, i32 0
+;@ assume (split %1)
   %3 = and i32 %2, 2139095040
   %4 = xor i32 %2, -1
   %5 = and i32 %2, 1069547520
@@ -83,6 +84,7 @@ define weak float @ctfp_restrict_sqrt_f32v1_3(float %a) #2 {
 ;@ ensures  (restrict_sqrt_f32_post3 %ret %a)
   %1 = fcmp olt float %a, 0.000000e+00
   %2 = select i1 %1, i32 -1, i32 0
+;@ assume (split %1)
   %3 = and i32 %2, 2143289344
   %4 = xor i32 %2, -1
   %5 = and i32 %2, 1069547520
@@ -128,6 +130,7 @@ define weak float @ctfp_restrict_sqrt_f32v1_5(float %a) #2 {
   %3 = bitcast i32 %2 to float
   %4 = fcmp oeq float %3, 0x3810000000000000
   %5 = select i1 %4, i32 -1, i32 0
+;@ assume (split %4)
   %6 = or i32 %1, 1
   %7 = and i32 %5, %6
   %8 = xor i32 %5, -1

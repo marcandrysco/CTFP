@@ -1,5 +1,9 @@
 (set-logic QF_FPBV)
 
+(define-fun split ((b Bool)) Bool (or b (not b)))
+(define-fun spliteq32 ((a Float32) (b Float32)) Bool (or (= a b) (not (= a b))))
+(define-fun spliteq64 ((a Float64) (b Float64)) Bool (or (= a b) (not (= a b))))
+
 ; The global rounding mode
 (declare-const rm RoundingMode)
 

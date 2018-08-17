@@ -81,7 +81,7 @@ push     = say  "(push 1)"
 pop      = say  "(pop 1)"
 
 checkSat :: UX.UserError -> VC
-checkSat e = VC [ Hear "(check-sat-using (par-or (then solve-eqs simplify qffpbv) smt))" Unsat e ]
+checkSat e = VC [ Hear "(check-sat-using (then (repeat (or-else split-clause skip)) (par-or (then solve-eqs simplify qffpbv) smt)))" Unsat e ]
 
 say :: UX.Text -> VC
 say s = VC [ Say s ]
