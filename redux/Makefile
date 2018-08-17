@@ -2,9 +2,6 @@
 CPU=skylake
 #CPU=barcelona
 
-#a: gen
-	#./gen
-
 #all: prover
 all: ctfp.bc ctfp-llvm.so ctfp-clean.so ctfp-math-1.so ctfp-math-2.so
 

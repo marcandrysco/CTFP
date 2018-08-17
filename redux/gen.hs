@@ -747,8 +747,8 @@ restrict_sqrt =
   with_underflow fltmin @@
   with_dummy val_nan  val_nan  val_dummy @@
   with_dummy val_inf  val_inf  val_dummy @@
-  with_dummy val_zero val_zero val_dummy @@
   neg_sqrt @@
+  zero_sqrt @@
   blind_sqrt @@
   FSqrt
 

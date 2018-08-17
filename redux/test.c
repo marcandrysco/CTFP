@@ -267,6 +267,11 @@ int main(int argc, char **argv)
 		//printf("%.17g\n", FLT_MAX * FLT_MIN);
 		//exit(0);
 
+	if(1) {
+		printf("%f vs %f\n", sqrt(-0.0), ctfp_restrict_sqrt_f32v1(-0.0));
+		printf("%f vs %f\n", sqrt(0.0), ctfp_restrict_sqrt_f32v1(0.0));
+		return 0;
+	}
 	//printf("%f\n", FLT_MAX * FLT_MIN);
 	if(0) {
 		float x, y;
@@ -303,7 +308,6 @@ int main(int argc, char **argv)
 
 	unsigned int i, j;
 
-	if(0)
 	for(i = 0; i < ARRSIZE(val32); i++) {
 		float x = val32[i];
 
@@ -341,8 +345,7 @@ int main(int argc, char **argv)
 			printf("RESTRICT sqrt %g = %g (expected %g)\n", x, ctfp_restrict_sqrt_f32v1(x), simul_restrict_sqrt_f32(x));
 	}
 
-	if(1)
-	for(i = 0; i < 10000000; i++) {
+	for(i = 0; i < 1000000; i++) {
 		float x = rand_f32(), y = rand_f32();
 
 		if(!isequal32(ctfp_restrict_add_f32v1_hack(x, y), simul_restrict_add_f32(x, y)))
