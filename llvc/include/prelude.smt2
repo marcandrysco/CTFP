@@ -800,10 +800,7 @@
 
 ; multiplication, part 1
 (define-fun full_mul_f32_pre1 ((a Float32) (b Float32)) Bool
-  (and
-    (or (fp.isPositive a) (fp.isNaN a))
-    (or (fp.isPositive b) (fp.isNaN b))
-  )
+  (not (fp.isSubnormal a))
 )
 (define-fun full_mul_f32_post1 ((ret Float32) (a Float32) (b Float32)) Bool
   (or
@@ -820,8 +817,8 @@
 ; multiplication, part 2
 (define-fun full_mul_f32_pre2 ((a Float32) (b Float32)) Bool
   (and
-    (or (= a zero) (fp.geq a fltmin)(fp.isNaN a))
-    (or (fp.isPositive b) (fp.isNaN b))
+    (not (fp.isSubnormal a))
+    (not (fp.isSubnormal b))
   )
 )
 (define-fun full_mul_f32_post2 ((ret Float32) (a Float32) (b Float32)) Bool
@@ -836,24 +833,7 @@
   )
 )
 
-; multiplication, part 3
-(define-fun full_mul_f32_pre3 ((a Float32) (b Float32)) Bool
-  (and
-    (or (= a zero) (fp.geq a fltmin) (fp.isNaN a))
-    (or (= b zero) (fp.geq b fltmin) (fp.isNaN b))
-  )
-)
-(define-fun full_mul_f32_post3 ((ret Float32) (a Float32) (b Float32)) Bool
-  (or
-    (= ret
-       (fp32_underflow (fp.mul rm a b) fltmin))
-    ; Take into account double rounding issue
-    (and
-      (= ret zero)
-      (= (fp.mul rm a b) fltmin)
-    )
-  )
-)
+; leftover
 (define-fun full_mul_f32_assume3_1 ((a Float32) (b Float32)) Bool
   (not (fp.isSubnormal (fp.mul rm a b)))
 )
@@ -865,15 +845,15 @@
   )
 )
 
-; multiplication, part 4
-(define-fun full_mul_f32_pre4 ((a Float32) (b Float32)) Bool
+; multiplication, part 3
+(define-fun full_mul_f32_pre3 ((a Float32) (b Float32)) Bool
   (and
     (not (fp.isSubnormal a))
     (not (fp.isSubnormal b))
     (not (fp.isSubnormal (fp.mul rm a b)))
   )
 )
-(define-fun full_mul_f32_post4 ((ret Float32) (a Float32) (b Float32)) Bool
+(define-fun full_mul_f32_post3 ((ret Float32) (a Float32) (b Float32)) Bool
   (= ret
     (fp32_underflow (fp.mul rm a b) fltmin)
   )
