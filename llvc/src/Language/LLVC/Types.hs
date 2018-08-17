@@ -40,6 +40,7 @@ data Fn
 
 data Rel 
   = Olt 
+  | Ult 
   | Ogt 
   | Oeq 
   | Une 
@@ -53,6 +54,7 @@ instance Hashable Fn
 
 instance UX.PPrint Rel where 
   pprint Olt = "olt"
+  pprint Ult = "ult"
   pprint Ogt = "ogt"
   pprint Oeq = "oeq"
   pprint Une = "une"
@@ -99,10 +101,12 @@ instance UX.PPrint (Expr a) where
 
 ppCmp :: Type -> Rel -> UX.Text 
 ppCmp Float Olt = "fcmp olt"
+ppCmp Float Ult = "fcmp ult"
 ppCmp Float Ogt = "fcmp ogt"
 ppCmp Float Oeq = "fcmp oeq"
 ppCmp Float Une = "fcmp une"
 ppCmp Double Olt = "fcmp olt"
+ppCmp Double Ult = "fcmp ult"
 ppCmp Double Ogt = "fcmp ogt"
 ppCmp Double Oeq = "fcmp oeq"
 ppCmp Double Une = "fcmp une"

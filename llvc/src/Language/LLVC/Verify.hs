@@ -173,10 +173,12 @@ mkEnv p   = Env (M.fromList sigs) (M.fromList fIds) (M.fromList fDefs) []
 primitiveContracts :: [(Fn, Contract)]
 primitiveContracts =  
   [ ( FnCmp Float Olt , postCond 2 "(= %ret (fp.lt %arg0 %arg1))" )
+  , ( FnCmp Float Ult , postCond 2 "(= %ret (not (fp.geq %arg0 %arg1)))" )
   , ( FnCmp Float Ogt , postCond 2 "(= %ret (fp.gt %arg0 %arg1))" )
   , ( FnCmp Float Une , postCond 2 "(= %ret (not (fp.eq %arg0 %arg1)))" )
   , ( FnCmp Float Oeq , postCond 2 "(= %ret (fp.eq %arg0 %arg1))" )
   , ( FnCmp Double Olt , postCond 2 "(= %ret (fp.lt %arg0 %arg1))" )
+  , ( FnCmp Double Ult , postCond 2 "(= %ret (not (fp.geq %arg0 %arg1)))" )
   , ( FnCmp Double Ogt , postCond 2 "(= %ret (fp.gt %arg0 %arg1))" )
   , ( FnCmp Double Une , postCond 2 "(= %ret (not (fp.eq %arg0 %arg1)))" )
   , ( FnCmp Double Oeq , postCond 2 "(= %ret (fp.eq %arg0 %arg1))" )

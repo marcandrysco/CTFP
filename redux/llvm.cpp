@@ -125,7 +125,7 @@ struct CTFP : public FunctionPass {
 				}
 				else if(op->getType()->getPointerTo() == arg) {
 					fprintf(stderr, "Error\n"), abort();
-					AllocaInst *alloc = new AllocaInst(op->getType());
+					AllocaInst *alloc = new AllocaInst(op->getType(), 0);
 					alloc->setAlignment(32);
 					alloc->insertBefore(&*inst->getParent()->getParent()->front().getFirstInsertionPt());
 
@@ -169,9 +169,8 @@ struct CTFP : public FunctionPass {
 			Value *op = inst->getOperand(i);
 			Type *arg = func->getFunctionType()->getParamType(i);
 			if(op->getType()->getPointerTo() == arg) {
-				AttributeSet set = call->getAttributes();
-				std::vector<unsigned int> indices = { i + 1 };
-				set = set.addAttribute(ctx, indices, Attribute::getWithAlignment(ctx, 32));
+				AttributeList set = call->getAttributes();
+				set = set.addAttribute(ctx, i + 1, Attribute::getWithAlignment(ctx, 32));
 				set = set.addAttribute(ctx, i + 1, Attribute::NonNull);
 				set = set.addAttribute(ctx, i + 1, Attribute::ByVal);
 				call->setAttributes(set);

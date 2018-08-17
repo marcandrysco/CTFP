@@ -183,6 +183,7 @@ cmpP = do
  
 relP :: Parser Rel 
 relP =  (rWord "olt" >> return Olt)
+    <|> (rWord "ult" >> return Ult)
     <|> (rWord "ogt" >> return Ogt) 
     <|> (rWord "oeq" >> return Oeq) 
     <|> (rWord "une" >> return Une) 
@@ -322,7 +323,7 @@ keywords =
   [ "define", "declare", "weak"
   , "float", "double", "i64", "i32", "i1"
   , "call"
-  , "fcmp", "olt", "ogt", "oeq", "une", "select"
+  , "fcmp", "olt", "ult", "ogt", "oeq", "une", "select"
   , "bitcast", "to"
   , "and", "or"
   , "ret"

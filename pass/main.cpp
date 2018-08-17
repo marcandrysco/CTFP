@@ -145,6 +145,7 @@ void Pass::Run() {
 			fatal("stub");
 
 		case Fact::FOlt64:
+			Dump();
 			Add(&inst, Fact::FltOLT64(*info.second[0], *info.second[1], &inst));
 			break;
 

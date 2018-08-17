@@ -189,7 +189,7 @@ Ival64 Ival64::FltAdd(const Ival64 &lhs, const Ival64 &rhs) {
  * Compute the relative complement of two intervals.
  *   @lhs: The left-hand side.
  *   @rhs: The right-hand side.
- *   &returns: The intersction set.
+ *   &returns: The relative complement set.
  */
 std::vector<Ival64> Ival64::FltRelComp(const Ival64 &lhs, const Ival64 &rhs)
 {

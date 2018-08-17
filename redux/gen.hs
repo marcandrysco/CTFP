@@ -625,7 +625,7 @@ blind_sqrt =
 trial :: (Expr -> Expr -> Expr) -> Expr -> (Expr, Expr) -> (FP2 -> FP1) -> FP2 -> FP1
 trial fn lim safe =
   withBlind
-    (\(u,v)   -> FCmpOLT (Abs (fn u v), lim))
+    (\(u,v)   -> And (FCmpOGT (Abs (fn u v), val_zero), FCmpOLT (Abs (fn u v), lim)))
     (\(u,v)   -> safe)
     (\(u,v) r -> CopySign(r, fn u v))
 
@@ -726,7 +726,7 @@ restrict_sub =
 -- multiplication
 restrict_mul :: FP2 -> FP1
 restrict_mul =
-  do_sign @@
+  --do_sign @@
   with_underflow1 mulmin True @@
   with_underflow2 mulmin True @@
   FMul
@@ -774,9 +774,8 @@ full_sub =
 -- multiplication
 full_mul :: FP2 -> FP1
 full_mul =
-  do_sign @@
-  with_underflow1 fltmin False @@
-  with_underflow2 fltmin False @@
+  with_underflow1 fltmin True @@
+  with_underflow2 fltmin True @@
   trymul @@
   FMul
 

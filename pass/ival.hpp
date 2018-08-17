@@ -27,6 +27,7 @@ public:
 	static Ival64 FltAdd(const Ival64 &lhs, const Ival64 &rhs);
 
 	static std::vector<Ival64> FltRelComp(const Ival64 &lhs, const Ival64 &rhs);
+	static std::vector<Ival64> FltRelComp2(const std::vector<Ival64> &lhs, const std::vector<Ival64> &rhs);
 
 	bool IsConst() const;
 	bool IsValue(uint64_t val) const;

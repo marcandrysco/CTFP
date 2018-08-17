@@ -218,7 +218,7 @@ Range64 Range64::FltAdd(const Range64 &lhs, const Range64 &rhs) {
 			min = ldexp(1.0, exp);
 
 			if(min >= 0) {
-				printf("MIN: %e (%e %e %e %e)\n", min);
+				printf("MIN: %e\n", min);
 				res.Insert(
 					//Ival64::FltRelComp(
 						Ival64::FltAdd(x, y)//,
@@ -523,4 +523,9 @@ Range Range::InvFltAbs64(const Range &in) {
 		return Range64::InvFltAbs(std::get<Range64>(in.var));
 	else
 		fatal("FltAbs64 applied to invalid range.");
+}
+
+
+Range64 FltRelComp(const Range64 &lhs, const Range64 &rhs) {
+	return lhs;
 }
