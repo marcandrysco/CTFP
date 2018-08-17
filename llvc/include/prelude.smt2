@@ -21,13 +21,16 @@
 (define-const sqrtmin Float32 ((_ to_fp 8 24) #x00800000))
 ;(define-const sqrtmin Float32 ((_ to_fp 8 24) #x007fffff)) ; FAILS!
 (define-const zero Float32 ((_ to_fp 8 24) #x00000000))
+(define-const zero64 Float64 ((_ to_fp 11 53) #x0000000000000000))
 (define-const one Float32 ((_ to_fp 8 24) #x3f800000))
 (define-const two Float32 ((_ to_fp 8 24) #x40000000))
 (define-const four Float32 ((_ to_fp 8 24) #x40800000))
 (define-const forth Float32 ((_ to_fp 8 24) #x3e800000))
 (define-const inf Float32 ((_ to_fp 8 24) #x7f800000))
+(define-const inf64 Float64 ((_ to_fp 11 53) #x7ff0000000000000))
 
 (define-const fltmin Float32 ((_ to_fp 8 24) #x00800000))
+(define-const dblmin Float64 ((_ to_fp 11 53) #x0010000000000000))
 (define-const fltmin4 Float32 ((_ to_fp 8 24) #x01800000))
 (define-const fltmax Float32 ((_ to_fp 8 24) #x7f7fffff))
 (define-const fltmax4 Float32 ((_ to_fp 8 24) #x7e7fffff))
@@ -114,6 +117,9 @@
 ; check if a value is a power-of-four
 (define-fun fp32_ispow4 ((v Float32)) Bool
   (= #x00800000 (bvand (to_ieee_bv v) #x00ffffff))
+)
+(define-fun fp64_ispow4 ((v Float64)) Bool
+  (= #x0010000000000000 (bvand (to_ieee_bv v) #x001fffffffffffff))
 )
 
 (define-fun fp32_exp ((v Float32)) (_ BitVec 8)
@@ -548,6 +554,84 @@
   (= ret (fp.sqrt rm a))
 )
 
+; sqrt f64, part 0
+(define-fun restrict_sqrt_f64_pre0 ((a Float64)) Bool
+  true
+)
+(define-fun restrict_sqrt_f64_post0 ((ret Float64) (a Float64)) Bool
+  (= ret (fp.sqrt rm (fp64_underflow a dblmin)))
+)
+
+; sqrt f64, part 1
+(define-fun restrict_sqrt_f64_pre1 ((a Float64)) Bool
+  (not (fp.isSubnormal (fp.sqrt rm a)))
+)
+(define-fun restrict_sqrt_f64_post1 ((ret Float64) (a Float64)) Bool
+  (= ret (fp.sqrt rm a))
+)
+
+; sqrt f64, part 2
+(define-fun restrict_sqrt_f64_pre2 ((a Float64)) Bool
+  (and
+    (not (fp.isSubnormal (fp.sqrt rm a)))
+    (not (fp.isNaN a))
+  )
+)
+(define-fun restrict_sqrt_f64_post2 ((ret Float64) (a Float64)) Bool
+  (= ret (fp.sqrt rm a))
+)
+
+; sqrt f64, part 3
+(define-fun restrict_sqrt_f64_pre3 ((a Float64)) Bool
+  (and
+    (not (fp.isSubnormal (fp.sqrt rm a)))
+    (not (fp.isNaN a))
+    (not (= a inf64))
+  )
+)
+(define-fun restrict_sqrt_f64_post3 ((ret Float64) (a Float64)) Bool
+  (= ret (fp.sqrt rm a))
+)
+
+; sqrt f64, part 4
+(define-fun restrict_sqrt_f64_pre4 ((a Float64)) Bool
+  (and
+    (not (fp.isSubnormal (fp.sqrt rm a)))
+    (not (fp.isNaN a))
+    (not (= a inf64))
+    (fp.geq a zero64)
+  )
+)
+(define-fun restrict_sqrt_f64_post4 ((ret Float64) (a Float64)) Bool
+  (= ret (fp.sqrt rm a))
+)
+
+; sqrt f64, part 5
+(define-fun restrict_sqrt_f64_pre5 ((a Float64)) Bool
+  (and
+    (not (fp.isSubnormal (fp.sqrt rm a)))
+    (not (fp.isNaN a))
+    (not (= a inf64))
+    (fp.gt a zero64)
+  )
+)
+(define-fun restrict_sqrt_f64_post5 ((ret Float64) (a Float64)) Bool
+  (= ret (fp.sqrt rm a))
+)
+
+; sqrt f64, part 6
+(define-fun restrict_sqrt_f64_pre6 ((a Float64)) Bool
+  (and
+    (not (fp.isSubnormal (fp.sqrt rm a)))
+    (not (fp.isNaN a))
+    (not (= a inf64))
+    (fp.gt a zero64)
+    (not (fp64_ispow4 a))
+  )
+)
+(define-fun restrict_sqrt_f64_post6 ((ret Float64) (a Float64)) Bool
+  (= ret (fp.sqrt rm a))
+)
 
 ;; FULL ADDITION PRE/POST
 
@@ -1278,6 +1362,17 @@
   )
 )
 (define-fun fsqrt32_post ((ret Float32) (a Float32)) Bool
+  (= ret (fp.sqrt rm a))
+)
+(define-fun fsqrt64_pre ((a Float64)) Bool
+  (and
+    (fp.geq a zero64)
+    (not (= a inf64))
+    (not (fp64_ispow4 a))
+    (not (fp.isSubnormal (fp.sqrt rm a)))
+  )
+)
+(define-fun fsqrt64_post ((ret Float64) (a Float64)) Bool
   (= ret (fp.sqrt rm a))
 )
 
