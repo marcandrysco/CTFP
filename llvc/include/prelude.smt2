@@ -838,6 +838,53 @@
   )
 )
 
+; subtraction f64, part 0
+(define-fun full_sub_f64_pre0 ((a Float64) (b Float64)) Bool
+  true
+)
+(define-fun full_sub_f64_post0 ((ret Float64) (a Float64) (b Float64)) Bool
+  (= ret
+    (fp64_underflow (fp.sub rm (fp64_underflow a dblmin) (fp64_underflow b dblmin)) dblmin)
+  )
+)
+
+; subtraction f64, part 1
+(define-fun full_sub_f64_pre1 ((a Float64) (b Float64)) Bool
+  (not (fp.isSubnormal a))
+)
+(define-fun full_sub_f64_post1 ((ret Float64) (a Float64) (b Float64)) Bool
+  (= ret
+    (fp64_underflow (fp.sub rm (fp64_underflow a dblmin) (fp64_underflow b dblmin)) dblmin)
+  )
+)
+
+; subtraction f64, part 2
+(define-fun full_sub_f64_pre2 ((a Float64) (b Float64)) Bool
+  (and
+    (not (fp.isSubnormal a))
+    (not (fp.isSubnormal b))
+  )
+)
+(define-fun full_sub_f64_post2 ((ret Float64) (a Float64) (b Float64)) Bool
+  (= ret
+    (fp64_underflow (fp.sub rm (fp64_underflow a dblmin) (fp64_underflow b dblmin)) dblmin)
+  )
+)
+
+; subtraction f64, part 3
+(define-fun full_sub_f64_pre3 ((a Float64) (b Float64)) Bool
+  (and
+    (not (fp.isSubnormal a))
+    (not (fp.isSubnormal b))
+    (not (fp.isSubnormal (fp.sub rm a b)))
+  )
+)
+(define-fun full_sub_f64_post3 ((ret Float64) (a Float64) (b Float64)) Bool
+  (= ret
+    (fp64_underflow (fp.sub rm (fp64_underflow a dblmin) (fp64_underflow b dblmin)) dblmin)
+  )
+)
+
 
 ;; FULL MULTIPLICATION PRE/POST
 
