@@ -48,6 +48,7 @@ data Expr
   | FDivSig  (Expr, Expr)
   | FDivExp  (Expr, Expr)
   | FCmpOEQ  (Expr, Expr)
+  | ICmp     (Expr, Expr)
   | FCmpUNE  (Expr, Expr)
   | FCmpOLT  (Expr, Expr)
   | FCmpULT  (Expr, Expr)
@@ -392,9 +393,9 @@ mk_or x y    = if x == y then x else Or (x, y)
 
 -- compare for equality that works on not-a-number
 mk_cmp (a, b)
-  | a == val_nan = FCmpUNE (b, b)
-  | b == val_nan = FCmpUNE (a, a)
-  | otherwise    = FCmpOEQ (a, b)
+  | a == val_nan  = FCmpUNE (b, b)
+  | b == val_nan  = FCmpUNE (a, a)
+  | otherwise     = FCmpOEQ (a, b)
 
 
 -- ## HELPERS ## --
@@ -429,7 +430,7 @@ ite2 b (x1,x2) (y1,y2) = (ite b x1 y1, ite b x2 y2)
 -- extract the exponent component
 get_exp :: Expr -> Expr
 get_exp e =
-  And (e, Int (dec "0x7F800000", dec "0x7FF0000000000000") )
+  And (e, Int (dec "0xFF800000", dec "0xFFF0000000000000") )
 
 -- extract the significand component
 get_sig :: Expr -> Expr
@@ -445,38 +446,41 @@ do_sign op (a, b) =
     (\_ r -> CopySign(r, Xor (a, b)))
     op
     (a, b)
-
--- handle big numbers by shifting them down (only division)
-do_big :: (FP2 -> FP1) -> FP2 -> FP1
-do_big =
+do_sign2 :: (FP2 -> FP1) -> FP2 -> FP1
+do_sign2 op (a, b) =
   withBlind
-    (\(u,v) -> And (FCmpOGT (u, val_one), FCmpOLT (v, val_one)))
-    (\(u,v) -> (u , FMul (v, val_two)))
-    (\_ r -> FMul (r, val_two))
-
--- handle small numbers by shifting them up (only division)
-do_small :: (FP2 -> FP1) -> FP2 -> FP1
-do_small =
-  withBlind
-    (\(u,v) -> FCmpOLT (v, val_inf))
-    (\(u,v) -> (u , FMul (v, val_forth)))
-    (\_ r   -> FMul (r, val_forth))
-
-do_extreme :: (FP2 -> FP1) -> FP2 -> FP1
-do_extreme op (a, b) =
-  let
-    isbig  = And (FCmpOGT (a, val_one), FCmpOLT (b, val_one))
-    istiny = And (FCmpOLT (a, val_four), FCmpOGT (b, val_forth))
-    scale = ite isbig val_four (ite istiny val_forth val_one)
-    --scale = ite (FCmpOGT (b, val_four)) val_forth val_two
-  in
-    withBlind
-    (\_     -> val_true)
-    (\(u,v) -> (u, FMul (v, scale)))
-    (\_ r   -> FMul (r, scale))
+    (\_ -> val_true)
+    (\(u,v) -> (u, v))
+    (\_ r -> CopySign(r, Xor (a, b)))
     op
     (a, b)
 
+-- handle extreme numbers by shifting them(only division)
+do_extreme2 :: (FP2 -> FP1) -> FP2 -> FP1
+do_extreme2 op (a, b) =
+  let
+    isbig  = And (FCmpOGT (Abs a, val_four), FCmpOLT (Abs b, val_one))
+    scale = ite isbig val_four val_one
+  in
+    withBlind
+      (\_     -> val_true)
+      (\(u,v) -> (u, FMul (v, scale)))
+      (\_ r   -> FMul (r, scale))
+      op
+      (a, b)
+
+do_extreme :: (FP2 -> FP1) -> FP2 -> FP1
+do_extreme op (a, b) =
+  let 
+    cond = And (FCmpOGT (Abs a, val_forth), FCmpOGT (Abs b, val_forth))
+    scale = ite cond (Float ("0.03125", "0.03125")) val_one
+  in
+  withBlind
+      (\_     -> val_true)
+      (\(u,v) -> (FMul(u, scale), FMul (v, scale)))
+      (\_ r   -> r)
+      op
+      (a, b)
 
 -- ## STRATEGIES ## --
 
@@ -533,7 +537,7 @@ with_dummies :: [(Maybe Expr, Maybe Expr)] -> FP1 -> FP1 -> (FP2 -> FP1) -> FP2 
 with_dummies unsafe ans safe op (a, b) =
   let
     g x val = case x of
-      Just expr -> mk_cmp(expr, val)
+      Just expr -> mk_cmp(expr, Abs val)
       Nothing   -> val_true
     f xs (x,y) =
       case xs of
@@ -541,7 +545,7 @@ with_dummies unsafe ans safe op (a, b) =
         []       -> val_false
   in
     withBlind
-      (\(x,y) -> f unsafe (x,y))
+      (\(x,y) -> f unsafe (x, y))
       (\(x,y) -> (safe, safe))
       (\_ _   -> ans)
       op
@@ -585,7 +589,7 @@ div_exp =
 -- prevent division by one using a dummy
 div_noop op (a, b) =
   withBlind
-    (\(u,v) -> FCmpOEQ(v, val_one))
+    (\(u,v) -> FCmpOEQ(Abs(v), val_one))
     (\_ -> (val_dummy, val_dummy))
     (\_ _ -> a)
     op
@@ -656,13 +660,12 @@ trymul =
 -- trial division
 trydiv :: (FP2 -> FP1) -> FP2 -> FP1
 trydiv op (a, b) =
-  let big = FCmpOGT (b, val_one) in
-    trial
-      (\v w -> safediv (FMul (v, divoff), w))
-      divcmp
-      (val_zero, val_one)
-      op
-      (a, b)
+  trial
+    (\v w -> safediv (FMul(FMul (v, divoff), divoff2), w))
+    divoff2
+    (val_zero, val_one)
+    op
+    (a, b)
 
 
 -- ## CONSTANTS ## --
@@ -702,9 +705,10 @@ muloff = Float ( "8.50705917302346159e+37", "6.70390396497129855e+153" )
 mulcmp = Float ( "1.0", "1.0" )
 
 divoff = Float ( "8.50705917302346159e+37", "6.70390396497129855e+153" )
-divoff2 = Float ( "0.25", "0.25" )
-divcmp = Float ( "4.0", "4.0" )
-divcmp2 = Float ( "4.0", "4.0" )
+divoff2 = Float ( "8.0", "8.0" )
+divcmp = Float ( "1.0", "1.0" )
+--divoff = Float ( "1.0633823966279327e+37", "1.0633823966279327e+37" )
+--divcmp = Float ( "0.25", "0.25" )
 
 
 -- ## RESTRICT ## --
@@ -734,9 +738,9 @@ restrict_mul =
 -- division
 restrict_div :: FP2 -> FP1
 restrict_div =
-  do_sign @@
-  with_underflow1 divmin False @@
-  with_underflow2 divmin False @@
+  do_sign2 @@
+  with_underflow1 divmin True @@
+  with_underflow2 divmin True @@
   with_overflow1 divmax @@
   with_overflow2 divmax @@
   safediv
@@ -782,13 +786,12 @@ full_mul =
 -- division
 full_div :: FP2 -> FP1
 full_div =
-  do_sign @@
-  with_underflow1 fltmin False @@
-  with_underflow2 fltmin False @@
-  --do_small @@
+  do_sign2 @@
+  with_underflow1 fltmin True @@
+  with_underflow2 fltmin True @@
   do_extreme @@
+  do_extreme2 @@
   trydiv @@
-  --do_big @@
   safediv
 
 -- sqrt
@@ -930,6 +933,7 @@ gen_expr (FSub (a, b), env) = if env_dbg env then gen_call2 ("dbg_fsub_" ++ (env
 gen_expr (FMul (a, b), env) = if env_dbg env then gen_call2 ("dbg_fmul_" ++ (env2vec env), a, b, env) else gen_fop2 ("fmul", a, b, env)
 gen_expr (FDivSig (a, b), env) = if env_dbg env then gen_call2 ("dbg_fdiv_sig_" ++ (env2vec env), a, b, env) else gen_fop2 ("fdiv", a, b, env)
 gen_expr (FDivExp (a, b), env) = if env_dbg env then gen_call2 ("dbg_fdiv_exp_" ++ (env2vec env), a, b, env) else gen_fop2 ("fdiv", a, b, env)
+gen_expr (ICmp (a, b), env) = gen_icmp ("icmp eq", a, b, env)
 gen_expr (FCmpOEQ (a, b), env) = gen_fcmp ("fcmp oeq", a, b, env)
 gen_expr (FCmpOLT (a, b), env) = gen_fcmp ("fcmp olt", a, b, env)
 gen_expr (FCmpULT (a, b), env) = gen_fcmp ("fcmp ult", a, b, env)
@@ -1016,6 +1020,19 @@ gen_fop2 (op, a, b, env) =
      (rb, env) <- llvm_expr (b, env)
      let (env',ro) = alloc env in
        do putStr $ ro++" = "++op++" "++(env2flt env)++" "++ra++", "++rb++"\n"
+          return (ro, env')
+
+-- generate code for an integer comparison
+gen_icmp :: (String, Expr, Expr, Env) -> IO (String, Env)
+gen_icmp (cmp, a, b, env) =
+  do (ra, env) <- llvm_expr (a, env)
+     (rb, env) <- llvm_expr (b, env)
+     let (env', [ra',rb',rt,rs,ro]) = allocs env 5 in
+       do putStr $ ra'++" = bitcast "++(env2flt env)++" "++ra++" to "++(env2int env)++"\n"
+          putStr $ rb'++" = bitcast "++(env2flt env)++" "++rb++" to "++(env2int env)++"\n"
+          putStr $ rt++" = "++cmp++" "++(env2int env')++" "++ra'++", "++rb'++"\n"
+          putStr $ rs++" = select "++(env2bool env')++" "++rt++", "++(env2int env')++" "++(ones env')++", "++(env2int env')++" "++(zeros env')++"\n"
+          putStr $ ro++" = bitcast "++(env2int env')++" "++rs++" to "++(env2flt env')++"\n"
           return (ro, env')
 
 -- generate code for a floating-point comparison

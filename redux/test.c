@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <float.h>
+#include <fenv.h>
 #include <time.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -27,6 +28,7 @@ float ctfp_full_sub_f32v1_hack(float, float);
 float ctfp_full_mul_f32v1_hack(float, float);
 float ctfp_full_div_f32v1_hack(float, float);
 float ctfp_full_sqrt_f32v1(float);
+double ctfp_restrict_add_f64v1_hack(double, double);
 
 
 static inline bool issub(double f)
@@ -72,7 +74,7 @@ static inline bool ispow2(double f)
 
 	f = frexp(f, &exp);
 
-	return f == 0.5;
+	return (f == 0.5) || (f == -0.5);
 }
 
 static inline bool ispow4(double f)
@@ -202,6 +204,7 @@ double divmax_f64 = 3.35195198248564927e+153;
  * ctfp semantic simulation functions
  */
 float simul_restrict_add_f32(float a, float b) { return underflow(a, addmin_f32) + underflow(b, addmin_f32); }
+double simul_restrict_add_f64(double a, double b) { return underflow(a, addmin_f64) + underflow(b, addmin_f64); }
 float simul_restrict_sub_f32(float a, float b) { return underflow(a, addmin_f32) - underflow(b, addmin_f32); }
 float simul_restrict_mul_f32(float a, float b) { return underflow(a, mulmin_f32) * underflow(b, mulmin_f32); }
 float simul_restrict_div_f32(float a, float b) {
@@ -239,6 +242,13 @@ bool isequal32(float a, float b)
 	else 
 		return (a == b) && (signbit(a) == signbit(b));
 }
+bool isequal64(double a, double b)
+{
+	if(isnan(a) && isnan(b))
+		return true;
+	else 
+		return (a == b) && (signbit(a) == signbit(b));
+}
 
 
 /*
@@ -249,6 +259,21 @@ static float val32[] = {
 	-0.0f, -1.0f, -2.0f, -4.0f, -1.3f, -2.4f, -INFINITY, -NAN, -FLT_MAX, -FLT_MIN, -FLT_MIN / 2.0f,
 };
 
+
+float f32_sig(float f)
+{
+	int e;
+	return frexp(f, &e);
+}
+
+float f32_exp(float f)
+{
+	int e;
+	frexp(f, &e);
+	return ldexp(copysign(1.0, f), e);
+}
+
+void runtest();
 
 /**
  * Main entry point.
@@ -267,45 +292,64 @@ int main(int argc, char **argv)
 		//printf("%.17g\n", FLT_MAX * FLT_MIN);
 		//exit(0);
 
-	if(1) {
-		printf("%f vs %f\n", sqrt(-0.0), ctfp_restrict_sqrt_f32v1(-0.0));
-		printf("%f vs %f\n", sqrt(0.0), ctfp_restrict_sqrt_f32v1(0.0));
-		return 0;
-	}
-	//printf("%f\n", FLT_MAX * FLT_MIN);
-	if(0) {
-		float x, y;
-		//float x = 1.5; //FLT_MIN;
-		//float y = 1.17549435e-38; //FLT_MAX;
-		//x = 1.14082; y = 6.96095e+37;
-		x = 2.39691e+38; y = 0.729833;
-		//printf("%.9g\n", 2*FLT_MIN * 1.7014118346046923e+38 / FLT_MAX);
-		//printf("%g\n", FLT_MIN * (FLT_MAX / 2));
-		//exit(0);
-		printf("%g\n", x * 8.50705917302346159e+37);
-		printf("%g\n", (x * 8.50705917302346159e+37) / (y * 0.25));
-		//printf("%g\n", (x * 1.7014118346046923e+38) / y);
-		printf("%g (expected %g)\n", ctfp_full_div_f32v1_hack(x, y), x / y);
-		
-		return 0;
-	}
 	if(0) {
 		//float x = FLT_MIN, y = FLT_MAX;
-		float x = 6.06977e+32, y = 1.84978e-06;
+		volatile float x, y;// = 8.0f, y = FLT_MAX;
+
+		x = 1.0f; y = FLT_MIN / 2;//3.40282e+38;
+		x = 4.0f; y = -FLT_MIN;
+		x = -FLT_MAX; y = -FLT_MIN;
 
 		//double a = FLT_MIN, b = FLT_MAX;
 
 		//printf("%.17g\n", (a * (1.0/FLT_MIN)));
 		//printf("%.17g\n", (a * 8.50705917302346159e+37));
 		//printf("%.17g\n", (a * 8.50705917302346159e+37) / b);
-		//printf("FLT_MIN: %.17g\n", FLT_MIN);
+		printf("FLT_MIN: %.17g\n", FLT_MIN);
 
-		printf("%g\n", ctfp_full_div_f32v1_hack(x, y));
-		printf("%g\n", x / y);
+		volatile float v;
+
+		//v = x * 1.0633823966279327e+37;
+
+		float scale = 1.0f;
+		float s2 = (fabsf(x) > 4 && fabsf(y) < 1) ? 4.0 : 1.0;
+		float xp = x*scale, yp = y*scale*s2;
+
+
+		//v = xp * 8.50705917302346159e+37;
+		//printf("v          %g\n", v);
+		//printf("v/y        %g\n", v / yp);
+		//printf("%.8g\n", ctfp_full_div_f32v1_hack(x, y));
+		//printf("%.8g\n", x / y);
+		fesetround(FE_DOWNWARD);
+
+		//v = x * 1.0633823966279327e+37;
+		v = xp * 8.50705917302346159e+37;
+		printf("###\n");
+		printf("v          %g\n", v);
+		printf("v/y        %g\n", v / yp);
+		printf("sig(y)     %.8g\n", f32_sig(y));
+		printf("x/exp(y) = %g\n", xp / f32_sig(y));
+		printf("x/sig(y) = %g\n", copysignf(xp / f32_sig(y), xp) / f32_exp(y));
+
+		printf("got  %.8g\n", ctfp_full_div_f32v1_hack(x, y));
+		printf("want %.8g\n", x / y);
 
 		return 0;
 	}
 
+
+	printf("# TONEAREST\n");  fesetround(FE_TONEAREST); runtest();
+	printf("# TOWARDZERO\n"); fesetround(FE_TOWARDZERO); runtest();
+	printf("# UPWARD\n");     fesetround(FE_UPWARD); runtest();
+	printf("# DOWNWARD\n");   fesetround(FE_DOWNWARD); runtest();
+
+	return 0;
+}
+
+
+void runtest()
+{
 	unsigned int i, j;
 
 	for(i = 0; i < ARRSIZE(val32); i++) {
@@ -326,7 +370,7 @@ int main(int argc, char **argv)
 				printf("RESTRICT %g * %g = %g (expected %g)\n", x, y, ctfp_restrict_mul_f32v1_hack(x, y), simul_restrict_mul_f32(x, y));
 
 			if(!isequal32(ctfp_restrict_div_f32v1_hack(x, y), simul_restrict_div_f32(x, y)))
-				printf("RESTRICT %g / %g = %g (expected %g)\n", x, y, ctfp_restrict_div_f32v1_hack(x, y), simul_restrict_div_f32(x, y));
+				printf("RESTRICT %g / %g = %.8g (expected %.8g)\n", x, y, ctfp_restrict_div_f32v1_hack(x, y), simul_restrict_div_f32(x, y));
 
 			if(!isequal32(ctfp_full_add_f32v1_hack(x, y), simul_full_add_f32(x, y)))
 				printf("FULL %g + %g = %g (expected %g)\n", x, y, ctfp_full_add_f32v1_hack(x, y), simul_full_add_f32(x, y));
@@ -339,12 +383,16 @@ int main(int argc, char **argv)
 
 			if(!isequal32(ctfp_full_div_f32v1_hack(x, y), simul_full_div_f32(x, y)))
 				printf("FULL %g / %g = %g (expected %g)\n", x, y, ctfp_full_div_f32v1_hack(x, y), simul_full_div_f32(x, y));
+
+			//if(!isequal64(ctfp_restrict_add_f64v1_hack(x, y), simul_restrict_add_f64(x, y)))
+				//printf("RESTRICT %g + %g = %g (expected %g)\n", x, y, ctfp_restrict_add_f64v1_hack(x, y), simul_restrict_add_f64(x, y));
 		}
 
 		if(!isequal32(ctfp_restrict_sqrt_f32v1(x), simul_restrict_sqrt_f32(x)))
 			printf("RESTRICT sqrt %g = %g (expected %g)\n", x, ctfp_restrict_sqrt_f32v1(x), simul_restrict_sqrt_f32(x));
 	}
 
+	if(1)
 	for(i = 0; i < 1000000; i++) {
 		float x = rand_f32(), y = rand_f32();
 
@@ -372,10 +420,7 @@ int main(int argc, char **argv)
 		if(!isequal32(ctfp_full_div_f32v1_hack(x, y), simul_full_div_f32(x, y)))
 			printf("FULL %g / %g = %g (expected %g)\n", x, y, ctfp_full_div_f32v1_hack(x, y), simul_full_div_f32(x, y));
 	}
-
-	return 0;
 }
-
 
 /**
  * Create a random bitpattern 32-bit float.

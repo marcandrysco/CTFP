@@ -179,7 +179,7 @@ static void perf_micro(void)
 	float ref32[NOPS], sub32[NOPS], rest32[NOPS], full32[NOPS];
 	float ref64[NOPS], sub64[NOPS], rest64[NOPS], full64[NOPS];
 
-	n = 2000000;
+	n = 1000000;
 
 	run = run_new(n);
 
@@ -203,11 +203,11 @@ static void perf_micro(void)
 
 	for(k = 0; k < NOPS; k++) {
 		printf("%d: %8.3f %8.3f  ", k, ref32[k], rest32[k]);
-		printf("%5.2f   ", (rest32[k] - 30) / (ref32[k] - 30));
+		printf("%5.2f   ", (rest32[k] - ref32[0]) / (ref32[k] - ref32[0]));
 		printf("%9.3f  ", full32[k]);
-		printf("%5.2f   ", (full32[k] - 30) / (ref32[k] - 30));
+		printf("%5.2f   ", (full32[k] - ref32[0]) / (ref32[k] - ref32[0]));
 		printf("%9.3f  ", sub32[k]);
-		printf("%5.2f   ", (sub32[k] - 30) / (ref32[k] - 30));
+		printf("%5.2f   ", (sub32[k] - ref32[0]) / (ref32[k] - ref32[0]));
 		printf("\n");
 	}
 
@@ -215,11 +215,11 @@ static void perf_micro(void)
 
 	for(k = 0; k < NOPS; k++) {
 		printf("%d: %8.3f %8.3f  ", k, ref64[k], rest64[k]);
-		printf("%5.2f   ", (rest64[k] - 30) / (ref64[k] - 30));
+		printf("%5.2f   ", (rest64[k] - ref64[0]) / (ref64[k] - ref64[0]));
 		printf("%9.3f  ", full64[k]);
-		printf("%5.2f   ", (full64[k] - 30) / (ref64[k] - 30));
+		printf("%5.2f   ", (full64[k] - ref64[0]) / (ref64[k] - ref64[0]));
 		printf("%9.3f  ", sub64[k]);
-		printf("%5.2f   ", (sub64[k] - 30) / (ref64[k] - 30));
+		printf("%5.2f   ", (sub64[k] - ref64[0]) / (ref64[k] - ref64[0]));
 		printf("\n");
 	}
 
