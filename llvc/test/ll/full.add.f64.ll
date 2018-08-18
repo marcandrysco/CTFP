@@ -46,8 +46,6 @@ define weak double @ctfp_full_add_f64v1_2(double %a, double %b) #2 {
 ;@ requires (full_add_f64_pre2 %a %b)
 ;@ ensures  (full_add_f64_post2 %ret %a %b)
   %1 = fmul double %a, 0x4340000000000000
-  %1 = fmul double %a, 0x4340000000000000
-  %2 = fmul double %b, 0x4340000000000000
   %2 = fmul double %b, 0x4340000000000000
   %3 = fadd double %1, %2
   %4 = call double @llvm.fabs.f64(double %3)
@@ -64,6 +62,8 @@ define weak double @ctfp_full_add_f64v1_2(double %a, double %b) #2 {
   %14 = bitcast double %b to i64
   %15 = and i64 %10, %14
   %16 = bitcast i64 %15 to double
+;@ assume (spliteq64 %a %13)
+;@ assume (spliteq64 %b %16)
   %17 = call double @ctfp_full_add_f64v1_3(double %13, double %16)
   %18 = call double @llvm.copysign.f64(double %17, double %3)
   %19 = bitcast double %18 to i64
