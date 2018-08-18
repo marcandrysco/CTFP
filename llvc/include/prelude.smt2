@@ -963,15 +963,6 @@
   (= ret
     (fp32_underflow (fp.mul rm a b) fltmin)
   )
-  ; (or
-  ;   (= ret
-  ;      (fp32_underflow (fp.mul rm a b) fltmin))
-  ;   ; Take into account double rounding issue
-  ;   (and
-  ;     (= ret zero)
-  ;     (= (fp.mul rm a b) fltmin)
-  ;   )
-  ; )
 )
 
 ; multiplication f64, part 0
@@ -992,10 +983,7 @@
 
 ; multiplication f64, part 1
 (define-fun full_mul_f64_pre1 ((a Float64) (b Float64)) Bool
-  (and
-    (or (fp.isPositive a) (fp.isNaN a))
-    (or (fp.isPositive b) (fp.isNaN b))
-  )
+  (not (fp.isSubnormal a))
 )
 (define-fun full_mul_f64_post1 ((ret Float64) (a Float64) (b Float64)) Bool
   (or
@@ -1012,8 +1000,8 @@
 ; multiplication f64, part 2
 (define-fun full_mul_f64_pre2 ((a Float64) (b Float64)) Bool
   (and
-    (or (= a zero64) (fp.geq a dblmin)(fp.isNaN a))
-    (or (fp.isPositive b) (fp.isNaN b))
+    (not (fp.isSubnormal a))
+    (not (fp.isSubnormal b))
   )
 )
 (define-fun full_mul_f64_post2 ((ret Float64) (a Float64) (b Float64)) Bool
@@ -1028,24 +1016,7 @@
   )
 )
 
-; multiplication f64, part 3
-(define-fun full_mul_f64_pre3 ((a Float64) (b Float64)) Bool
-  (and
-    (or (= a zero64) (fp.geq a dblmin) (fp.isNaN a))
-    (or (= b zero64) (fp.geq b dblmin) (fp.isNaN b))
-  )
-)
-(define-fun full_mul_f64_post3 ((ret Float64) (a Float64) (b Float64)) Bool
-  (or
-    (= ret
-       (fp64_underflow (fp.mul rm a b) dblmin))
-    ; Take into account double rounding issue
-    (and
-      (= ret zero64)
-      (= (fp.mul rm a b) dblmin)
-    )
-  )
-)
+; leftover
 (define-fun full_mul_f64_assume3_1 ((a Float64) (b Float64)) Bool
   (not (fp.isSubnormal (fp.mul rm a b)))
 )
@@ -1057,27 +1028,18 @@
   )
 )
 
-; multiplication f64, part 4
-(define-fun full_mul_f64_pre4 ((a Float64) (b Float64)) Bool
+; multiplication f64, part 3
+(define-fun full_mul_f64_pre3 ((a Float64) (b Float64)) Bool
   (and
     (not (fp.isSubnormal a))
     (not (fp.isSubnormal b))
     (not (fp.isSubnormal (fp.mul rm a b)))
   )
 )
-(define-fun full_mul_f64_post4 ((ret Float64) (a Float64) (b Float64)) Bool
+(define-fun full_mul_f64_post3 ((ret Float64) (a Float64) (b Float64)) Bool
   (= ret
     (fp64_underflow (fp.mul rm a b) dblmin)
   )
-  ; (or
-  ;   (= ret
-  ;      (fp64_underflow (fp.mul rm a b) dblmin))
-  ;   ; Take into account double rounding issue
-  ;   (and
-  ;     (= ret zero64)
-  ;     (= (fp.mul rm a b) dblmin)
-  ;   )
-  ; )
 )
 
 ;; FULL DIVIDE PRE/POST
