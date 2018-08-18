@@ -53,6 +53,7 @@ define weak float @ctfp_full_add_f32v1_2(float %a, float %b) #2 {
   %6 = select i1 %5, i32 -1, i32 0
   %7 = fcmp olt float %4, 0x3990000000000000
   %8 = select i1 %7, i32 -1, i32 0
+;@ assert (split %7)
   %9 = and i32 %6, %8
   %10 = xor i32 %9, -1
   %11 = bitcast float %a to i32

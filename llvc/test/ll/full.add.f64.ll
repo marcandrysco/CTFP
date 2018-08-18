@@ -49,24 +49,28 @@ define weak double @ctfp_full_add_f64v1_2(double %a, double %b) #2 {
   %2 = fmul double %b, 0x4350000000001198
   %3 = fadd double %1, %2
   %4 = call double @llvm.fabs.f64(double %3)
-  %5 = fcmp olt double %4, 0x370000000000904
+  %5 = fcmp ogt double %4, 0.000000e+00
   %6 = select i1 %5, i64 -1, i64 0
-  %7 = xor i64 %6, -1
-  %8 = bitcast double %a to i64
-  %9 = and i64 %7, %8
-  %10 = bitcast i64 %9 to double
-  %11 = bitcast double %b to i64
-  %12 = and i64 %7, %11
+  %7 = fcmp olt double %4, 0x370000000000904
+  %8 = select i1 %7, i64 -1, i64 0
+;@ assert (split %7)
+  %9 = and i64 %6, %8
+  %10 = xor i64 %9, -1
+  %11 = bitcast double %a to i64
+  %12 = and i64 %10, %11
   %13 = bitcast i64 %12 to double
-  %14 = call double @ctfp_full_add_f64v1_3(double %10, double %13)
-  %15 = call double @llvm.copysign.f64(double %14, double %3)
-  %16 = bitcast double %15 to i64
-  %17 = and i64 %6, %16
-  %18 = bitcast double %14 to i64
-  %19 = and i64 %7, %18
-  %20 = or i64 %17, %19
-  %21 = bitcast i64 %20 to double
-  ret double %21
+  %14 = bitcast double %b to i64
+  %15 = and i64 %10, %14
+  %16 = bitcast i64 %15 to double
+  %17 = call double @ctfp_full_add_f64v1_3(double %13, double %16)
+  %18 = call double @llvm.copysign.f64(double %17, double %3)
+  %19 = bitcast double %18 to i64
+  %20 = and i64 %9, %19
+  %21 = bitcast double %17 to i64
+  %22 = and i64 %10, %21
+  %23 = or i64 %20, %22
+  %24 = bitcast i64 %23 to double
+  ret double %24
 }
 
 ; Function Attrs: alwaysinline
