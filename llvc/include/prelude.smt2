@@ -487,8 +487,8 @@
 )
 (define-fun restrict_div_f32_post9 ((ret Float32) (a Float32) (b Float32)) Bool
   (and
-    (=> (fp.isNormal (fp.div rm a b)) (= ret (fp.div rm a b)))
-    (=> (not (fp.isNormal (fp.div rm a b))) (= ret (fp.div rm (fp.abs a) (fp.abs b))))
+    (=> (or (= b one) (fp.isNormal (fp.div rm a b))) (= ret (fp.div rm a b)))
+    (=> (not (or (= b one) (fp.isNormal (fp.div rm a b)))) (= ret (fp.div rm (fp.abs a) (fp.abs b))))
   )
 )
 
