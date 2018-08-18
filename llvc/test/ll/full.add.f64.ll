@@ -53,7 +53,7 @@ define weak double @ctfp_full_add_f64v1_2(double %a, double %b) #2 {
   %6 = select i1 %5, i64 -1, i64 0
   %7 = fcmp olt double %4, 0x370000000000904
   %8 = select i1 %7, i64 -1, i64 0
-;@ assert (split %7)
+;@ assume (split %7)
   %9 = and i64 %6, %8
   %10 = xor i64 %9, -1
   %11 = bitcast double %a to i64
