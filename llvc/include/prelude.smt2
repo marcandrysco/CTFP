@@ -20,6 +20,7 @@
 ;(define-const addmin Float32 ((_ to_fp 8 24) #x0bffffff)) ; FAILS!
 (define-const mulmin Float32 ((_ to_fp 8 24) #x20000000))
 ;(define-const mulmin Float32 ((_ to_fp 8 24) #x1fffffff)) ; FAILS!
+(define-const mulmin64 Float64 ((_ to_fp 11 53) #x2000000000000000))
 (define-const divmax Float32 ((_ to_fp 8 24) #x5e800000))
 ;(define-const divmax Float32 ((_ to_fp 8 24) #x5e800001)) ; FAILS!
 (define-const sqrtmin Float32 ((_ to_fp 8 24) #x00800000))
@@ -320,6 +321,33 @@
   )
 )
 (define-fun restrict_mul_f32_post2 ((ret Float32) (a Float32) (b Float32)) Bool
+  (= ret (fp.mul rm a b))
+)
+
+; multiplication f64, part 0
+(define-fun restrict_mul_f64_pre0 ((a Float64) (b Float64)) Bool
+  true
+)
+(define-fun restrict_mul_f64_post0 ((ret Float64) (a Float64) (b Float64)) Bool
+  (= ret (fp.mul rm (fp64_underflow a mulmin64) (fp64_underflow b mulmin64)))
+)
+
+; multiplication f64, part 1
+(define-fun restrict_mul_f64_pre1 ((a Float64) (b Float64)) Bool
+  (or (fp.eq a zero64) (fp.geq (fp.abs a) mulmin64) (fp.isNaN a))
+)
+(define-fun restrict_mul_f64_post1 ((ret Float64) (a Float64) (b Float64)) Bool
+  (= ret (fp.mul rm a (fp64_underflow b mulmin64)))
+)
+
+; multiplication f64, part 2
+(define-fun restrict_mul_f64_pre2 ((a Float64) (b Float64)) Bool
+  (and
+    (or (fp.eq a zero64) (fp.geq (fp.abs a) mulmin64) (fp.isNaN a))
+    (or (fp.eq b zero64) (fp.geq (fp.abs b) mulmin64) (fp.isNaN b))
+  )
+)
+(define-fun restrict_mul_f64_post2 ((ret Float64) (a Float64) (b Float64)) Bool
   (= ret (fp.mul rm a b))
 )
 
