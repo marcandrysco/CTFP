@@ -49,24 +49,27 @@ define weak float @ctfp_full_sub_f32v1_2(float %a, float %b) #2 {
   %2 = fmul float %b, 0x4170000000000000
   %3 = fsub float %1, %2
   %4 = call float @llvm.fabs.f32(float %3)
-  %5 = fcmp olt float %4, 0x3990000000000000
+  %5 = fcmp ogt float %4, 0.000000e+00
   %6 = select i1 %5, i32 -1, i32 0
-  %7 = xor i32 %6, -1
-  %8 = bitcast float %a to i32
-  %9 = and i32 %7, %8
-  %10 = bitcast i32 %9 to float
-  %11 = bitcast float %b to i32
-  %12 = and i32 %7, %11
+  %7 = fcmp olt float %4, 0x3990000000000000
+  %8 = select i1 %7, i32 -1, i32 0
+  %9 = and i32 %6, %8
+  %10 = xor i32 %9, -1
+  %11 = bitcast float %a to i32
+  %12 = and i32 %10, %11
   %13 = bitcast i32 %12 to float
-  %14 = call float @ctfp_full_sub_f32v1_3(float %10, float %13)
-  %15 = call float @llvm.copysign.f32(float %14, float %3)
-  %16 = bitcast float %15 to i32
-  %17 = and i32 %6, %16
-  %18 = bitcast float %14 to i32
-  %19 = and i32 %7, %18
-  %20 = or i32 %17, %19
-  %21 = bitcast i32 %20 to float
-  ret float %21
+  %14 = bitcast float %b to i32
+  %15 = and i32 %10, %14
+  %16 = bitcast i32 %15 to float
+  %17 = call float @ctfp_full_sub_f32v1_3(float %13, float %16)
+  %18 = call float @llvm.copysign.f32(float %17, float %3)
+  %19 = bitcast float %18 to i32
+  %20 = and i32 %9, %19
+  %21 = bitcast float %17 to i32
+  %22 = and i32 %10, %21
+  %23 = or i32 %20, %22
+  %24 = bitcast i32 %23 to float
+  ret float %24
 }
 
 ; Function Attrs: alwaysinline
