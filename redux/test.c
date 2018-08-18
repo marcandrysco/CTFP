@@ -29,6 +29,7 @@ float ctfp_full_mul_f32v1_hack(float, float);
 float ctfp_full_div_f32v1_hack(float, float);
 float ctfp_full_sqrt_f32v1(float);
 double ctfp_restrict_add_f64v1_hack(double, double);
+double ctfp_full_mul_f64v1_hack(double, double);
 
 
 static inline bool issub(double f)
@@ -291,6 +292,17 @@ int main(int argc, char **argv)
 	// x / FLTMAX = FLT_MIN
 		//printf("%.17g\n", FLT_MAX * FLT_MIN);
 		//exit(0);
+
+	if(1) {
+		volatile double x, y;
+
+		y = 1.01270928978941321e+00;
+		x = -2.96516685844571491e-289;
+
+		double r = ctfp_full_mul_f64v1_hack(x, y);
+		printf("got %.17g\n expected %.17g\n", r, x * y);
+		return 0;
+	}
 
 	if(0) {
 		//float x = FLT_MIN, y = FLT_MAX;

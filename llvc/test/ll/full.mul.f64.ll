@@ -49,7 +49,7 @@ define weak double @ctfp_full_mul_f64v1_1(double %a, double %b) #2 {
 define weak double @ctfp_full_mul_f64v1_2(double %a, double %b) #2 {
 ;@ requires (full_mul_f64_pre2 %a %b)
 ;@ ensures  (full_mul_f64_post2 %ret %a %b)
-  %1 = fmul double %a, 0x5FE0000000000000
+  %1 = fmul double %a, 0x7FD0000000000000
   %2 = fmul double %1, %b
   %3 = call double @llvm.fabs.f64(double %2)
   %4 = fcmp ogt double %3, 0.000000e+00
