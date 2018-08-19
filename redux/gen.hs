@@ -626,10 +626,10 @@ blind_sqrt =
 -- ## TRIAL STRATEGIES ## --
 
 -- general trial strategy, needs safety function, limit, and safe input
-trial :: (Expr -> Expr -> Expr) -> Expr -> (Expr, Expr) -> (FP2 -> FP1) -> FP2 -> FP1
-trial fn lim safe =
+trial :: (Expr -> Expr -> Expr) -> Expr -> (Expr, Expr) -> Bool -> (FP2 -> FP1) -> FP2 -> FP1
+trial fn lim safe zero =
   withBlind
-    (\(u,v)   -> And (FCmpOGT (Abs (fn u v), val_zero), FCmpOLT (Abs (fn u v), lim)))
+    (\(u,v)   -> And (if zero then FCmpOGT (Abs (fn u v), val_zero) else val_true, FCmpOLT (Abs (fn u v), lim)))
     (\(u,v)   -> safe)
     (\(u,v) r -> CopySign(r, fn u v))
 
@@ -640,6 +640,7 @@ tryadd =
     (\v w -> FAdd (FMul (v, addoff), FMul (w, addoff)))
     addcmp
     (val_zero, val_zero)
+    True
 
 -- trial subtraction
 trysub :: (FP2 -> FP1) -> FP2 -> FP1
@@ -648,6 +649,7 @@ trysub =
     (\v w -> FSub (FMul (v, addoff), FMul (w, addoff)))
     addcmp
     (val_zero, val_zero)
+    True
 
 -- trial multiplication
 trymul :: (FP2 -> FP1) -> FP2 -> FP1
@@ -656,6 +658,7 @@ trymul =
     (\v w -> FMul (FMul (v, muloff), w))
     mulcmp
     (val_zero, val_zero)
+    False
 
 -- trial division
 trydiv :: (FP2 -> FP1) -> FP2 -> FP1
@@ -664,6 +667,7 @@ trydiv op (a, b) =
     (\v w -> safediv (FMul(FMul (v, divoff), divoff2), w))
     divoff2
     (val_zero, val_one)
+    False
     op
     (a, b)
 

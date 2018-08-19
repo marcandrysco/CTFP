@@ -40,8 +40,10 @@ ctfp.bc: ctfp.cse.ll ctfp-clean.so
 	llc -O3 -mcpu=$(CPU) ctfp.bc -o ctfp.o -filetype=obj
 	objdump -d ctfp.o -M intel > ctfp.s
 
-ctfp.dbg.bc: gen Makefile ctfp-clean.so
+ctfp.dbg.ll: gen Makefile ctfp-clean.so
 	./gen debug > ctfp.dbg.ll
+
+ctfp.dbg.bc: ctfp.dbg.ll Makefile
 	opt -early-cse -always-inline ctfp.dbg.ll > ctfp.dbg.bc
 
 

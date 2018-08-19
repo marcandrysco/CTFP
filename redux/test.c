@@ -9,6 +9,11 @@
 #include <math.h>
 
 
+void print_f32(float f)
+{
+	printf("%.8g\n", f);
+}
+
 /*
  * function declarations
  */
@@ -111,7 +116,7 @@ static inline bool ispow4(double f)
 #define DBG_GEN2(NAM, TY, OP, COND) \
 	TY dbg_##NAM(TY a, TY b) { \
 	  TY r = a OP b; \
-	  /*fprintf(stderr, #NAM "(%.9g, %.9g) = %.9g\n", a, b, r);*/ \
+	  /* fprintf(stderr, #NAM "(%.9g, %.9g) = %.9g\n", a, b, r); */ \
 	  if(COND) fprintf(stderr, "unsafe " #NAM "(%.9g, %.9g) = %.9g\n", a, b, r); \
 	  return r; \
 	}
@@ -293,14 +298,15 @@ int main(int argc, char **argv)
 		//printf("%.17g\n", FLT_MAX * FLT_MIN);
 		//exit(0);
 
-	if(1) {
-		volatile double x, y;
+	if(0) {
+		volatile float x, y;
 
-		y = 1.01270928978941321e+00;
-		x = -2.96516685844571491e-289;
+		x = 79.99998464;
+		y = 6.805647328e+39;
+		printf("y: %.8g\n", y);
 
-		double r = ctfp_full_mul_f64v1_hack(x, y);
-		printf("got %.17g\n expected %.17g\n", r, x * y);
+		float r = ctfp_full_div_f32v1_hack(x, y);
+		printf("got %.8g\nexpected %.8g\n", r, x / y);
 		return 0;
 	}
 
