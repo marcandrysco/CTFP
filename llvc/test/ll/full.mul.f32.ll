@@ -52,31 +52,26 @@ define weak float @ctfp_full_mul_f32v1_2(float %a, float %b) #2 {
   %1 = fmul float %a, 0x47D0000000000000
   %2 = fmul float %1, %b
   %3 = call float @llvm.fabs.f32(float %2)
-  %4 = fcmp ogt float %3, 0.000000e+00
+  %4 = fcmp olt float %3, 1.000000e+00
   %5 = select i1 %4, i32 -1, i32 0
 ;@ assume (split %4)
-  %6 = fcmp olt float %3, 1.000000e+00
-  %7 = select i1 %6, i32 -1, i32 0
-;@ assume (split %6)
-  %8 = and i32 %5, %7
-  %9 = xor i32 %8, -1
-  %10 = bitcast float %a to i32
-  %11 = and i32 %9, %10
+  %6 = xor i32 %5, -1
+  %7 = bitcast float %a to i32
+  %8 = and i32 %6, %7
+  %9 = bitcast i32 %8 to float
+  %10 = bitcast float %b to i32
+  %11 = and i32 %6, %10
   %12 = bitcast i32 %11 to float
-  %13 = bitcast float %b to i32
-  %14 = and i32 %9, %13
-  %15 = bitcast i32 %14 to float
-;@ assume (spliteq32 %a %12)
-;@ assume (spliteq32 %b %15)
-  %16 = call float @ctfp_full_mul_f32v1_3(float %12, float %15)
-  %17 = call float @llvm.copysign.f32(float %16, float %2)
-  %18 = bitcast float %17 to i32
-  %19 = and i32 %8, %18
-  %20 = bitcast float %16 to i32
-  %21 = and i32 %9, %20
-  %22 = or i32 %19, %21
-  %23 = bitcast i32 %22 to float
-  ret float %23
+;@ assume (full_mul_f32_assume2_1 %a %b)
+  %13 = call float @ctfp_full_mul_f32v1_3(float %9, float %12)
+  %14 = call float @llvm.copysign.f32(float %13, float %2)
+  %15 = bitcast float %14 to i32
+  %16 = and i32 %5, %15
+  %17 = bitcast float %13 to i32
+  %18 = and i32 %6, %17
+  %19 = or i32 %16, %18
+  %20 = bitcast i32 %19 to float
+  ret float %20
 }
 
 ; Function Attrs: alwaysinline

@@ -916,11 +916,11 @@
 (define-fun full_mul_f32_post1 ((ret Float32) (a Float32) (b Float32)) Bool
   (or
     (= ret
-       (fp32_underflow (fp.mul rm (fp32_underflow a fltmin) (fp32_underflow b fltmin)) fltmin))
+       (fp32_underflow (fp.mul rm a (fp32_underflow b fltmin)) fltmin))
     ; Take into account double rounding issue
     (and
-      (= ret zero)
-      (= (fp.mul rm a b) fltmin)
+      (= ret (copysign zero (fp.mul rm a b)))
+      (= (fp.abs (fp.mul rm a b)) fltmin)
     )
   )
 )
@@ -935,24 +935,21 @@
 (define-fun full_mul_f32_post2 ((ret Float32) (a Float32) (b Float32)) Bool
   (or
     (= ret
-       (fp32_underflow (fp.mul rm a (fp32_underflow b fltmin)) fltmin))
+       (fp32_underflow (fp.mul rm a b) fltmin))
     ; Take into account double rounding issue
     (and
-      (= ret zero)
-      (= (fp.mul rm a b) fltmin)
+      (= ret (copysign zero (fp.mul rm a b)))
+      (= (fp.abs (fp.mul rm a b)) fltmin)
     )
   )
 )
-
-; leftover
-(define-fun full_mul_f32_assume3_1 ((a Float32) (b Float32)) Bool
-  (not (fp.isSubnormal (fp.mul rm a b)))
-)
-(define-fun full_mul_f32_assume3_2 ((ret Float32) (a Float32) (b Float32)) Bool
-  (=>
-    (not
-      (= ret (fp32_underflow (fp.mul rm a b) fltmin)))
-    (= (fp.mul rm a b) fltmin)
+(define-fun full_mul_f32_assume2_1 ((a Float32) (b Float32)) Bool
+  (ite
+    (not (fp.lt
+      (fp.abs (fp.mul rm (fp.mul rm a ((_ to_fp 8 24) #x7e800000)) b))
+      one))
+    (not (fp.isSubnormal (fp.mul rm a b)))
+    (or (fp.isZero (fp32_underflow (fp.mul rm a b) fltmin)) (= (fp.abs (fp.mul rm a b)) fltmin))
   )
 )
 
