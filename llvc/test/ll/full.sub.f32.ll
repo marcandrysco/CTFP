@@ -53,6 +53,7 @@ define weak float @ctfp_full_sub_f32v1_2(float %a, float %b) #2 {
   %6 = select i1 %5, i32 -1, i32 0
   %7 = fcmp olt float %4, 0x3990000000000000
   %8 = select i1 %7, i32 -1, i32 0
+;@ assume (split %7)
   %9 = and i32 %6, %8
   %10 = xor i32 %9, -1
   %11 = bitcast float %a to i32
@@ -61,6 +62,8 @@ define weak float @ctfp_full_sub_f32v1_2(float %a, float %b) #2 {
   %14 = bitcast float %b to i32
   %15 = and i32 %10, %14
   %16 = bitcast i32 %15 to float
+;@ assume (spliteq32 %a %13)
+;@ assume (spliteq32 %b %16)
   %17 = call float @ctfp_full_sub_f32v1_3(float %13, float %16)
   %18 = call float @llvm.copysign.f32(float %17, float %3)
   %19 = bitcast float %18 to i32

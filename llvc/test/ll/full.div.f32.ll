@@ -68,9 +68,11 @@ define weak float @ctfp_full_div_f32v1_3(float %a, float %b) #2 {
   %1 = call float @llvm.fabs.f32(float %a)
   %2 = fcmp ogt float %1, 2.500000e-01
   %3 = select i1 %2, i32 -1, i32 0
+;@ assume (split %2)
   %4 = call float @llvm.fabs.f32(float %b)
   %5 = fcmp ogt float %4, 2.500000e-01
   %6 = select i1 %5, i32 -1, i32 0
+;@ assume (split %5)
   %7 = and i32 %3, %6
   %8 = and i32 %7, 1023410176
   %9 = xor i32 %7, -1
@@ -90,9 +92,11 @@ define weak float @ctfp_full_div_f32v1_4(float %a, float %b) #2 {
   %1 = call float @llvm.fabs.f32(float %a)
   %2 = fcmp ogt float %1, 4.000000e+00
   %3 = select i1 %2, i32 -1, i32 0
+;@ assume (split %2)
   %4 = call float @llvm.fabs.f32(float %b)
   %5 = fcmp olt float %4, 1.000000e+00
   %6 = select i1 %5, i32 -1, i32 0
+;@ assume (split %5)
   %7 = and i32 %3, %6
   %8 = and i32 %7, 1082130432
   %9 = xor i32 %7, -1
