@@ -30,6 +30,7 @@
 (define-const zero Float32 ((_ to_fp 8 24) #x00000000))
 (define-const zero64 Float64 ((_ to_fp 11 53) #x0000000000000000))
 (define-const one Float32 ((_ to_fp 8 24) #x3f800000))
+(define-const one64 Float64 ((_ to_fp 11 53) RTZ 1.0))
 (define-const onePt5 Float32 (fp #b0 #x7f #b10000000000000000000000))
 (define-const two Float32 ((_ to_fp 8 24) #x40000000))
 (define-const four Float32 ((_ to_fp 8 24) #x40800000))
@@ -990,11 +991,11 @@
 (define-fun full_mul_f64_post1 ((ret Float64) (a Float64) (b Float64)) Bool
   (or
     (= ret
-       (fp64_underflow (fp.mul rm (fp64_underflow a dblmin) (fp64_underflow b dblmin)) dblmin))
+       (fp64_underflow (fp.mul rm a (fp64_underflow b dblmin)) dblmin))
     ; Take into account double rounding issue
     (and
-      (= ret zero64)
-      (= (fp.mul rm a b) dblmin)
+      (= ret (fp64_copysign zero64 (fp.mul rm a b)))
+      (= (fp.abs (fp.mul rm a b)) dblmin)
     )
   )
 )
@@ -1009,24 +1010,21 @@
 (define-fun full_mul_f64_post2 ((ret Float64) (a Float64) (b Float64)) Bool
   (or
     (= ret
-       (fp64_underflow (fp.mul rm a (fp64_underflow b dblmin)) dblmin))
+       (fp64_underflow (fp.mul rm a b) dblmin))
     ; Take into account double rounding issue
     (and
-      (= ret zero64)
-      (= (fp.mul rm a b) dblmin)
+      (= ret (fp64_copysign zero64 (fp.mul rm a b)))
+      (= (fp.abs (fp.mul rm a b)) dblmin)
     )
   )
 )
-
-; leftover
-(define-fun full_mul_f64_assume3_1 ((a Float64) (b Float64)) Bool
-  (not (fp.isSubnormal (fp.mul rm a b)))
-)
-(define-fun full_mul_f64_assume3_2 ((ret Float64) (a Float64) (b Float64)) Bool
-  (=>
-    (not
-      (= ret (fp64_underflow (fp.mul rm a b) dblmin)))
-    (= (fp.mul rm a b) dblmin)
+(define-fun full_mul_f64_assume2_1 ((a Float64) (b Float64)) Bool
+  (ite
+    (not (fp.lt
+      (fp.abs (fp.mul rm (fp.mul rm a (fp64_cast #x7fd0000000000000)) b))
+      one64))
+    (not (fp.isSubnormal (fp.mul rm a b)))
+    (or (fp.isZero (fp64_underflow (fp.mul rm a b) dblmin)) (= (fp.abs (fp.mul rm a b)) dblmin))
   )
 )
 
