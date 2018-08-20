@@ -157,7 +157,7 @@ makeContext smtFile = do
 
 makeProcess :: IO Context
 makeProcess = do 
-  (hOut, hIn, _ ,pid) <- runInteractiveCommand "/home/noetzli/repos/z3/build/z3 --in" 
+  (hOut, hIn, _ ,pid) <- runInteractiveCommand "z3 --in" 
   return Ctx { ctxPid     = pid
              , ctxCin     = hIn
              , ctxCout    = hOut
