@@ -25,6 +25,7 @@
 (define-const mulmin64 Float64 ((_ to_fp 11 53) #x2000000000000000))
 (define-const divmax Float32 ((_ to_fp 8 24) #x5e800000))
 ;(define-const divmax Float32 ((_ to_fp 8 24) #x5e800001)) ; FAILS!
+(define-const divmax64 Float64 ((_ to_fp 11 53) #x5fd0000000000000))
 (define-const sqrtmin Float32 ((_ to_fp 8 24) #x00800000))
 ;(define-const sqrtmin Float32 ((_ to_fp 8 24) #x007fffff)) ; FAILS!
 (define-const zero Float32 ((_ to_fp 8 24) #x00000000))
@@ -33,6 +34,7 @@
 (define-const one64 Float64 ((_ to_fp 11 53) RTZ 1.0))
 (define-const onePt5 Float32 (fp #b0 #x7f #b10000000000000000000000))
 (define-const two Float32 ((_ to_fp 8 24) #x40000000))
+(define-const two64 Float64 ((_ to_fp 11 53) RNE 2.0))
 (define-const four Float32 ((_ to_fp 8 24) #x40800000))
 (define-const eight Float32 ((_ to_fp 8 24) RNE 8.0))
 (define-const forth Float32 ((_ to_fp 8 24) #x3e800000))
@@ -43,14 +45,17 @@
 (define-const dblmin Float64 ((_ to_fp 11 53) #x0010000000000000))
 (define-const fltmin4 Float32 ((_ to_fp 8 24) #x01800000))
 (define-const fltmax Float32 ((_ to_fp 8 24) #x7f7fffff))
+(define-const dblmax Float64 ((_ to_fp 11 53) #x7fefffffffffffff))
 (define-const fltmax8 Float32 (fp.div RNE fltmax eight))
 (define-const fltmax32 Float32 (fp #b0 #xf9 #b11111111111111111111111))
 (define-const fltmax4 Float32 (fp #b0 #xfc #b11111111111111111111111))
 (define-const divlo Float32 ((_ to_fp 8 24) #x01000000))
+(define-const divlo64 Float64 ((_ to_fp 11 53) #x0020000000000000))
 (define-const divcmp Float32 ((_ to_fp 8 24) #x40800000))
 
 (define-const zero1 (_ BitVec 1) (_ bv0 1))
 (define-const zero23 (_ BitVec 23) (_ bv0 23))
+(define-const zero52 (_ BitVec 52) (_ bv0 52))
 (define-const one8 (_ BitVec 8) (_ bv128 8))
 (define-const bias (_ BitVec 8) (_ bv127 8))
 (define-const muloff Float32 ((_ to_fp 8 24) #x7e800000))
@@ -118,10 +123,16 @@
 (define-fun fp_isspec_f32 ((a Float32)) Bool
   (or (fp.isZero a) (fp.isInfinite a) (fp.isNaN a) (fp.isSubnormal a))
 )
+(define-fun fp_isspec_f64 ((a Float64)) Bool
+  (or (fp.isZero a) (fp.isInfinite a) (fp.isNaN a) (fp.isSubnormal a))
+)
 
 ; check if a value is a power-of-two
 (define-fun fp32_ispow2 ((v Float32)) Bool
   (= #x00000000 (bvand (to_ieee_bv v) #x007fffff))
+)
+(define-fun fp64_ispow2 ((v Float64)) Bool
+  (= #x0000000000000000 (bvand (to_ieee_bv v) #x000fffffffffffff))
 )
 
 ; check if a value is a power-of-four
@@ -144,6 +155,18 @@
   ((_ extract 22 0) (to_ieee_bv v))
 )
 
+(define-fun fp64_sign ((v Float64)) (_ BitVec 1)
+  ((_ extract 63 63) (to_ieee_bv v))
+)
+
+(define-fun fp64_exp ((v Float64)) (_ BitVec 11)
+  ((_ extract 62 52) (to_ieee_bv v))
+)
+
+(define-fun fp64_sig ((v Float64)) (_ BitVec 52)
+  ((_ extract 51 0) (to_ieee_bv v))
+)
+
 ; underflow a value below `lim` to zero
 (define-fun fp32_underflow ((val Float32) (lim Float32)) Float32 
   (ite (fp.lt (fp.abs val) lim) (copysign zero val) val)
@@ -163,9 +186,17 @@
   (ite (fp.gt (fp.abs val) lim) (copysign inf val) val)
 )
 
+(define-fun fp64_overflow ((val Float64) (lim Float64)) Float64 
+  (ite (fp.gt (fp.abs val) lim) (fp64_copysign inf64 val) val)
+)
+
 ; clamp a value to the range `[lo,hi]`, over/under-flowing as needed
 (define-fun fp32_clamp ((x Float32) (lo Float32) (hi Float32)) Float32
   (fp32_overflow (fp32_underflow x lo) hi)
+)
+
+(define-fun fp64_clamp ((x Float64) (lo Float64) (hi Float64)) Float64
+  (fp64_overflow (fp64_underflow x lo) hi)
 )
 
 
@@ -184,8 +215,16 @@
   (and (fp.geq val lo) (fp.leq val hi))
 )
 
+(define-fun fp64_range ((val Float64) (lo Float64) (hi Float64)) Bool
+  (and (fp.geq val lo) (fp.leq val hi))
+)
+
 ; return true if inside a range, exclusive
 (define-fun fp32_between ((val Float32) (lo Float32) (hi Float32)) Bool
+  (and (fp.gt val lo) (fp.lt val hi))
+)
+
+(define-fun fp64_between ((val Float64) (lo Float64) (hi Float64)) Bool
   (and (fp.gt val lo) (fp.lt val hi))
 )
 
@@ -541,6 +580,187 @@
   )
 )
 (define-fun restrict_div_f32_post12 ((ret Float32) (a Float32) (b Float32)) Bool
+  (= ret (fp.div rm a b))
+)
+
+; divide f64, part 0
+(define-fun restrict_div_f64_pre0 ((a Float64) (b Float64)) Bool
+  true
+)
+(define-fun restrict_div_f64_post0 ((ret Float64) (a Float64) (b Float64)) Bool
+  (= ret (fp.div rm (fp64_clamp a mulmin64 divmax64) (fp64_clamp b mulmin64 divmax64)))
+)
+
+; divide f64, part 1
+(define-fun restrict_div_f64_pre1 ((a Float64) (b Float64)) Bool
+  true
+)
+(define-fun restrict_div_f64_post1 ((ret Float64) (a Float64) (b Float64)) Bool
+  (ite (and (fp.isNormal (fp.div rm (fp64_clamp a mulmin64 divmax64) (fp64_clamp b mulmin64 divmax64))) (not (= (fp.abs b) one64)))
+    (= ret (fp.div rm (fp64_clamp a mulmin64 divmax64) (fp64_clamp b mulmin64 divmax64)))
+    (= (fp.abs ret) (fp.abs (fp.div rm (fp64_clamp a mulmin64 divmax64) (fp64_clamp b mulmin64 divmax64))))
+  )
+)
+
+; divide f64, part 2
+(define-fun restrict_div_f64_pre2 ((a Float64) (b Float64)) Bool
+  (and
+    (or (fp.isZero a) (fp.geq (fp.abs a) mulmin64) (fp.isNaN a))
+  )
+)
+(define-fun restrict_div_f64_post2 ((ret Float64) (a Float64) (b Float64)) Bool
+  (ite (and (fp.isNormal (fp.div rm (fp64_overflow a divmax64) (fp64_clamp b mulmin64 divmax64))) (not (= (fp.abs b) one64)))
+    (= ret (fp.div rm (fp64_overflow a divmax64) (fp64_clamp b mulmin64 divmax64)))
+    (= (fp.abs ret) (fp.abs (fp.div rm (fp64_overflow a divmax64) (fp64_clamp b mulmin64 divmax64))))
+  )
+)
+
+; divide f64, part 3
+(define-fun restrict_div_f64_pre3 ((a Float64) (b Float64)) Bool
+  (and
+    (or (fp.isZero a) (fp.geq (fp.abs a) mulmin64) (fp.isNaN a))
+    (or (fp.isZero b) (fp.geq (fp.abs b) mulmin64) (fp.isNaN b))
+  )
+)
+(define-fun restrict_div_f64_post3 ((ret Float64) (a Float64) (b Float64)) Bool
+  (ite (and (fp.isNormal (fp.div rm (fp64_overflow a divmax64) (fp64_overflow b divmax64))) (not (= (fp.abs b) one64)))
+    (= ret (fp.div rm (fp64_overflow a divmax64) (fp64_overflow b divmax64)))
+    (= (fp.abs ret) (fp.abs (fp.div rm (fp64_overflow a divmax64) (fp64_overflow b divmax64))))
+  )
+)
+
+; divide f64, part 4
+(define-fun restrict_div_f64_pre4 ((a Float64) (b Float64)) Bool
+  (and
+    (or (fp.isZero a) (fp.isInfinite a) (and (fp.geq (fp.abs a) mulmin64) (fp.leq (fp.abs a) divmax64)) (fp.isNaN a))
+    (or (fp.isZero b) (fp.geq (fp.abs b) mulmin64) (fp.isNaN b))
+  )
+)
+(define-fun restrict_div_f64_post4 ((ret Float64) (a Float64) (b Float64)) Bool
+  (ite (and (fp.isNormal (fp.div rm a (fp64_overflow b divmax64))) (not (= (fp.abs b) one64)))
+    (= ret (fp.div rm a (fp64_overflow b divmax64)))
+    (= (fp.abs ret) (fp.abs (fp.div rm a (fp64_overflow b divmax64))))
+  )
+)
+
+; divide f64, part 5
+(define-fun restrict_div_f64_pre5 ((a Float64) (b Float64)) Bool
+  (and
+    (or (fp.isZero a) (fp.isInfinite a) (and (fp.geq (fp.abs a) mulmin64) (fp.leq (fp.abs a) divmax64)) (fp.isNaN a))
+    (or (fp.isZero b) (fp.isInfinite b) (and (fp.geq (fp.abs b) mulmin64) (fp.leq (fp.abs b) divmax64)) (fp.isNaN b))
+  )
+)
+(define-fun restrict_div_f64_post5 ((ret Float64) (a Float64) (b Float64)) Bool
+  (ite (and (fp.isNormal (fp.div rm a b)) (not (= (fp.abs b) one64)))
+    (= ret (fp.div rm a b))
+    (= (fp.abs ret) (fp.abs (fp.div rm a b)))
+  )
+)
+
+; divide f64, part 6
+(define-fun restrict_div_f64_pre6 ((a Float64) (b Float64)) Bool
+  (and
+    (or (fp.isZero a) (fp.isInfinite a) (and (fp.geq (fp.abs a) mulmin64) (fp.leq (fp.abs a) divmax64)))
+    (or (fp.isZero b) (fp.isInfinite b) (and (fp.geq (fp.abs b) mulmin64) (fp.leq (fp.abs b) divmax64)))
+    (not (and (fp.isZero a) (fp.isZero b)))
+    (not (and (fp.isInfinite a) (fp.isInfinite b)))
+    (not (fp.isSubnormal (fp.div rm a b)))
+  )
+)
+(define-fun restrict_div_f64_post6 ((ret Float64) (a Float64) (b Float64)) Bool
+  (ite (and (fp.isNormal (fp.div rm a b)) (not (= (fp.abs b) one64)))
+    (= ret (fp.div rm a b))
+    (= (fp.abs ret) (fp.abs (fp.div rm a b)))
+  )
+)
+
+; divide f64, part 7
+(define-fun restrict_div_f64_pre7 ((a Float64) (b Float64)) Bool
+  (and
+    (or (fp.isZero a) (fp.isInfinite a) (and (fp.geq (fp.abs a) mulmin64) (fp.leq (fp.abs a) divmax64)))
+    (or (fp.isZero b) (fp.isInfinite b) (and (fp.geq (fp.abs b) mulmin64) (fp.leq (fp.abs b) divmax64)))
+    (not (fp.isInfinite a))
+    (not (fp.isZero b))
+  )
+)
+(define-fun restrict_div_f64_post7 ((ret Float64) (a Float64) (b Float64)) Bool
+  (and
+    (=> (fp.isNormal (fp.div rm a b)) (= ret (fp.div rm a b)))
+    (=> (not (fp.isNormal (fp.div rm a b))) (= ret (fp.div rm (fp.abs a) (fp.abs b))))
+  )
+)
+
+; divide f64, part 8
+(define-fun restrict_div_f64_pre8 ((a Float64) (b Float64)) Bool
+  (and
+    (and (fp.geq (fp.abs a) mulmin64) (fp.leq (fp.abs a) divmax64))
+    (and (fp.geq (fp.abs b) mulmin64) (fp.leq (fp.abs b) divmax64))
+  )
+)
+(define-fun restrict_div_f64_post8 ((ret Float64) (a Float64) (b Float64)) Bool
+  (and
+    (=> (fp.isNormal (fp.div rm a b)) (= ret (fp.div rm a b)))
+    (=> (not (fp.isNormal (fp.div rm a b))) (= ret (fp.div rm (fp.abs a) (fp.abs b))))
+  )
+)
+(define-fun restrict_div_f64_assume8_1 ((a Float64) (b Float64)) Bool
+  (= 
+    (fp.div rm
+      (fp.div rm a ((_ to_fp 11 53) (concat (fp64_sign b) (fp64_exp b) zero52))) 
+      ((_ to_fp 11 53) (concat #b001111111111 (fp64_sig b)))) 
+    (fp.div rm a b))
+)
+
+; divide f64, part 9
+(define-fun restrict_div_f64_pre9 ((a Float64) (b Float64)) Bool
+  (and
+    (or (fp64_range (fp.abs a) divlo64 dblmax) (fp.isInfinite a) (fp.isZero a))
+    (or (fp64_between b one64 two64) (= b one64))
+  )
+)
+(define-fun restrict_div_f64_post9 ((ret Float64) (a Float64) (b Float64)) Bool
+  (and
+    (=> (or (= b one64) (fp.isNormal (fp.div rm a b))) (= ret (fp.div rm a b)))
+    (=> (not (or (= b one64) (fp.isNormal (fp.div rm a b)))) (= ret (fp.div rm (fp.abs a) (fp.abs b))))
+  )
+)
+
+; divide f64, part 10
+(define-fun restrict_div_f64_pre10 ((a Float64) (b Float64)) Bool
+  (and
+    (or (fp64_range (fp.abs a) divlo64 dblmax) (fp.isInfinite a) (fp.isZero a))
+    (fp64_between b one64 two64)
+  )
+)
+(define-fun restrict_div_f64_post10 ((ret Float64) (a Float64) (b Float64)) Bool
+  (and
+    (=> (fp.isNormal (fp.div rm a b)) (= ret (fp.div rm a b)))
+    (=> (not (fp.isNormal (fp.div rm a b))) (= ret (fp.div rm (fp.abs a) (fp.abs b))))
+  )
+)
+
+; divide f64, part 11
+(define-fun restrict_div_f64_pre11 ((a Float64) (b Float64)) Bool
+  (and
+    (or (fp64_range (fp.abs a) divlo64 dblmax) (fp.isInfinite a))
+    (fp64_between b one64 two64)
+  )
+)
+(define-fun restrict_div_f64_post11 ((ret Float64) (a Float64) (b Float64)) Bool
+  (and
+    (=> (fp.isNormal (fp.div rm a b)) (= ret (fp.div rm a b)))
+    (=> (not (fp.isNormal (fp.div rm a b))) (= ret (fp.div rm (fp.abs a) (fp.abs b))))
+  )
+)
+
+; divide f64, part 12
+(define-fun restrict_div_f64_pre12 ((a Float64) (b Float64)) Bool
+  (and
+    (fp64_range (fp.abs a) divlo64 dblmax)
+    (fp64_between b one64 two64)
+  )
+)
+(define-fun restrict_div_f64_post12 ((ret Float64) (a Float64) (b Float64)) Bool
   (= ret (fp.div rm a b))
 )
 
@@ -1597,6 +1817,19 @@
     (= ret (fp.div rm a b))
   )
 )
+(define-fun fdiv64exp_pre ((a Float64) (b Float64)) Bool
+  (and
+    (not (fp_isspec_f64 a))
+    (not (fp_isspec_f64 b))
+    (fp64_ispow2 b)
+    (not (fp.isSubnormal (fp.div rm a b)))
+  )
+)
+(define-fun fdiv64exp_post ((ret Float64) (a Float64) (b Float64)) Bool
+  (and
+    (= ret (fp.div rm a b))
+  )
+)
 
 ; fdiv significand
 (define-fun fdiv32sig_pre ((a Float32) (b Float32)) Bool
@@ -1608,6 +1841,17 @@
   )
 )
 (define-fun fdiv32sig_post ((ret Float32) (a Float32) (b Float32)) Bool
+  (= ret (fp.div rm a b))
+)
+(define-fun fdiv64sig_pre ((a Float64) (b Float64)) Bool
+  (and
+    (not (fp_isspec_f64 a))
+    (not (fp_isspec_f64 b))
+    (not (fp64_ispow2 b))
+    (not (fp.isSubnormal (fp.div rm a b)))
+  )
+)
+(define-fun fdiv64sig_post ((ret Float64) (a Float64) (b Float64)) Bool
   (= ret (fp.div rm a b))
 )
 
