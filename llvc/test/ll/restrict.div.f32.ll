@@ -106,15 +106,20 @@ define weak float @ctfp_restrict_div_f32v1_5(float %a, float %b) #2 {
   %4 = call float @llvm.fabs.f32(float %b)
   %5 = fcmp une float %4, %4
   %6 = select i1 %5, i32 -1, i32 0
+;@ assume (split %5)
   %7 = fcmp oeq float 0x7FF0000000000000, %1
   %8 = select i1 %7, i32 -1, i32 0
+;@ assume (split %7)
   %9 = fcmp oeq float 0x7FF0000000000000, %4
   %10 = select i1 %9, i32 -1, i32 0
+;@ assume (split %9)
   %11 = and i32 %8, %10
   %12 = fcmp oeq float 0.000000e+00, %1
   %13 = select i1 %12, i32 -1, i32 0
+;@ assume (split %12)
   %14 = fcmp oeq float 0.000000e+00, %4
   %15 = select i1 %14, i32 -1, i32 0
+;@ assume (split %14)
   %16 = and i32 %13, %15
   %17 = or i32 %11, %16
   %18 = or i32 %6, %17
@@ -208,6 +213,7 @@ define weak float @ctfp_restrict_div_f32v1_8(float %a, float %b) #2 {
   %6 = or i32 %5, 1065353216
   %7 = bitcast i32 %6 to float
   %8 = call float @ctfp_restrict_div_f32v1_9(float %4, float %7)
+;@ assume (restrict_div_f32_assume8_1 %a %b)
   ret float %8
 }
 

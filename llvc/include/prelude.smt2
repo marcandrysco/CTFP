@@ -132,6 +132,10 @@
   (= #x0010000000000000 (bvand (to_ieee_bv v) #x001fffffffffffff))
 )
 
+(define-fun fp32_sign ((v Float32)) (_ BitVec 1)
+  ((_ extract 31 31) (to_ieee_bv v))
+)
+
 (define-fun fp32_exp ((v Float32)) (_ BitVec 8)
   ((_ extract 30 23) (to_ieee_bv v))
 )
@@ -372,10 +376,9 @@
   true
 )
 (define-fun restrict_div_f32_post1 ((ret Float32) (a Float32) (b Float32)) Bool
-  ; (= ret (fp.div rm (fp32_clamp a mulmin divmax) (fp32_clamp b mulmin divmax)))
-  (and
-    (=> (fp.isNormal (fp.div rm (fp32_clamp a mulmin divmax) (fp32_clamp b mulmin divmax))) (= ret (fp.div rm (fp32_clamp a mulmin divmax) (fp32_clamp b mulmin divmax))))
-    (=> (not (fp.isNormal (fp.div rm (fp32_clamp a mulmin divmax) (fp32_clamp b mulmin divmax)))) (= ret (fp.div rm (fp.abs (fp32_clamp a mulmin divmax)) (fp.abs (fp32_clamp b mulmin divmax)))))
+  (ite (and (fp.isNormal (fp.div rm (fp32_clamp a mulmin divmax) (fp32_clamp b mulmin divmax))) (not (= (fp.abs b) one)))
+    (= ret (fp.div rm (fp32_clamp a mulmin divmax) (fp32_clamp b mulmin divmax)))
+    (= (fp.abs ret) (fp.abs (fp.div rm (fp32_clamp a mulmin divmax) (fp32_clamp b mulmin divmax))))
   )
 )
 
@@ -383,13 +386,12 @@
 (define-fun restrict_div_f32_pre2 ((a Float32) (b Float32)) Bool
   (and
     (or (fp.isZero a) (fp.geq (fp.abs a) mulmin) (fp.isNaN a))
-    ; (or (fp.isPositive b) (fp.isNaN b))
   )
 )
 (define-fun restrict_div_f32_post2 ((ret Float32) (a Float32) (b Float32)) Bool
-  (and
-    (=> (fp.isNormal (fp.div rm (fp32_overflow a divmax) (fp32_clamp b mulmin divmax))) (= ret (fp.div rm (fp32_overflow a divmax) (fp32_clamp b mulmin divmax))))
-    (=> (not (fp.isNormal (fp.div rm (fp32_overflow a divmax) (fp32_clamp b mulmin divmax)))) (= ret (fp.div rm (fp.abs (fp32_overflow a divmax)) (fp.abs (fp32_clamp b mulmin divmax)))))
+  (ite (and (fp.isNormal (fp.div rm (fp32_overflow a divmax) (fp32_clamp b mulmin divmax))) (not (= (fp.abs b) one)))
+    (= ret (fp.div rm (fp32_overflow a divmax) (fp32_clamp b mulmin divmax)))
+    (= (fp.abs ret) (fp.abs (fp.div rm (fp32_overflow a divmax) (fp32_clamp b mulmin divmax))))
   )
 )
 
@@ -401,10 +403,9 @@
   )
 )
 (define-fun restrict_div_f32_post3 ((ret Float32) (a Float32) (b Float32)) Bool
-  ; (= ret (fp.div rm (fp32_overflow a divmax) (fp32_overflow b divmax)))
-  (and
-    (=> (fp.isNormal (fp.div rm (fp32_overflow a divmax) (fp32_overflow b divmax))) (= ret (fp.div rm (fp32_overflow a divmax) (fp32_overflow b divmax))))
-    (=> (not (fp.isNormal (fp.div rm (fp32_overflow a divmax) (fp32_overflow b divmax)))) (= ret (fp.div rm (fp.abs (fp32_overflow a divmax)) (fp.abs (fp32_overflow b divmax)))))
+  (ite (and (fp.isNormal (fp.div rm (fp32_overflow a divmax) (fp32_overflow b divmax))) (not (= (fp.abs b) one)))
+    (= ret (fp.div rm (fp32_overflow a divmax) (fp32_overflow b divmax)))
+    (= (fp.abs ret) (fp.abs (fp.div rm (fp32_overflow a divmax) (fp32_overflow b divmax))))
   )
 )
 
@@ -416,9 +417,9 @@
   )
 )
 (define-fun restrict_div_f32_post4 ((ret Float32) (a Float32) (b Float32)) Bool
-  (and
-    (=> (fp.isNormal (fp.div rm a (fp32_overflow b divmax))) (= ret (fp.div rm a (fp32_overflow b divmax))))
-    (=> (not (fp.isNormal (fp.div rm a (fp32_overflow b divmax)))) (= ret (fp.div rm (fp.abs a) (fp.abs (fp32_overflow b divmax)))))
+  (ite (and (fp.isNormal (fp.div rm a (fp32_overflow b divmax))) (not (= (fp.abs b) one)))
+    (= ret (fp.div rm a (fp32_overflow b divmax)))
+    (= (fp.abs ret) (fp.abs (fp.div rm a (fp32_overflow b divmax))))
   )
 )
 
@@ -430,10 +431,9 @@
   )
 )
 (define-fun restrict_div_f32_post5 ((ret Float32) (a Float32) (b Float32)) Bool
-  ; (or (= ret (fp.div rm a b)) (= ret (fp.div rm (fp.abs a) (fp.abs b))))
-  (and
-    (=> (fp.isNormal (fp.div rm a b)) (= ret (fp.div rm a b)))
-    (=> (not (fp.isNormal (fp.div rm a b))) (= ret (fp.div rm (fp.abs a) (fp.abs b))))
+  (ite (and (fp.isNormal (fp.div rm a b)) (not (= (fp.abs b) one)))
+    (= ret (fp.div rm a b))
+    (= (fp.abs ret) (fp.abs (fp.div rm a b)))
   )
 )
 
@@ -482,6 +482,13 @@
     (=> (fp.isNormal (fp.div rm a b)) (= ret (fp.div rm a b)))
     (=> (not (fp.isNormal (fp.div rm a b))) (= ret (fp.div rm (fp.abs a) (fp.abs b))))
   )
+)
+(define-fun restrict_div_f32_assume8_1 ((a Float32) (b Float32)) Bool
+  (= 
+    (fp.div rm
+      (fp.div rm a ((_ to_fp 8 24) (concat (fp32_sign b) (fp32_exp b) zero23))) 
+      ((_ to_fp 8 24) (concat #b001111111 (fp32_sig b)))) 
+    (fp.div rm a b))
 )
 
 ; division, part 9
@@ -1586,7 +1593,9 @@
   )
 )
 (define-fun fdiv32exp_post ((ret Float32) (a Float32) (b Float32)) Bool
-  (= ret (fp.div rm a b))
+  (and
+    (= ret (fp.div rm a b))
+  )
 )
 
 ; fdiv significand
