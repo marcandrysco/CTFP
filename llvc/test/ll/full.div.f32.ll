@@ -82,6 +82,8 @@ define weak float @ctfp_full_div_f32v1_3(float %a, float %b) #2 {
   %13 = fmul float %a, %12
   %14 = fmul float %b, %12
   %15 = call float @ctfp_full_div_f32v1_4(float %13, float %14)
+;@ assume (spliteq32 %12 thirtytwoth)
+;@ assume (full_div_f32_assume3 %a %b)
   ret float %15
 }
 
@@ -92,11 +94,9 @@ define weak float @ctfp_full_div_f32v1_4(float %a, float %b) #2 {
   %1 = call float @llvm.fabs.f32(float %a)
   %2 = fcmp ogt float %1, 4.000000e+00
   %3 = select i1 %2, i32 -1, i32 0
-;@ assume (split %2)
   %4 = call float @llvm.fabs.f32(float %b)
   %5 = fcmp olt float %4, 1.000000e+00
   %6 = select i1 %5, i32 -1, i32 0
-;@ assume (split %5)
   %7 = and i32 %3, %6
   %8 = and i32 %7, 1082130432
   %9 = xor i32 %7, -1
@@ -106,6 +106,8 @@ define weak float @ctfp_full_div_f32v1_4(float %a, float %b) #2 {
   %13 = fmul float %b, %12
   %14 = call float @ctfp_full_div_f32v1_5(float %a, float %13)
   %15 = fmul float %14, %12
+;@ assume (spliteq32 %12 four)
+;@ assume (full_div_f32_assume4 %a %b)
   ret float %15
 }
 
@@ -151,28 +153,26 @@ define weak float @ctfp_full_div_f32v1_5(float %a, float %b) #2 {
   %36 = or i32 %22, %35
   %37 = bitcast i32 %36 to float
   %38 = call float @llvm.fabs.f32(float %37)
-  %39 = fcmp ogt float %38, 0.000000e+00
+  %39 = fcmp olt float %38, 8.000000e+00
   %40 = select i1 %39, i32 -1, i32 0
-  %41 = fcmp olt float %38, 8.000000e+00
-  %42 = select i1 %41, i32 -1, i32 0
-  %43 = and i32 %40, %42
-  %44 = xor i32 %43, -1
-  %45 = bitcast float %a to i32
-  %46 = and i32 %44, %45
-  %47 = bitcast i32 %46 to float
-  %48 = and i32 %43, 1065353216
-  %49 = and i32 %44, %29
-  %50 = or i32 %48, %49
-  %51 = bitcast i32 %50 to float
-  %52 = call float @ctfp_full_div_f32v1_7(float %47, float %51)
-  %53 = call float @llvm.copysign.f32(float %52, float %37)
-  %54 = bitcast float %53 to i32
-  %55 = and i32 %43, %54
-  %56 = bitcast float %52 to i32
-  %57 = and i32 %44, %56
-  %58 = or i32 %55, %57
-  %59 = bitcast i32 %58 to float
-  ret float %59
+  %41 = xor i32 %40, -1
+  %42 = bitcast float %a to i32
+  %43 = and i32 %41, %42
+  %44 = bitcast i32 %43 to float
+  %45 = and i32 %40, 1065353216
+  %46 = and i32 %41, %29
+  %47 = or i32 %45, %46
+  %48 = bitcast i32 %47 to float
+;@ assume (full_div_f32_assume5_1 %44 %48)
+  %49 = call float @ctfp_full_div_f32v1_7(float %44, float %48)
+  %50 = call float @llvm.copysign.f32(float %49, float %37)
+  %51 = bitcast float %50 to i32
+  %52 = and i32 %40, %51
+  %53 = bitcast float %49 to i32
+  %54 = and i32 %41, %53
+  %55 = or i32 %52, %54
+  %56 = bitcast i32 %55 to float
+  ret float %56
 }
 
 ; Function Attrs: alwaysinline
@@ -322,7 +322,9 @@ define weak float @ctfp_full_div_f32v1_10(float %a, float %b) #2 {
   %5 = and i32 %1, 8388607
   %6 = or i32 %5, 1065353216
   %7 = bitcast i32 %6 to float
+;@ assume (full_div_f32_assume10_1 %a %b)
   %8 = call float @ctfp_full_div_f32v1_11(float %4, float %7)
+;@ assume (full_div_f32_assume10_2 %a %b)
   ret float %8
 }
 
@@ -333,6 +335,7 @@ define weak float @ctfp_full_div_f32v1_11(float %a, float %b) #2 {
   %1 = call float @llvm.fabs.f32(float %b)
   %2 = fcmp oeq float %1, 1.000000e+00
   %3 = select i1 %2, i32 -1, i32 0
+;@ assume (split %2)
   %4 = bitcast float %a to i32
   %5 = and i32 %3, %4
   %6 = xor i32 %3, -1
@@ -344,6 +347,8 @@ define weak float @ctfp_full_div_f32v1_11(float %a, float %b) #2 {
   %12 = and i32 %6, %11
   %13 = or i32 %7, %12
   %14 = bitcast i32 %13 to float
+;@ assume (spliteq32 %a %10)
+;@ assume (spliteq32 %b %14)
   %15 = call float @ctfp_full_div_f32v1_12(float %10, float %14)
   %16 = bitcast float %15 to i32
   %17 = and i32 %6, %16
@@ -370,6 +375,8 @@ define weak float @ctfp_full_div_f32v1_12(float %a, float %b) #2 {
   %11 = and i32 %4, %10
   %12 = or i32 %5, %11
   %13 = bitcast i32 %12 to float
+;@ assume (spliteq32 %a %9)
+;@ assume (spliteq32 %b %13)
   %14 = call float @ctfp_full_div_f32v1_13(float %9, float %13)
   %15 = bitcast float %14 to i32
   %16 = and i32 %4, %15
@@ -455,6 +462,7 @@ define weak float @ctfp_full_div_f32v1_16(float %a, float %b) #2 {
   %6 = or i32 %5, 1065353216
   %7 = bitcast i32 %6 to float
   %8 = call float @ctfp_full_div_f32v1_17(float %4, float %7)
+;@ assume (full_div_f32_assume16 %a %b)
   ret float %8
 }
 
@@ -477,6 +485,8 @@ define weak float @ctfp_full_div_f32v1_17(float %a, float %b) #2 {
   %12 = and i32 %6, %11
   %13 = or i32 %7, %12
   %14 = bitcast i32 %13 to float
+;@ assume (spliteq32 %a %10)
+;@ assume (spliteq32 %b %14)
   %15 = call float @ctfp_full_div_f32v1_18(float %10, float %14)
   %16 = bitcast float %15 to i32
   %17 = and i32 %6, %16
@@ -503,6 +513,8 @@ define weak float @ctfp_full_div_f32v1_18(float %a, float %b) #2 {
   %11 = and i32 %4, %10
   %12 = or i32 %5, %11
   %13 = bitcast i32 %12 to float
+;@ assume (spliteq32 %a %9)
+;@ assume (spliteq32 %b %13)
   %14 = call float @ctfp_full_div_f32v1_19(float %9, float %13)
   %15 = bitcast float %14 to i32
   %16 = and i32 %4, %15

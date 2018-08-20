@@ -38,6 +38,7 @@
 (define-const four Float32 ((_ to_fp 8 24) #x40800000))
 (define-const eight Float32 ((_ to_fp 8 24) RNE 8.0))
 (define-const forth Float32 ((_ to_fp 8 24) #x3e800000))
+(define-const thirtytwoth Float32 ((_ to_fp 8 24) RTZ 0.03125))
 (define-const inf Float32 ((_ to_fp 8 24) #x7f800000))
 (define-const inf64 Float64 ((_ to_fp 11 53) #x7ff0000000000000))
 
@@ -1276,8 +1277,14 @@
   true
 )
 (define-fun full_div_f32_post0 ((ret Float32) (a Float32) (b Float32)) Bool
-  (= ret
-    (fp32_underflow (fp.div rm (fp32_underflow a fltmin) (fp32_underflow b fltmin)) fltmin)
+  (or
+    (= ret
+      (fp32_underflow (fp.div rm (fp32_underflow a fltmin) (fp32_underflow b fltmin)) fltmin)
+    )
+    (and
+      (= ret (copysign zero (fp.div rm a b)))
+      (= (fp.abs (fp.div rm a b)) fltmin)
+    )
   )
 )
 
@@ -1286,13 +1293,22 @@
   true
 )
 (define-fun full_div_f32_post1 ((ret Float32) (a Float32) (b Float32)) Bool
-  (ite (and (fp.isNormal ret) (not (= (fp32_underflow (fp.div rm (fp32_underflow a fltmin) (fp32_underflow b fltmin)) fltmin) one)))
-    (= ret
-      (fp32_underflow (fp.div rm (fp32_underflow a fltmin) (fp32_underflow b fltmin)) fltmin)
-    )
+  (or
+    ; (ite (and (fp.isNormal ret) (not (= (fp32_underflow (fp.div rm (fp32_underflow a fltmin) (fp32_underflow b fltmin)) fltmin) one)))
+    ;   (= ret
+    ;     (fp32_underflow (fp.div rm (fp32_underflow a fltmin) (fp32_underflow b fltmin)) fltmin)
+    ;   )
+    ;   (= 
+    ;     (fp.abs ret)
+    ;     (fp.abs (fp32_underflow (fp.div rm (fp32_underflow a fltmin) (fp32_underflow b fltmin)) fltmin))
+    ;   )
+    ; )
     (= 
       (fp.abs ret)
-      (fp.abs (fp32_underflow (fp.div rm (fp32_underflow a fltmin) (fp32_underflow b fltmin)) fltmin))
+      (fp.abs (fp32_underflow (fp.div rm (fp32_underflow a fltmin) (fp32_underflow b fltmin)) fltmin)))
+    (and
+      (fp.isZero ret)
+      (= (fp.abs (fp.div rm a b)) fltmin)
     )
   )
 )
@@ -1304,13 +1320,19 @@
   )
 )
 (define-fun full_div_f32_post2 ((ret Float32) (a Float32) (b Float32)) Bool
-  (ite (and (fp.isNormal ret) (not (= (fp32_underflow (fp.div rm a (fp32_underflow b fltmin)) fltmin) one)))
-    (= ret
-      (fp32_underflow (fp.div rm a (fp32_underflow b fltmin)) fltmin)
-    )
+  (or
+    ; (ite (and (fp.isNormal ret) (not (= (fp32_underflow (fp.div rm a (fp32_underflow b fltmin)) fltmin) one)))
+    ;   (= ret
+    ;     (fp32_underflow (fp.div rm a (fp32_underflow b fltmin)) fltmin)
+    ;   )
+    ; )
     (= 
       (fp.abs ret)
       (fp.abs (fp32_underflow (fp.div rm a (fp32_underflow b fltmin)) fltmin))
+    )
+    (and
+      (fp.isZero ret)
+      (= (fp.abs (fp.div rm a b)) fltmin)
     )
   )
 )
@@ -1323,15 +1345,32 @@
   )
 )
 (define-fun full_div_f32_post3 ((ret Float32) (a Float32) (b Float32)) Bool
-  (ite (and (fp.isNormal ret) (not (= (fp32_underflow (fp.div rm a b) fltmin) one)))
-    (= ret
-      (fp32_underflow (fp.div rm a b) fltmin)
-    )
+  (or
+    ; (ite (and (fp.isNormal ret) (not (= (fp32_underflow (fp.div rm a b) fltmin) one)))
+    ;   (= ret
+    ;     (fp32_underflow (fp.div rm a b) fltmin)
+    ;   )
+    ;   (= 
+    ;     (fp.abs ret)
+    ;     (fp.abs (fp32_underflow (fp.div rm a b) fltmin))
+    ;   )
+    ; )
     (= 
       (fp.abs ret)
       (fp.abs (fp32_underflow (fp.div rm a b) fltmin))
     )
+    (and
+      (fp.isZero ret)
+      (= (fp.abs (fp.div rm a b)) fltmin)
+    )
   )
+)
+(define-fun full_div_f32_assume3 ((a Float32) (b Float32)) Bool
+  (=>
+    (and (fp.gt (fp.abs a) forth) (fp.gt (fp.abs b) forth))
+    (= (fp.div rm a b)
+       (fp.div rm (fp.mul rm a thirtytwoth)
+                  (fp.mul rm b thirtytwoth))))
 )
 
 ; divide, part 4
@@ -1343,21 +1382,38 @@
     (or
       (or (fp.leq (fp.abs a) forth)
           (fp.leq (fp.abs b) forth))
-      (and (or (fp.isInfinite a) (fp.leq a fltmax32))
-           (or (fp.isInfinite b) (fp.leq b fltmax32)))
+      (and (or (fp.isInfinite a) (fp.leq (fp.abs a) fltmax32))
+           (or (fp.isInfinite b) (fp.leq (fp.abs b) fltmax32)))
       (or (fp.isNaN a) (fp.isNaN b))
     )
   )
 )
 (define-fun full_div_f32_post4 ((ret Float32) (a Float32) (b Float32)) Bool
-  (ite (and (fp.isNormal ret) (not (= (fp32_underflow (fp.div rm a b) fltmin) one)))
-    (= ret
-      (fp32_underflow (fp.div rm a b) fltmin)
-    )
+  (or
+    ; (ite (and (fp.isNormal ret) (not (= (fp32_underflow (fp.div rm a b) fltmin) one)))
+    ;   (= ret
+    ;     (fp32_underflow (fp.div rm a b) fltmin)
+    ;   )
+    ;   (= 
+    ;     (fp.abs ret)
+    ;     (fp.abs (fp32_underflow (fp.div rm a b) fltmin))
+    ;   )
+    ; )
     (= 
       (fp.abs ret)
       (fp.abs (fp32_underflow (fp.div rm a b) fltmin))
     )
+    (and
+      (fp.isZero ret)
+      (= (fp.abs (fp.div rm a b)) fltmin)
+    )
+  )
+)
+(define-fun full_div_f32_assume4 ((a Float32) (b Float32)) Bool
+  (=>
+    (and (fp.gt (fp.abs a) four) (fp.lt (fp.abs b) one))
+    (= (fp.div rm a b)
+       (fp.mul rm (fp.div rm a (fp.mul rm b four)) four))
   )
 )
 
@@ -1369,34 +1425,45 @@
 
     (or
       (fp.leq (fp.abs a) forth)
-      (and (or (fp.isInfinite a) (fp.leq a fltmax32))
-           (or (fp.isInfinite b) (fp.leq b fltmax32)))
+      (and (or (fp.isInfinite a) (fp.leq (fp.abs a) fltmax32))
+           (or (fp.isInfinite b) (fp.leq (fp.abs b) fltmax32)))
       (and (fp.gt (fp.abs a) four)
            (and
              (or (fp.geq (fp.abs b) fltmin4) (fp.isZero b))
              (fp.lt (fp.abs b) four) 
            )
+           (=>
+             (fp.gt (fp.abs b) one)
+             (or (fp.isInfinite a) (fp.leq (fp.abs a) fltmax32))
+           )
+           (or (fp.isInfinite b) (fp.leq (fp.abs b) fltmax32))
       )
       (or (fp.isNaN a) (fp.isNaN b))
     )
-
-    ; (or
-    ;   (or (fp.leq (fp.abs a) four)
-    ;       (fp.geq (fp.abs b) one))
-    ;   (or (fp.isZero b) (fp.geq (fp.abs b) fltmin4))
-    ;   (or (fp.isNaN a) (fp.isNaN b))
-    ; )
   )
 )
 (define-fun full_div_f32_post5 ((ret Float32) (a Float32) (b Float32)) Bool
-  (ite (and (fp.isNormal ret) (not (= (fp32_underflow (fp.div rm a b) fltmin) one)))
-    (= ret
-      (fp32_underflow (fp.div rm a b) fltmin)
+  (or
+    (ite (fp.isNormal ret)
+      (= 
+        ret
+        (fp32_underflow (fp.div rm a b) fltmin)
+      )
+      (= 
+        (fp.abs ret)
+        (fp.abs (fp32_underflow (fp.div rm a b) fltmin))
+      )
     )
-    (= 
-      (fp.abs ret)
-      (fp.abs (fp32_underflow (fp.div rm a b) fltmin))
+    (and
+      (fp.isZero ret)
+      (= (fp.abs (fp.div rm a b)) fltmin)
     )
+  )
+)
+(define-fun full_div_f32_assume5_1 ((a Float32) (b Float32)) Bool
+  (and
+    (=> (fp.isZero (fp.div rm a b)) (or (fp.isZero a) (fp.isInfinite b)))
+    (not (fp.isSubnormal (fp.div rm a b)))
   )
 )
 
@@ -1413,7 +1480,7 @@
   )
 )
 (define-fun full_div_f32_post6 ((ret Float32) (a Float32) (b Float32)) Bool
-  (ite (and (fp.isNormal (fp.div rm a b)) (not (= (fp.abs a) one)) (not (= (fp.abs a) onePt5)))
+  (ite (and (fp.isNormal (fp.div rm a b)) (not (fp32_ispow2 b)))
     (= ret (fp.div rm a b))
     (= (fp.abs ret) (fp.abs (fp.div rm a b)))
   )
@@ -1437,7 +1504,7 @@
       )
       (or (fp.isNaN a) (fp.isNaN b))
     )
-    (not (fp.isZero (fp.div rm a b)))
+    (=> (fp.isZero (fp.div rm a b)) (or (fp.isZero a) (fp.isInfinite b)))
 
     (not (fp.isSubnormal a))
     (not (fp.isSubnormal b))
@@ -1445,7 +1512,7 @@
   )
 )
 (define-fun full_div_f32_post7 ((ret Float32) (a Float32) (b Float32)) Bool
-  (ite (and (fp.isNormal (fp.div rm a b)))
+  (ite (fp.isNormal (fp.div rm a b))
     (= ret (fp.div rm a b))
     (= (fp.abs ret) (fp.abs (fp.div rm a b)))
   )
@@ -1469,7 +1536,7 @@
       )
       (or (fp.isNaN a) (fp.isNaN b))
     )
-    (not (fp.isZero (fp.div rm a b)))
+    (=> (fp.isZero (fp.div rm a b)) (or (fp.isZero a) (fp.isInfinite b)))
 
     (not (fp.isSubnormal a))
     (not (fp.isNaN a))
@@ -1481,7 +1548,7 @@
   )
 )
 (define-fun full_div_f32_post8 ((ret Float32) (a Float32) (b Float32)) Bool
-  (ite (and (fp.isNormal (fp.div rm a b)))
+  (ite (fp.isNormal (fp.div rm a b))
     (= ret (fp.div rm a b))
     (= (fp.abs ret) (fp.abs (fp.div rm a b)))
   )
@@ -1505,7 +1572,7 @@
       )
       (or (fp.isNaN a) (fp.isNaN b))
     )
-    (not (fp.isZero (fp.div rm a b)))
+    (=> (fp.isZero (fp.div rm a b)) (or (fp.isZero a) (fp.isInfinite b)))
     
     (not (fp.isInfinite a))
     (not (fp.isSubnormal a))
@@ -1517,7 +1584,7 @@
   )
 )
 (define-fun full_div_f32_post9 ((ret Float32) (a Float32) (b Float32)) Bool
-  (ite (and (fp.isNormal (fp.div rm a b)))
+  (ite (fp.isNormal (fp.div rm a b))
     (= ret (fp.div rm a b))
     (= (fp.abs ret) (fp.abs (fp.div rm a b)))
   )
@@ -1541,7 +1608,7 @@
       )
       (or (fp.isNaN a) (fp.isNaN b))
     )
-    (not (fp.isZero (fp.div rm a b)))
+    (=> (fp.isZero (fp.div rm a b)) (or (fp.isZero a) (fp.isInfinite b)))
 
     (not (fp.isInfinite a))
     (not (fp.isSubnormal a))
@@ -1555,24 +1622,38 @@
   )
 )
 (define-fun full_div_f32_post10 ((ret Float32) (a Float32) (b Float32)) Bool
-  (ite (and (fp.isNormal (fp.div rm a b)))
+  (ite (fp.isNormal (fp.div rm a b))
     (= ret (fp.div rm a b))
     (= (fp.abs ret) (fp.abs (fp.div rm a b)))
   )
+)
+(define-fun full_div_f32_assume10_1 ((a Float32) (b Float32)) Bool
+  (not (fp.isSubnormal  
+    (fp.div rm
+      (fp.div rm a ((_ to_fp 8 24) (concat (fp32_sign b) (fp32_exp b) zero23))) 
+      ((_ to_fp 8 24) (concat #b001111111 (fp32_sig b))))))
+)
+(define-fun full_div_f32_assume10_2 ((a Float32) (b Float32)) Bool
+  (= 
+    (fp.div rm
+      (fp.div rm a ((_ to_fp 8 24) (concat (fp32_sign b) (fp32_exp b) zero23))) 
+      ((_ to_fp 8 24) (concat #b001111111 (fp32_sig b)))) 
+    (fp.div rm a b))
 )
 
 ; divide, part 11
 (define-fun full_div_f32_pre11 ((a Float32) (b Float32)) Bool
   (and
+    (fp.isPositive b)
+    (= (fp32_exp b) (_ bv127 8))
     (not (fp.isSubnormal a))
     (not (fp.isNaN a))
     (not (fp_isspec_f32 b))
-    (or (not (fp32_ispow2 b)) (= (fp.abs b) one))
     (not (fp.isSubnormal (fp.div rm a b)))
   )
 )
 (define-fun full_div_f32_post11 ((ret Float32) (a Float32) (b Float32)) Bool
-  (ite (and (fp.isNormal (fp.div rm a b)) (not (= (fp.abs b) one)))
+  (ite (fp.isNormal (fp.div rm a b))
     (= ret (fp.div rm a b))
     (= (fp.abs ret) (fp.abs (fp.div rm a b)))
   )
@@ -1584,7 +1665,8 @@
     (not (fp.isSubnormal a))
     (not (fp.isNaN a))
     (not (fp_isspec_f32 b))
-    (not (fp32_ispow2 b))
+    (not (= (fp.abs b) one))
+    (= (fp32_exp b) (_ bv127 8))
     (not (fp.isSubnormal (fp.div rm a b)))
   )
 )
@@ -1626,7 +1708,10 @@
   )
 )
 (define-fun full_div_f32_post14 ((ret Float32) (a Float32) (b Float32)) Bool
-  (= ret (fp.div rm a b))
+  (ite (fp.isNormal (fp.div rm a b))
+    (= ret (fp.div rm a b))
+    (= (fp.abs ret) (fp.abs (fp.div rm a b)))
+  )
 )
 
 ; division, part 15
@@ -1642,7 +1727,7 @@
   )
 )
 (define-fun full_div_f32_post15 ((ret Float32) (a Float32) (b Float32)) Bool
-  (ite (and (fp.isNormal (fp.div rm a b)) (not (= (fp.abs a) one)) (not (= (fp.abs a) onePt5)))
+  (ite (fp.isNormal (fp.div rm a b))
     (= ret (fp.div rm a b))
     (= (fp.abs ret) (fp.abs (fp.div rm a b)))
   )
@@ -1663,10 +1748,17 @@
   )
 )
 (define-fun full_div_f32_post16 ((ret Float32) (a Float32) (b Float32)) Bool
-  (ite (and (fp.isNormal (fp.div rm a b)) (not (= (fp.abs a) one)) (not (= (fp.abs a) onePt5)))
+  (ite (fp.isNormal (fp.div rm a b))
     (= ret (fp.div rm a b))
     (= (fp.abs ret) (fp.abs (fp.div rm a b)))
   )
+)
+(define-fun full_div_f32_assume16 ((a Float32) (b Float32)) Bool
+  (= 
+    (fp.div rm
+      (fp.div rm a ((_ to_fp 8 24) (concat (fp32_sign b) (fp32_exp b) zero23))) 
+      ((_ to_fp 8 24) (concat #b001111111 (fp32_sig b)))) 
+    (fp.div rm a b))
 )
 
 ; division, part 17
@@ -1677,10 +1769,11 @@
     (not (fp.isNaN a))
     (not (fp_isspec_f32 b))
     (not (fp.isSubnormal (fp.div rm a b)))
+    (fp.isPositive b)
   )
 )
 (define-fun full_div_f32_post17 ((ret Float32) (a Float32) (b Float32)) Bool
-  (ite (and (fp.isNormal (fp.div rm a b)) (not (= (fp.abs b) one)))
+  (ite (and (fp.isNormal (fp.div rm a b)))
     (= ret (fp.div rm a b))
     (= (fp.abs ret) (fp.abs (fp.div rm a b)))
   )
