@@ -43,6 +43,6 @@ namespace llvm {
 /*
  * llvm helper functions
  */
-std::string llvm_name(llvm::Value *value);
+std::string llvm_name(llvm::Value const *value);
 
 #endif

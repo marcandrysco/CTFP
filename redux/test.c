@@ -298,15 +298,15 @@ int main(int argc, char **argv)
 		//printf("%.17g\n", FLT_MAX * FLT_MIN);
 		//exit(0);
 
-	if(0) {
+	if(1) {
 		volatile float x, y;
 
-		x = 79.99998464;
-		y = 6.805647328e+39;
+		x = FLT_MIN;
+		y = -FLT_MIN;
 		printf("y: %.8g\n", y);
 
-		float r = ctfp_full_div_f32v1_hack(x, y);
-		printf("got %.8g\nexpected %.8g\n", r, x / y);
+		float r = ctfp_full_mul_f32v1_hack(x, y);
+		printf("got %.8g\nexpected %.8g\n", r, x * y);
 		return 0;
 	}
 

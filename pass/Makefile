@@ -38,3 +38,6 @@ fact.o: fact.cpp $(INC) Makefile
 
 run: all
 	./prove
+
+debug : all
+	gdb ./prove -ex run

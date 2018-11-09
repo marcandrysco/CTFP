@@ -1,41 +1,36 @@
 #include "inc.hpp"
 
 
-
-
-/** Range64 Class **/
+/** RangeBool class **/
 
 /**
- * Insert an interval into the range.
- *   @ival: The interval.
- *   &returns: True if inserted, false if duplicated.
+ * Retrieve the string.
+ *   &returns: The string.
  */
-bool Range64::Insert(Ival64 ival) {
-	for(auto const &iter : ivals) {
-		if(ival == iter)
-			return false;
-	}
-
-	ivals.push_back(ival);
-
-	return true;
+std::string RangeBool::Str() const {
+	if(istrue && isfalse)
+		return "either";
+	else if(istrue && !isfalse)
+		return "true";
+	else if(!istrue && isfalse)
+		return "false";
+	else if(!istrue && !isfalse)
+		return "∅";
+	else
+		__builtin_unreachable();
 }
 
-/**
- * Insert a set of intervals into the range.
- *   @ival: The vector of intervals.
- */
-void Range64::Insert(std::vector<Ival64> ival) {
-	for(auto const &iter : ival)
-		Insert(iter);
-}
 
+/** RangeF64 class **/
 
 /**
  * Check if the range has a positive value.
  *   &returns: True if possibly positive.
  */
-bool Range64::HasPos() const {
+bool RangeF64::HasPos() const {
+	if(nan)
+		return true;
+
 	for(auto const &ival : ivals) {
 		if(ival.HasPos())
 			return true;
@@ -48,7 +43,10 @@ bool Range64::HasPos() const {
  * Check if the range has a negative value.
  *   &returns: True if possibly negative.
  */
-bool Range64::HasNeg() const {
+bool RangeF64::HasNeg() const {
+	if(nan)
+		return true;
+
 	for(auto const &ival : ivals) {
 		if(ival.HasNeg())
 			return true;
@@ -57,177 +55,184 @@ bool Range64::HasNeg() const {
 	return false;
 }
 
-
 /**
- * Retrieve the lower bound of a 64-bit range.
- *   &returns: The lower bound.
+ * Retrieve the lower value from the range.
+ *   &returns: The lower value.
  */
-double Range64::Lower() const {
-	double lower = DBL_MAX;
+double RangeF64::Lower() const {
+	double min = DBL_MAX;
 
 	for(auto const &ival : ivals)
-		lower = fmin(lower, ival.flo);
+		min = fmin(min, ival.lo);
 
-	return lower;
+	return min;
 }
 
 /**
- * Retrieve the upper bound of a 64-bit range.
- *   &returns: The upper bound.
+ * Retrieve the upper value from the range.
+ *   &returns: The upper value.
  */
-double Range64::Upper() const {
-	double upper = -DBL_MAX;
+double RangeF64::Upper() const {
+	double max = -DBL_MAX;
 
 	for(auto const &ival : ivals)
-		upper = fmax(upper, ival.fhi);
+		max = fmax(max, ival.hi);
 
-	return upper;
+	return max;
 }
 
 /**
- * Bound a set of intervals below by a bound.
+ * Compute a 64-bit range below a bound.
  *   @bound: The bound.
+ *   @nan: NaN flag.
  *   &returns: The bounded range.
  */
-Range64 Range64::Below(double bound) const {
-	Range64 res;
+RangeF64 RangeF64::Below(double bound, bool nan) const {
+	RangeF64 res(nan);
 
 	for(auto const &ival : ivals) {
-		if(ival.flo < bound)
-			res.ivals.push_back(Ival64::Flt(ival.flo, std::fmin(ival.fhi, bound), ival.nan));
+		if(ival.lo < bound)
+			res.ivals.push_back(IvalF64(ival.lo, std::fmin(ival.hi, bound)));
 	}
 
 	return res;
 }
 
 /**
- * Bound a set of intervals above by a bound.
+ * Compute a 64-bit range above a bound.
  *   @bound: The bound.
+ *   @nan: NaN flag.
  *   &returns: The bounded range.
  */
-Range64 Range64::Above(double bound) const {
-	Range64 res;
+RangeF64 RangeF64::Above(double bound, bool nan) const {
+	RangeF64 res(nan);
 
 	for(auto const &ival : ivals) {
-		if(ival.fhi > bound)
-			res.ivals.push_back(Ival64::Flt(std::fmax(ival.flo, bound), ival.fhi, ival.nan));
+		if(ival.hi > bound)
+			res.ivals.push_back(IvalF64(std::fmax(ival.lo, bound), ival.hi));
 	}
 
 	return res;
 }
 
+
 /**
- * Create a string format of the 64-bit range.
+ * Split a range to isolate infinities.
+ *   &returns: The split range.
+ */
+RangeF64 RangeF64::Split() const {
+	RangeF64 res(nan);
+	double lo, hi;
+	bool pinf = false, ninf = false;
+
+	for(auto const &ival : ivals) {
+		lo = ival.lo;
+		hi = ival.hi;
+
+		if(hi == INFINITY) {
+			pinf = true;
+			hi = DBL_MAX;
+		}
+
+		if(lo == -INFINITY) {
+			ninf = true;
+			lo = -DBL_MAX;
+		}
+
+		if(lo <= hi) {
+			if((lo < -0.0) && (hi > 0.0)) {
+				res.ivals.push_back(IvalF64(lo, -F64MIN));
+				res.ivals.push_back(IvalF64(-0.0, 0.0));
+				res.ivals.push_back(IvalF64(F64MIN, hi));
+			}
+			else
+				res.ivals.push_back(IvalF64(lo, hi));
+		}
+	}
+
+	if(pinf)
+		res.ivals.push_back(IvalF64::Const(INFINITY));
+
+	if(ninf)
+		res.ivals.push_back(IvalF64::Const(-INFINITY));
+
+	return res;
+}
+
+
+/**
+ * Simplify a range.
+ */
+void RangeF64::Simplify() {
+	for(auto lhs = ivals.begin(); lhs != ivals.end(); lhs++) {
+		auto rhs = lhs + 1;
+		while(rhs != ivals.end()) {
+			if(IvalF64::Overlap(*lhs, *rhs) || IvalF64::Adjacent(*lhs, *rhs)) {
+				lhs->lo = f64min(lhs->lo, rhs->lo);
+				lhs->hi = f64max(lhs->hi, rhs->hi);
+				rhs = ivals.erase(rhs);
+			}
+			else
+				rhs++;
+		}
+	}
+}
+
+
+/**
+ * Retrieve the string.
  *   &returns: The string.
  */
-std::string Range64::Str() const {
+std::string RangeF64::Str() const {
 	std::string str;
 
-	for(auto ival = ivals.begin(); ival != ivals.end(); ival++)
-		str += ival->Str() + ",";
+	for(auto const &ival : ivals)
+		str += ((str.length() > 0) ? ", " : "") + ival.Str();
 
-	if(str.length() > 0)
-		str.erase(str.length() - 1);
-	else
-		str = "∅";
+	if(nan)
+		str += (str.length() > 0) ? ", NaN" : "NaN";
 
 	return str;
 }
 
-/**
- * Dump an 64-bit range to stdout.
- */
-void Range64::Dump() const {
-	if(ivals.size() > 0) {
-		for(auto const &ival : ivals) {
-			if(&ival != &*ivals.begin())
-				printf(", ");
-
-			ival.Dump();
-		}
-	}
-	else
-		printf("∅");
-}
-
 
 /**
- * Compute the AND of two 64-bit ranges.
- *   @lhs: The left-hand side.
- *   @rhs: The right-hand side.
- *   &returns: The new range.
- */
-Range64 Range64::IntAnd(const Range64 &lhs, const Range64 &rhs) {
-	Range64 res;
-
-	for(auto &x: lhs.ivals) {
-		for(auto &y: rhs.ivals)
-			res.ivals.push_back(Ival64::IntAnd(x, y));
-	}
-
-	return res;
-}
-
-/**
- * Compute the xor of two 64-bit ranges.
- *   @lhs: The left-hand side.
- *   @rhs: The right-hand side.
- *   &returns: The new range.
- */
-Range64 Range64::IntXor(const Range64 &lhs, const Range64 &rhs) {
-	Range64 res;
-
-	for(auto &x: lhs.ivals) {
-		for(auto &y: rhs.ivals)
-			res.ivals.push_back(Ival64::IntXor(x, y));
-	}
-
-	return res;
-}
-
-/**
- * Compute the next 64-bit range for a floating-point absolute value.
+ * Compute the absolute value.
  *   @in: The input range.
- *   &returns: The new range.
+ *   &returns: The output range.
  */
-Range64 Range64::FltAbs(const Range64 &in) {
-	Range64 res;
+RangeF64 RangeF64::Abs(RangeF64 const &in) {
+	RangeF64 res(in.nan);
 
-	for(auto &ival : in.ivals)
-		res.ivals.push_back(Ival64::FltAbs(ival));
+	for(auto const &ival : in.ivals) {
+		if(ival.lo > 0.0)
+			res.ivals.push_back(ival);
+		else if(ival.hi < 0.0)
+			res.ivals.push_back(ival.Neg());
+		else
+			res.ivals.push_back(IvalF64(0.0, fmax(-ival.lo, ival.hi)));
+	}
 
 	return res;
 }
 
 /**
- * Compute the FP addition of two 64-bit ranges.
- *   @lhs: The left-hand side.
- *   @rhs: The right-hand side.
- *   &returns: The new range.
+ * Compute the inverse of an absolute value.
+ *   @in: The input.
+ *   &returns: The inverse absolute value.
  */
-Range64 Range64::FltAdd(const Range64 &lhs, const Range64 &rhs) {
-	Range64 res;
+RangeF64 RangeF64::AbsInv(RangeF64 const &in) {
+	RangeF64 res(in.nan);
 
-	for(auto &x: lhs.ivals) {
-		for(auto &y: rhs.ivals) {
-			int exp;
-			double min = fmin(fmin(fabs(x.flo), fabs(x.fhi)), fmin(fabs(y.flo), fabs(y.fhi)));
+	for(auto const &ival : in.ivals) {
+		if((ival.lo > 0.0) || (ival.hi < -0.0)) {
+			res.ivals.push_back(IvalF64(ival.lo, ival.hi));
+			res.ivals.push_back(IvalF64(-ival.hi, -ival.lo));
+		}
+		else  {
+			double max = fmax(-ival.lo, ival.hi);
 
-			frexp(min, &exp);
-			exp -= 53;
-			min = ldexp(1.0, exp);
-
-			if(min >= 0) {
-				printf("MIN: %e\n", min);
-				res.Insert(
-					//Ival64::FltRelComp(
-						Ival64::FltAdd(x, y)//,
-						//Ival64::Flt(DBL_MIN, min, false)
-					//)
-				);
-			}
-			else
-				res.Insert(Ival64::FltAdd(x, y));
+			res.ivals.push_back(IvalF64(-max, max));
 		}
 	}
 
@@ -236,44 +241,119 @@ Range64 Range64::FltAdd(const Range64 &lhs, const Range64 &rhs) {
 
 
 /**
- * Compute a 64-bit range for copysign.
- *   @mag: The magnitude.
- *   @sign: The sign.
- *   &returns: The range.
+ * Compute an addition.
+ *   @lhs: The left-hand range.
+ *   @rhs: The right-hand range.
+ *   &returns: The result range.
  */
-Range64 Range64::FltCopySign(const Range64 &mag, const Range64 &sign) {
-	Range64 res;
+RangeF64 RangeF64::Add(RangeF64 const &lhs, RangeF64 const &rhs) {
+	RangeF64 res(lhs.nan || rhs.nan);
+
+	for(auto const &x : lhs.ivals) {
+		for(auto const &y : rhs.ivals)
+			res.ivals.push_back(IvalF64::Add(x, y));
+	}
+
+	return res;
+}
+
+/**
+ * Compute a subtraction.
+ *   @lhs: The left-hand range.
+ *   @rhs: The right-hand range.
+ *   &returns: The result range.
+ */
+RangeF64 RangeF64::Sub(RangeF64 const &lhs, RangeF64 const &rhs) {
+	RangeF64 res(lhs.nan || rhs.nan);
+
+	for(auto const &x : lhs.ivals) {
+		for(auto const &y : rhs.ivals)
+			res.ivals.push_back(IvalF64::Sub(x, y));
+	}
+
+	return res;
+}
+
+/**
+ * Compute a multiply.
+ *   @lhs: The left-hand range.
+ *   @rhs: The right-hand range.
+ *   &returns: The result range.
+ */
+RangeF64 RangeF64::Mul(RangeF64 const &lhs, RangeF64 const &rhs) {
+	RangeF64 res(lhs.nan || rhs.nan);
+
+	for(auto const &x : lhs.Split().ivals) {
+		for(auto const &y : rhs.Split().ivals) {
+			if((x.IsZero() && y.IsInf()) || (x.IsInf() && y.IsZero()))
+				res.nan = true;
+			else
+				res.ivals.push_back(IvalF64::Mul(x, y));
+		}
+	}
+
+	//printf("before: %s\n", res.Str().c_str());
+	res.Simplify();
+	//printf("after: %s\n", res.Str().c_str());
+
+	return res;
+}
+
+
+/**
+ * Compute copysign of a value.
+ *   @mag: The magnitude range.
+ *   @sign: The sign range.
+ *   &returns: The output range.
+ */
+RangeF64 RangeF64::CopySign(RangeF64 const &mag, RangeF64 const &sign) {
+	RangeF64 res(mag.nan);
 
 	if(sign.HasPos()) {
 		for(auto const &ival : mag.ivals)
-			res.Insert(ival.SetPos());
+			res.ivals.push_back(ival.SetPos());
 	}
 
 	if(sign.HasNeg()) {
 		for(auto const &ival : mag.ivals)
-			res.Insert(ival.SetNeg());
+			res.ivals.push_back(ival.SetNeg());
 	}
+
+	res.Simplify();
 
 	return res;
 }
 
 /**
- * Compute the 64-bit range of an inverted absolute value.
- *   @in: The input range.
- *   &returns: The output ragne.
+ * Cast a 64-bit integer range to 64-bit float.
+ *   @in: The input integer range.
+ *   &returns: The output float range.
  */
-Range64 Range64::InvFltAbs(const Range64 &in) {
-	Range64 res;
+RangeF64 RangeF64::FromI64(RangeI64 const &in)
+{
+	double lo, hi;
+	RangeF64 res(false);
+	static IvalI64 pos(0x0000000000000000, 0x7FF0000000000000);
+	static IvalI64 neg(0x8000000000000000, 0xFFF0000000000000);
 
 	for(auto &ival : in.ivals) {
-		if((ival.flo > 0.0) || (ival.fhi < -0.0)) {
-			res.ivals.push_back(Ival64::Flt(ival.flo, ival.fhi, ival.nan));
-			res.ivals.push_back(Ival64::Flt(-ival.fhi, -ival.flo, ival.nan));
-		}
-		else  {
-			double max = fmax(-ival.flo, ival.fhi);
+		if(IvalI64::Overlap(ival, IvalI64(0x7FF0000000000001, 0x7FFFFFFFFFFFFFFF)))
+			res.nan = true;
+		else if(IvalI64::Overlap(ival, IvalI64(0xFFF0000000000001, 0xFFFFFFFFFFFFFFFF)))
+			res.nan = true;
 
-			res.ivals.push_back(Ival64::Flt(-max, max, ival.nan));
+		if(IvalI64::Overlap(ival, pos)) {
+			IvalI64 inter = IvalI64::Inter(ival, pos);
+			memcpy(&lo, &inter.lo, 8);
+			memcpy(&hi, &inter.hi, 8);
+			res.ivals.push_back(IvalF64(lo, hi));
+		}
+
+		if(IvalI64::Overlap(ival, neg)) {
+			IvalI64 inter = IvalI64::Inter(ival, neg);
+			memcpy(&hi, &inter.lo, 8);
+			memcpy(&lo, &inter.hi, 8);
+			res.ivals.push_back(IvalF64(lo, hi));
 		}
 	}
 
@@ -281,251 +361,192 @@ Range64 Range64::InvFltAbs(const Range64 &in) {
 }
 
 
-/**
- * Create 64-bit fact with no values.
- *   &returns: The fact.
- */
-Range64 Range64::Empty() {
-	return Range64();
-}
+/** RangeI64 class **/
 
 /**
- * Create a 64-bit fact covering all inputs.
- *   &returns: The fact.
+ * Simplify a range.
  */
-Range64 Range64::All() {
-	Range64 fact = Range64();
-	fact.ivals.push_back(Ival64::All());
-
-	return fact;
-}
-
-/**
- * Create a 64-bit fact of a single value.
- *   @val: The value.
- *   &returns: The fact.
- */
-Range64 Range64::Const(double val) {
-	Range64 fact = Range64::Empty();
-	fact.ivals.push_back(Ival64::Flt(val, val, false));
-
-	return fact;
-}
-
-/**
- * Create a 64-bit fact of a single integer value.
- *   @val: The value.
- *   &returns: The fact.
- */
-Range64 Range64::Int(uint64_t val) {
-	Range64 fact = Range64::Empty();
-	fact.ivals.push_back(Ival64::Int(val, val));
-
-	return fact;
-}
-
-
-/** Boolean Range Class **/
-
-/**
- * Dump the boolean range to standard out.
- */
-void RangeBool::Dump() const {
-	if(istrue && isfalse)
-		printf("either");
-	else if(istrue && !isfalse)
-		printf("true");
-	else if(!istrue && isfalse)
-		printf("false");
-	else if(!istrue && !isfalse)
-		printf("neither");
+void RangeI64::Simplify() {
+	for(auto lhs = ivals.begin(); lhs != ivals.end(); lhs++) {
+		auto rhs = lhs + 1;
+		while(rhs != ivals.end()) {
+			if(IvalI64::Overlap(*lhs, *rhs) || IvalI64::Adjacent(*lhs, *rhs)) {
+				lhs->lo = std::min<uint64_t>(lhs->lo, rhs->lo);
+				lhs->hi = std::max<uint64_t>(lhs->hi, rhs->hi);
+				rhs = ivals.erase(rhs);
+			}
+			else
+				rhs++;
+		}
+	}
 }
 
 
 /**
- * Create an empty boolean range.
- *   &returns: The range.
+ * Retrieve the string.
+ *   &returns: The string.
  */
-RangeBool RangeBool::Empty() {
-	return RangeBool(false, false);
-}
+std::string RangeI64::Str() const {
+	std::string str;
 
-/**
- * Create a constant boolean range.
- *   @val: The constant value.
- *   &returns: The range.
- */
-RangeBool RangeBool::Const(bool val) {
-	return RangeBool(val, !val);
+	for(auto const &ival : ivals)
+		str += ((str.length() > 0) ? ", " : "") + ival.Str();
+
+	return str;
 }
 
 
-/** Range Class **/
+/**
+ * Cast a 64-bit float range to 64-bit integer.
+ *   @in: The input float range.
+ *   &returns: The output integer range.
+ */
+RangeI64 RangeI64::CastF64(RangeF64 in)
+{
+	RangeI64 res;
+
+	if(in.nan) {
+		res.ivals.push_back(IvalI64(0x7FF0000000000001, 0x7FFFFFFFFFFFFFFF));
+		res.ivals.push_back(IvalI64(0xFFF0000000000001, 0xFFFFFFFFFFFFFFFF));
+	}
+
+	for(auto const &ival : in.ivals) {
+		uint64_t lo, hi;
+
+		memcpy(&lo, &ival.lo, 8);
+		memcpy(&hi, &ival.hi, 8);
+
+		if(signbit(ival.hi) == 1)
+			res.ivals.push_back(IvalI64(hi, lo));
+		else if(signbit(ival.lo) == 0)
+			res.ivals.push_back(IvalI64(lo, hi));
+		else {
+			res.ivals.push_back(IvalI64(0x8000000000000000, lo));
+			res.ivals.push_back(IvalI64(0x0000000000000000, hi));
+		}
+	}
+
+	res.Simplify();
+
+	return res;
+}
+
 
 /**
- * Retrieve the lower bound of a range.
- *   &returns: The lower bound.
+ * Compute a bitwise AND.
+ *   @lhs: The left-hand range.
+ *   @rhs: The right-hand range.
+ *   &returns: The output range.
  */
-double Range::Lower() const {
-	if(std::holds_alternative<Range64>(var))
-		return std::get<Range64>(var).Lower();
+RangeI64 RangeI64::And(RangeI64 const &lhs, RangeI64 const &rhs)
+{
+	RangeI64 res;
+
+	for(auto const &x : lhs.ivals) {
+		for(auto const &y : rhs.ivals) {
+			if(x.IsConst() && y.IsConst())
+				res.ivals.push_back(IvalI64::Const(x.lo & y.lo));
+			else if(x.IsZero() || y.IsZero())
+				res.ivals.push_back(IvalI64::Const(0));
+			else if(x.IsOnes())
+				res.ivals.push_back(y);
+			else if(y.IsOnes())
+				res.ivals.push_back(x);
+			else
+				res.ivals.push_back(IvalI64::All());
+		}
+	}
+
+	res.Simplify();
+
+	return res;
+}
+
+/**
+ * Compute a bitwise XOR.
+ *   @lhs: The left-hand range.
+ *   @rhs: The right-hand range.
+ *   &returns: The output range.
+ */
+RangeI64 RangeI64::Xor(RangeI64 const &lhs, RangeI64 const &rhs)
+{
+	RangeI64 res;
+
+	for(auto const &x : lhs.ivals) {
+		for(auto const &y : rhs.ivals) {
+			if(x.IsConst() && y.IsConst())
+				res.ivals.push_back(IvalI64::Const(x.lo ^ y.lo));
+			else
+				res.ivals.push_back(IvalI64::All());
+		}
+	}
+
+	return res;
+}
+
+
+/** Range class **/
+
+/**
+ * Retrieve the lower 64-bit float value.
+ *   &returns: The lower value.
+ */
+double Range::LowerF64() const {
+	if(std::holds_alternative<RangeF64>(var))
+		return std::get<RangeF64>(var).Lower();
 	else
-		__builtin_unreachable();
+		fatal("LowerF64 called on non-F64 range.");
 }
 
 /**
- * Retrieve the upper bound of a range.
- *   &returns: The upper bound.
+ * Retrieve the upper 64-bit float value.
+ *   &returns: The upper value.
  */
-double Range::Upper() const {
-	if(std::holds_alternative<Range64>(var))
-		return std::get<Range64>(var).Upper();
+double Range::UpperF64() const {
+	if(std::holds_alternative<RangeF64>(var))
+		return std::get<RangeF64>(var).Upper();
 	else
-		__builtin_unreachable();
+		fatal("UpperF64 called on non-F64 range.");
 }
 
 /**
- * Bound a range below by a bound.
+ * Compute a range below a 64-bit floating-point bound.
  *   @bound: The bound.
+ *   @nan: NaN flag.
  *   &returns: The bounded range.
  */
-Range Range::Below(double bound) const {
-	if(std::holds_alternative<Range64>(var))
-		return std::get<Range64>(var).Below(bound);
+Range Range::BelowF64(double bound, bool nan) const {
+	if(std::holds_alternative<RangeF64>(var))
+		return std::get<RangeF64>(var).Below(bound, nan);
 	else
-		__builtin_unreachable();
+		fatal("BelowF64 called on non-F64 range.");
 }
 
 /**
- * Bound a range above by a bound.
+ * Compute a range above a 64-bit floating-point bound.
  *   @bound: The bound.
+ *   @nan: NaN flag.
  *   &returns: The bounded range.
  */
-Range Range::Above(double bound) const {
-	if(std::holds_alternative<Range64>(var))
-		return std::get<Range64>(var).Above(bound);
+Range Range::AboveF64(double bound, bool nan) const {
+	if(std::holds_alternative<RangeF64>(var))
+		return std::get<RangeF64>(var).Above(bound, nan);
 	else
-		__builtin_unreachable();
+		fatal("BelowF64 called on non-F64 range.");
 }
 
+
 /**
- * Retrieve a string description of the range.
+ * Retrieve the string from the range.
  *   &returns: The string.
  */
 std::string Range::Str() const {
-	if(std::holds_alternative<Range64>(var))
-		return std::get<Range64>(var).Str();
+	if(std::holds_alternative<RangeBool>(var))
+		return std::get<RangeBool>(var).Str();
+	else if(std::holds_alternative<RangeF64>(var))
+		return std::get<RangeF64>(var).Str();
+	else if(std::holds_alternative<RangeI64>(var))
+		return std::get<RangeI64>(var).Str();
 	else
-		__builtin_unreachable();
-}
-
-/**
- * Dump an range to stdout.
- */
-void Range::Dump() const {
-	if(std::holds_alternative<Range64>(var))
-		std::get<Range64>(var).Dump();
-	else if(std::holds_alternative<RangeBool>(var))
-		std::get<RangeBool>(var).Dump();
-	else
-		__builtin_unreachable();
-}
-
-
-/**
- * Insert an interval into the range.
- *   @ival: The interval.
- *   &returns: True if inserted, false if duplicated.
- */
-bool Range::Insert64(Ival64 ival) {
-	if(std::holds_alternative<Range64>(var))
-		return std::get<Range64>(var).Insert(ival);
-	else if(std::holds_alternative<RangeBool>(var))
 		fatal("stub");
-		//std::get<RangeBool>(var).Insert(ival);
-	else
-		__builtin_unreachable();
-}
-
-
-/**
- * Compute the next range for a 64-bit floating-point absolute value.
- *   @in: The input range.
- *   &returns: The new range.
- */
-Range Range::FltAbs64(const Range &in) {
-	if(std::holds_alternative<Range64>(in.var))
-		return Range64::FltAbs(std::get<Range64>(in.var));
-	else
-		fatal("FltAbs64 applied to invalid range.");
-}
-
-/**
- * Compute the next range for a 64-bit FP add.
- *   @lhs: The left-hand side.
- *   @rhs: The right-hand side.
- *   &returns: The new range.
- */
-Range Range::FltAdd64(const Range &lhs, const Range &rhs) {
-	if(std::holds_alternative<Range64>(lhs.var) && std::holds_alternative<Range64>(rhs.var))
-		return Range64::FltAdd(std::get<Range64>(lhs.var), std::get<Range64>(rhs.var));
-	else
-		fatal("FltAdd64 applied to invalid range.");
-}
-
-/**
- * Compute the next range for a 64-bit floating-point copy sign.
- *   @mag: The magnitude.
- *   @sign: The sign.
- *   &returns: The new range.
- */
-Range Range::FltCopySign64(const Range &mag, const Range &sign) {
-	if(std::holds_alternative<Range64>(mag.var) && std::holds_alternative<Range64>(sign.var))
-		return Range64::FltCopySign(std::get<Range64>(mag.var), std::get<Range64>(sign.var));
-	else
-		fatal("FltCopySign64 applied to invalid range.");
-}
-
-/**
- * Compute the AND of two 64-bit ranges.
- *   @lhs: The left-hand side.
- *   @rhs: The right-hand side.
- *   &returns: The new range.
- */
-Range Range::IntAnd64(const Range &lhs, const Range &rhs) {
-	if(std::holds_alternative<Range64>(lhs.var) && std::holds_alternative<Range64>(rhs.var))
-		return Range64::IntAnd(std::get<Range64>(lhs.var), std::get<Range64>(rhs.var));
-	else
-		fatal("IntAnd applied to invalid range.");
-}
-
-/**
- * Compute the xor of two 64-bit ranges.
- *   @lhs: The left-hand side.
- *   @rhs: The right-hand side.
- *   &returns: The new range.
- */
-Range Range::Xor64(const Range &lhs, const Range &rhs) {
-	if(std::holds_alternative<Range64>(lhs.var) && std::holds_alternative<Range64>(rhs.var))
-		return Range64::IntXor(std::get<Range64>(lhs.var), std::get<Range64>(rhs.var));
-	else
-		fatal("Xor applied to invalid range.");
-}
-
-
-/**
- * Compute the range of an inverted absolute value.
- *   @in: The input range.
- *   &returns: The output ragne.
- */
-Range Range::InvFltAbs64(const Range &in) {
-	if(std::holds_alternative<Range64>(in.var))
-		return Range64::InvFltAbs(std::get<Range64>(in.var));
-	else
-		fatal("FltAbs64 applied to invalid range.");
-}
-
-
-Range64 FltRelComp(const Range64 &lhs, const Range64 &rhs) {
-	return lhs;
 }
