@@ -17,6 +17,20 @@ bool RangeF64::Contains(double val) const {
 	return false;
 }
 
+/**
+ * Check if a range contains subnormal numbers.
+ *   @val: The value.
+ *   &returns: True the value is in the interval.
+ */
+bool RangeF64::HasSubnorm() const {
+	for(auto &ival : ivals) {
+		if(ival.HasSubnorm())
+			return true;
+	}
+
+	return false;
+}
+
 
 /**
  * Convert a range to a string.
@@ -97,6 +111,21 @@ RangeF64 RangeF64::Mul(const RangeF64 &lhs, const RangeF64 &rhs) {
 
 
 /** RangeVecF64 Class **/
+
+/**
+ * Check if a range contains subnormal numbers.
+ *   @val: The value.
+ *   &returns: True the value is in the interval.
+ */
+bool RangeVecF64::HasSubnorm() const {
+	for(auto &scalar : scalars) {
+		if(scalar.HasSubnorm())
+			return true;
+	}
+
+	return false;
+}
+
 
 /**
  * Convert a range to a string.

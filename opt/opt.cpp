@@ -11,6 +11,8 @@ public:
 
 	std::map<const llvm::Value *, Fact> map;
 
+	Fact& Get(llvm::Value *value);
+
 	void Dump(llvm::Function const &func) const;
 };
 
@@ -26,8 +28,11 @@ public:
 	Fact(Range _range) { range = _range; }
 	~Fact() { };
 
+	bool HasSubnorm() const { return range.HasSubnorm(); }
+
 	static Fact Add(Fact const &lhs, Fact const &rhs, Type type);
 	static Fact Sub(Fact const &lhs, Fact const &rhs, Type type);
+	static Fact Mul(Fact const &lhs, Fact const &rhs, Type type);
 };
 
 
@@ -58,6 +63,13 @@ Op llvm_op(llvm::Instruction const& inst);
 void OptIval(llvm::Function &func) {
 	Pass pass;
 
+	uint32_t part = 0, full = 0, total = 0;
+	FILE *fp = fopen("STATS", "r");
+	if(fp != NULL) {
+		if(fscanf(fp, "%u\n%u\n%u\n", &full, &part, &total) < 0);
+		fclose(fp);
+	}
+
 	for(auto &arg : func.args()) {
 		Range range;
 		Type type = llvm_type(arg);
@@ -75,7 +87,7 @@ void OptIval(llvm::Function &func) {
 
 		case Kind::Flt:
 			if(type.width == 64)
-				range = Range(RangeVecI64::All(type.count));
+				range = Range(RangeVecF64::All(type.count));
 
 			break;
 		}
@@ -85,15 +97,41 @@ void OptIval(llvm::Function &func) {
 
 	for(auto &block : func) {
 		for(auto &inst : block) {
+			Fact *lhs, *rhs;
 			Info info = llvm_info(inst);
 
 			switch(info.op) {
 			case Op::Add:
-				pass.map[&inst] = Fact::Add(pass.map[inst.getOperand(0)], pass.map[inst.getOperand(1)], info.type);
+				lhs = &pass.Get(inst.getOperand(0));
+				rhs = &pass.Get(inst.getOperand(1));
+				pass.map[&inst] = Fact::Add(*lhs, *rhs, info.type);
+
+				if(!lhs->HasSubnorm() && !rhs->HasSubnorm() && !pass.map[&inst].HasSubnorm()) full++;
+				if(!lhs->HasSubnorm() || !rhs->HasSubnorm()) part++;
+				total++;
+
 				break;
 
 			case Op::Sub:
-				pass.map[&inst] = Fact::Sub(pass.map[inst.getOperand(0)], pass.map[inst.getOperand(1)], info.type);
+				lhs = &pass.Get(inst.getOperand(0));
+				rhs = &pass.Get(inst.getOperand(1));
+				pass.map[&inst] = Fact::Sub(*lhs, *rhs, info.type);
+
+				if(!lhs->HasSubnorm() && !rhs->HasSubnorm() && !pass.map[&inst].HasSubnorm()) full++;
+				if(!lhs->HasSubnorm() || !rhs->HasSubnorm()) part++;
+				total++;
+
+				break;
+
+			case Op::Mul:
+				lhs = &pass.Get(inst.getOperand(0));
+				rhs = &pass.Get(inst.getOperand(1));
+				pass.map[&inst] = Fact::Mul(*lhs, *rhs, info.type);
+
+				if(!lhs->HasSubnorm() && !rhs->HasSubnorm() && !pass.map[&inst].HasSubnorm()) full++;
+				if(!lhs->HasSubnorm() || !rhs->HasSubnorm()) part++;
+				total++;
+
 				break;
 
 			default:
@@ -102,7 +140,14 @@ void OptIval(llvm::Function &func) {
 		}
 	}
 
-	pass.Dump(func);
+	fp = fopen("STATS", "w");
+	if(fp != NULL) {
+		fprintf(fp, "%u\n%u\n%u\n", full, part, total);
+		fclose(fp);
+	}
+
+	//printf("STATS %s: %u/%u/%u\n", func.getName().data(), full, part, total);
+	//pass.Dump(func);
 }
 
 
@@ -112,7 +157,12 @@ void OptIval(llvm::Function &func) {
  *   &returns: The info.
  */
 Info llvm_info(llvm::Instruction const& inst) {
-	return Info(llvm_op(inst), llvm_type(*inst.getOperand(0)));
+	Op op = llvm_op(inst);
+
+	if(op != Op::Unk)
+		return Info(op, llvm_type(*inst.getOperand(0)));
+	else
+		return Info(op, Type());
 }
 
 /**
@@ -138,6 +188,7 @@ Op llvm_op(llvm::Instruction const& inst) {
 	switch(inst.getOpcode()) {
 	case llvm::Instruction::FAdd: return Op::Add;
 	case llvm::Instruction::FSub: return Op::Sub;
+	case llvm::Instruction::FMul: return Op::Mul;
 	default: return Op::Unk;
 	}
 }
@@ -154,6 +205,15 @@ struct CtfpOpt : public llvm::FunctionPass {
 
 char CtfpOpt::ID = 0;
 static llvm::RegisterPass<CtfpOpt> X("ctfp-opt", "CtfpOpt", false, false);
+
+#include <llvm/IR/LegacyPassManager.h>
+#include <llvm/Transforms/IPO/PassManagerBuilder.h>
+
+static void registerCTFP2(const llvm::PassManagerBuilder &, llvm::legacy::PassManagerBase &PM) {
+    PM.add(new CtfpOpt());
+    //PM.add(createConstantPropagationPass());
+}
+static llvm::RegisterStandardPasses RegisterCTFP(llvm::PassManagerBuilder::EP_OptimizerLast, registerCTFP2);
 
 
 /** Pass Class **/
@@ -175,6 +235,44 @@ void Pass::Dump(llvm::Function const &func) const {
 				printf("    missing\n");
 		}
 	}
+}
+
+/**
+ * Given a value, retrieve the associated fact.
+ *   @value: The value.
+ *   &returns: The fact.
+ */
+Fact& Pass::Get(llvm::Value *value) {
+	auto find = map.find(value);
+	if(find != map.end())
+		return find->second;
+
+	if(llvm::isa<llvm::ConstantFP>(value)) {
+		llvm::ConstantFP *fp = llvm::cast<llvm::ConstantFP>(value);
+
+		if(value->getType()->isFloatTy())
+			map[value] = Fact(); //TODO
+		else if(value->getType()->isDoubleTy())
+			map[value] = Range::ConstF64(fp->getValueAPF().convertToDouble());
+		else
+			map[value] = Fact(); //TODO
+
+		return map[value];
+	}
+	else if(llvm::isa<llvm::ConstantInt>(value)) {
+		//llvm::ConstantInt *ival = llvm::cast<llvm::ConstantInt>(value);
+
+		if(value->getType()->isIntegerTy(32))
+			map[value] = Fact(); //TODO
+		else if(value->getType()->isIntegerTy(64))
+			map[value] = Fact(); //TODO
+		else
+			map[value] = Fact(); //TODO
+
+		return map[value];
+	}
+	else
+		return map[value] = Fact();
 }
 
 
@@ -200,4 +298,15 @@ Fact Fact::Add(Fact const &lhs, Fact const &rhs, Type type) {
  */
 Fact Fact::Sub(Fact const &lhs, Fact const &rhs, Type type) {
 	return Fact(Range::Sub(lhs.range, rhs.range, type));
+}
+
+/**
+ * Multiply two facts together.
+ *   @lhs: The left-hand side.
+ *   @rhs: The right-hand side.
+ *   @type: The type.
+ *   &returns: The result fact.
+ */
+Fact Fact::Mul(Fact const &lhs, Fact const &rhs, Type type) {
+	return Fact(Range::Mul(lhs.range, rhs.range, type));
 }

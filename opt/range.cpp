@@ -28,6 +28,21 @@ Range::Range(Type type) {
 
 
 /**
+ * Check if a range contains subnormal numbers.
+ *   @val: The value.
+ *   &returns: True the value is in the interval.
+ */
+bool Range::HasSubnorm() const {
+	if(std::holds_alternative<RangeVecF64>(var))
+		return std::get<RangeVecF64>(var).HasSubnorm();
+	else if(std::holds_alternative<RangeUndef>(var))
+		return true;
+	else
+		return false;
+}
+
+
+/**
  * Convert a range to a string.
  *   &returns: The string.
  */
@@ -41,6 +56,7 @@ std::string Range::Str() const {
 	else
 		fatal("Invalid range type.");
 }
+
 
 /**
  * Add two ranges together.
@@ -62,7 +78,7 @@ Range Range::Add(const Range &lhs, const Range &rhs, Type type) {
 }
 
 /**
- * Sub two ranges together.
+ * Subtract two ranges together.
  *   @lhs: The left-hand side.
  *   @rhs: The right-hand side.
  *   @type: The type.
@@ -76,6 +92,25 @@ Range Range::Sub(const Range &lhs, const Range &rhs, Type type) {
 		fatal("stub"); // return RangeVecI64::Sub(std::get<RangeVecI64>(lhs), std::get<RangeVecI64>(rhs));
 	else if(std::holds_alternative<RangeVecF64>(lhs.var) && std::holds_alternative<RangeVecF64>(rhs.var))
 		return RangeVecF64::Sub(std::get<RangeVecF64>(lhs.var), std::get<RangeVecF64>(rhs.var));
+	else
+		fatal("Invalid subtraction.");
+}
+
+/**
+ * Multiply two ranges together.
+ *   @lhs: The left-hand side.
+ *   @rhs: The right-hand side.
+ *   @type: The type.
+ *   &returns: The result range.
+ */
+Range Range::Mul(const Range &lhs, const Range &rhs, Type type) {
+	if(IsUndef2(lhs, rhs))
+		return Range(type);
+
+	if(std::holds_alternative<RangeVecI64>(lhs.var) && std::holds_alternative<RangeVecI64>(rhs.var))
+		fatal("stub"); // return RangeVecI64::Mul(std::get<RangeVecI64>(lhs), std::get<RangeVecI64>(rhs));
+	else if(std::holds_alternative<RangeVecF64>(lhs.var) && std::holds_alternative<RangeVecF64>(rhs.var))
+		return RangeVecF64::Mul(std::get<RangeVecF64>(lhs.var), std::get<RangeVecF64>(rhs.var));
 	else
 		fatal("Invalid subtraction.");
 }

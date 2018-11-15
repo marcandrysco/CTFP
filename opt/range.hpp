@@ -25,6 +25,8 @@ public:
 	Range(Type type);
 	~Range() { }
 
+	bool HasSubnorm() const;
+
 	std::string Str() const;
 
 	static Range AllI64(uint32_t width) { return Range(RangeVecI64::All(width)); }
@@ -34,6 +36,7 @@ public:
 
 	static Range Add(const Range &lhs, const Range &rhs, Type type);
 	static Range Sub(const Range &lhs, const Range &rhs, Type type);
+	static Range Mul(const Range &lhs, const Range &rhs, Type type);
 };
 
 #endif

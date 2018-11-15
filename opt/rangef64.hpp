@@ -14,6 +14,7 @@ public:
 	~RangeF64() { }
 
 	bool Contains(double val) const;
+	bool HasSubnorm() const;
 
 	std::string Str() const;
 
@@ -36,6 +37,8 @@ public:
 	RangeVecF64(RangeF64 scalar) { scalars.push_back(scalar); }
 	RangeVecF64(std::vector<RangeF64> _scalars) { scalars = _scalars; }
 	~RangeVecF64() { }
+
+	bool HasSubnorm() const;
 
 	std::string Str() const;
 

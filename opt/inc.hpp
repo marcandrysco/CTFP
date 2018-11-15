@@ -36,7 +36,7 @@ class RangeF64;
 /*
  * operation and king enumerators
  */
-enum class Op { Unk, Add, Sub };
+enum class Op { Unk, Add, Sub, Mul };
 enum class Kind { Unk, Int, Flt };
 
 /*
@@ -55,6 +55,7 @@ public:
 /*
  * local headers
  */
+#include "defs.h"
 #include "ivali64.hpp"
 #include "ivalf64.hpp"
 #include "rangei64.hpp"

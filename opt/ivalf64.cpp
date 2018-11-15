@@ -7,7 +7,16 @@
  *   &returns: True the value is in the interval.
  */
 bool IvalF64::Contains(double val) const {
-	return (lo <= val) && (val <= hi);
+	return fp64gte(val, lo) && fp64lte(val, hi);
+}
+
+/**
+ * Check if an interval contains subnormal numbers.
+ *   @val: The value.
+ *   &returns: True the value is in the interval.
+ */
+bool IvalF64::HasSubnorm() const {
+	return IvalF64::Overlap(*this, IvalF64::SubnormNeg()) || IvalF64::Overlap(*this, IvalF64::SubnormPos());
 }
 
 
@@ -62,4 +71,9 @@ IvalF64 IvalF64::Mul(IvalF64 const& lhs, IvalF64 const& rhs) {
 	double d = lhs.hi * rhs.hi;
 
 	return IvalF64(std::min({ a, b, c, d }), std::max({ a, b, c, d }));
+}
+
+
+bool IvalF64::Overlap(IvalF64 const &lhs, IvalF64 const &rhs) {
+	return lhs.Contains(rhs.lo) || lhs.Contains(rhs.hi) || rhs.Contains(lhs.lo) || rhs.Contains(lhs.hi);
 }
