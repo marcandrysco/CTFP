@@ -2,17 +2,31 @@
 #define IVALI64_HPP
 
 /*
- * 64-bit integer class
+ * 32-bit integer class
  */
-class IvalI64 {
+template <class T> class IvalInt {
 public:
-	uint64_t lo, hi;
+	T lo, hi;
 
-	IvalI64(uint64_t _lo, uint64_t _hi) { lo = _lo; hi = _hi; };
-	~IvalI64() { }
+	IvalInt(T _lo, T _hi) { lo = _lo; hi = _hi; };
+	~IvalInt() { }
 
-	static IvalI64 All() { return IvalI64(0, UINT64_MAX); }
-	static IvalI64 Const(uint64_t val) { return IvalI64(val, val); }
+	bool IsZero() const;
+	bool IsOnes() const;
+	bool IsConst() const;
+	std::string Str() const;
+
+	static IvalInt<T> All() { return IvalInt(0, std::numeric_limits<T>::max()); }
+	static IvalInt<T> Const(T val) { return IvalInt(val, val); }
+
+	static T Ones() { return std::numeric_limits<T>::max(); }
+
+	static bool Inside(IvalInt const &ival, T val);
+	static bool Overlap(IvalInt const &lhs, IvalInt const &rhs);
+	static IvalInt Inter(IvalInt const &lhs, IvalInt const &rhs);
 };
+
+using IvalI64 = IvalInt<uint64_t>;
+template class IvalInt<uint64_t>;
 
 #endif

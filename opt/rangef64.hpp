@@ -16,14 +16,26 @@ public:
 	bool Contains(double val) const;
 	bool HasSubnorm() const;
 
+	double Lower() const;
+	double Upper() const;
+	RangeF64 Below(double bound, bool nan) const;
+	RangeF64 Above(double bound, bool nan) const;
+
 	std::string Str() const;
 
 	static RangeF64 All() { return RangeF64(IvalF64::All(), true); }
+	static RangeF64 None() { return RangeF64(false); }
 	static RangeF64 Const(double val) { return isnan(val) ? RangeF64(true) : RangeF64(IvalF64::Const(val), false); }
+
+	static RangeF64 FromI64(const RangeI64 &flt);
 
 	static RangeF64 Add(const RangeF64 &lhs, const RangeF64 &rhs);
 	static RangeF64 Sub(const RangeF64 &lhs, const RangeF64 &rhs);
 	static RangeF64 Mul(const RangeF64 &lhs, const RangeF64 &rhs);
+
+	static RangeBool CmpOGT(RangeF64 const& lhs, RangeF64 const& rhs);
+
+	static RangeF64 Select(RangeBool const& cond, RangeF64 const& lhs, RangeF64 const& rhs);
 };
 
 /*
@@ -45,9 +57,15 @@ public:
 	static RangeVecF64 All(uint32_t width) { RangeVecF64 res; for(uint32_t i = 0; i < width; i++) res.scalars.push_back(RangeF64::All()); return res; }
 	static RangeVecF64 Const(double val, uint32_t width) { RangeVecF64 res; for(uint32_t i = 0; i < width; i++) res.scalars.push_back(RangeF64::Const(val)); return res; }
 
+	static RangeVecF64 FromI64(const RangeVecI64 &in);
+
 	static RangeVecF64 Add(const RangeVecF64 &lhs, const RangeVecF64 &rhs);
 	static RangeVecF64 Sub(const RangeVecF64 &lhs, const RangeVecF64 &rhs);
 	static RangeVecF64 Mul(const RangeVecF64 &lhs, const RangeVecF64 &rhs);
+
+	static RangeVecBool CmpOGT(RangeVecF64 const& lhs, RangeVecF64 const& rhs);
+
+	static RangeVecF64 Select(RangeVecBool const& cond, RangeVecF64 const& lhs, RangeVecF64 const& rhs);
 };
 
 #endif

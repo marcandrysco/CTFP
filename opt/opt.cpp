@@ -13,7 +13,7 @@ public:
 
 	Fact& Get(llvm::Value *value);
 
-	void Dump(llvm::Function const &func) const;
+	void Dump(llvm::Function const& func) const;
 };
 
 
@@ -30,9 +30,20 @@ public:
 
 	bool HasSubnorm() const { return range.HasSubnorm(); }
 
-	static Fact Add(Fact const &lhs, Fact const &rhs, Type type);
-	static Fact Sub(Fact const &lhs, Fact const &rhs, Type type);
-	static Fact Mul(Fact const &lhs, Fact const &rhs, Type type);
+	static Fact ItoF(Fact const& in, Type type);
+	static Fact FtoI(Fact const& in, Type type);
+
+	static Fact Add(Fact const& lhs, Fact const& rhs, Type type);
+	static Fact Sub(Fact const& lhs, Fact const& rhs, Type type);
+	static Fact Mul(Fact const& lhs, Fact const& rhs, Type type);
+
+	static Fact And(Fact const& lhs, Fact const& rhs, Type type);
+	static Fact Or(Fact const& lhs, Fact const& rhs, Type type);
+	static Fact Xor(Fact const& lhs, Fact const& rhs, Type type);
+
+	static Fact CmpOGT(Fact const& lhs, Fact const& rhs, Type type);
+
+	static Fact Select(Fact const& cond, Fact const& lhs, Fact const& rhs, Type type);
 };
 
 
@@ -97,7 +108,7 @@ void OptIval(llvm::Function &func) {
 
 	for(auto &block : func) {
 		for(auto &inst : block) {
-			Fact *lhs, *rhs;
+			Fact *in, *lhs, *rhs;
 			Info info = llvm_info(inst);
 
 			switch(info.op) {
@@ -134,6 +145,36 @@ void OptIval(llvm::Function &func) {
 
 				break;
 
+			case Op::And:
+				pass.map[&inst] = Fact::And(pass.Get(inst.getOperand(0)), pass.Get(inst.getOperand(1)), info.type);
+				break;
+
+			case Op::Or:
+				pass.map[&inst] = Fact::Or(pass.Get(inst.getOperand(0)), pass.Get(inst.getOperand(1)), info.type);
+				break;
+
+			case Op::Xor:
+				pass.map[&inst] = Fact::Xor(pass.Get(inst.getOperand(0)), pass.Get(inst.getOperand(1)), info.type);
+				break;
+
+			case Op::CmpOGT:
+				pass.map[&inst] = Fact::CmpOGT(pass.Get(inst.getOperand(0)), pass.Get(inst.getOperand(1)), info.type);
+				break;
+
+			case Op::Select:
+				pass.map[&inst] = Fact::Select(pass.Get(inst.getOperand(0)), pass.Get(inst.getOperand(1)), pass.Get(inst.getOperand(2)), info.type);
+				break;
+
+			case Op::ItoF:
+				in = &pass.Get(inst.getOperand(0));
+				pass.map[&inst] = Fact::ItoF(*in, info.type);
+				break;
+
+			case Op::FtoI:
+				in = &pass.Get(inst.getOperand(0));
+				pass.map[&inst] = Fact::FtoI(*in, info.type);
+				break;
+
 			default:
 				break;
 			}
@@ -147,7 +188,7 @@ void OptIval(llvm::Function &func) {
 	}
 
 	//printf("STATS %s: %u/%u/%u\n", func.getName().data(), full, part, total);
-	//pass.Dump(func);
+	pass.Dump(func);
 }
 
 
@@ -159,8 +200,12 @@ void OptIval(llvm::Function &func) {
 Info llvm_info(llvm::Instruction const& inst) {
 	Op op = llvm_op(inst);
 
-	if(op != Op::Unk)
+	if((inst.getOpcode() == llvm::Instruction::ICmp) || (inst.getOpcode() == llvm::Instruction::FCmp))
 		return Info(op, llvm_type(*inst.getOperand(0)));
+	else if(inst.getOpcode() == llvm::Instruction::Select)
+		return Info(op, llvm_type(*inst.getOperand(1)));
+	else if(op != Op::Unk)
+		return Info(op, llvm_type(inst));
 	else
 		return Info(op, Type());
 }
@@ -186,10 +231,44 @@ Type llvm_type(llvm::Value const& val) {
  */
 Op llvm_op(llvm::Instruction const& inst) {
 	switch(inst.getOpcode()) {
-	case llvm::Instruction::FAdd: return Op::Add;
-	case llvm::Instruction::FSub: return Op::Sub;
-	case llvm::Instruction::FMul: return Op::Mul;
-	default: return Op::Unk;
+	case llvm::Instruction::FAdd:
+		return Op::Add;
+
+	case llvm::Instruction::FSub:
+		return Op::Sub;
+
+	case llvm::Instruction::FMul:
+		return Op::Mul;
+
+	case llvm::Instruction::And:
+		return Op::And;
+
+	case llvm::Instruction::Or:
+		return Op::Or;
+
+	case llvm::Instruction::Xor:
+		return Op::Xor;
+
+	case llvm::Instruction::Select:
+		return Op::Select;
+
+	case llvm::Instruction::BitCast:
+		if(inst.getType()->isIntegerTy(64) && inst.getOperand(0)->getType()->isDoubleTy())
+			return Op::FtoI;
+		else if(inst.getType()->isDoubleTy() && inst.getOperand(0)->getType()->isIntegerTy(64))
+			return Op::ItoF;
+		else
+			return Op::Unk;
+
+	case llvm::Instruction::FCmp:
+		switch(llvm::cast<llvm::FCmpInst>(&inst)->getPredicate()) {
+		case llvm::CmpInst::FCMP_OLT: return Op::CmpOLT; break;
+		case llvm::CmpInst::FCMP_OGT: return Op::CmpOGT; break;
+		default: return Op::Unk;
+		}
+
+	default:
+		return Op::Unk;
 	}
 }
 
@@ -211,7 +290,6 @@ static llvm::RegisterPass<CtfpOpt> X("ctfp-opt", "CtfpOpt", false, false);
 
 static void registerCTFP2(const llvm::PassManagerBuilder &, llvm::legacy::PassManagerBase &PM) {
     PM.add(new CtfpOpt());
-    //PM.add(createConstantPropagationPass());
 }
 static llvm::RegisterStandardPasses RegisterCTFP(llvm::PassManagerBuilder::EP_OptimizerLast, registerCTFP2);
 
@@ -221,7 +299,7 @@ static llvm::RegisterStandardPasses RegisterCTFP(llvm::PassManagerBuilder::EP_Op
 /**
  * Dump the set of facts from a function.
  */
-void Pass::Dump(llvm::Function const &func) const {
+void Pass::Dump(llvm::Function const& func) const {
 	for(auto &block : func) {
 		std::cout << block.getName().data() << ":\n";
 		for(auto &inst : block) {
@@ -260,12 +338,12 @@ Fact& Pass::Get(llvm::Value *value) {
 		return map[value];
 	}
 	else if(llvm::isa<llvm::ConstantInt>(value)) {
-		//llvm::ConstantInt *ival = llvm::cast<llvm::ConstantInt>(value);
+		llvm::ConstantInt *ival = llvm::cast<llvm::ConstantInt>(value);
 
 		if(value->getType()->isIntegerTy(32))
 			map[value] = Fact(); //TODO
 		else if(value->getType()->isIntegerTy(64))
-			map[value] = Fact(); //TODO
+			map[value] = Range::ConstI64(ival->getZExtValue());
 		else
 			map[value] = Fact(); //TODO
 
@@ -279,13 +357,33 @@ Fact& Pass::Get(llvm::Value *value) {
 /** Fact Class **/
 
 /**
+ * Cast an integer to float.
+ *   @in: The input.
+ *   @type: The type.
+ *   &returns: The result fact.
+ */
+Fact Fact::ItoF(Fact const& in, Type type) {
+	return Fact(Range::ItoF(in.range, type));
+}
+
+/**
+ * Cast a float to integer.
+ *   @in: The input.
+ *   @type: The type.
+ *   &returns: The result fact.
+ */
+Fact Fact::FtoI(Fact const& in, Type type) {
+	return Fact(Range::FtoI(in.range, type));
+}
+
+/**
  * Add two facts together.
  *   @lhs: The left-hand side.
  *   @rhs: The right-hand side.
  *   @type: The type.
  *   &returns: The result fact.
  */
-Fact Fact::Add(Fact const &lhs, Fact const &rhs, Type type) {
+Fact Fact::Add(Fact const& lhs, Fact const& rhs, Type type) {
 	return Fact(Range::Add(lhs.range, rhs.range, type));
 }
 
@@ -296,7 +394,7 @@ Fact Fact::Add(Fact const &lhs, Fact const &rhs, Type type) {
  *   @type: The type.
  *   &returns: The result fact.
  */
-Fact Fact::Sub(Fact const &lhs, Fact const &rhs, Type type) {
+Fact Fact::Sub(Fact const& lhs, Fact const& rhs, Type type) {
 	return Fact(Range::Sub(lhs.range, rhs.range, type));
 }
 
@@ -307,6 +405,65 @@ Fact Fact::Sub(Fact const &lhs, Fact const &rhs, Type type) {
  *   @type: The type.
  *   &returns: The result fact.
  */
-Fact Fact::Mul(Fact const &lhs, Fact const &rhs, Type type) {
+Fact Fact::Mul(Fact const& lhs, Fact const& rhs, Type type) {
 	return Fact(Range::Mul(lhs.range, rhs.range, type));
+}
+
+
+/**
+ * And two facts together.
+ *   @lhs: The left-hand side.
+ *   @rhs: The right-hand side.
+ *   @type: The type.
+ *   &returns: The result fact.
+ */
+Fact Fact::And(Fact const& lhs, Fact const& rhs, Type type) {
+	return Fact(Range::And(lhs.range, rhs.range, type));
+}
+
+/**
+ * Or two facts together.
+ *   @lhs: The left-hand side.
+ *   @rhs: The right-hand side.
+ *   @type: The type.
+ *   &returns: The result fact.
+ */
+Fact Fact::Or(Fact const& lhs, Fact const& rhs, Type type) {
+	return Fact(Range::Or(lhs.range, rhs.range, type));
+}
+
+/**
+ * Xor two facts together.
+ *   @lhs: The left-hand side.
+ *   @rhs: The right-hand side.
+ *   @type: The type.
+ *   &returns: The result fact.
+ */
+Fact Fact::Xor(Fact const& lhs, Fact const& rhs, Type type) {
+	return Fact(Range::Xor(lhs.range, rhs.range, type));
+}
+
+
+/**
+ * Comparison (OGT) on two facts.
+ *   @lhs: The left-hand side.
+ *   @rhs: The right-hand side.
+ *   @type: The type.
+ *   &returns: The result fact.
+ */
+Fact Fact::CmpOGT(Fact const& lhs, Fact const& rhs, Type type) {
+	return Fact(Range::CmpOGT(lhs.range, rhs.range, type));
+}
+
+
+/**
+ * Select values base on a condition.
+ *   @cond: The condition.
+ *   @lhs: The left-hand side.
+ *   @rhs: The right-hand side.
+ *   @type: The type.
+ *   &returns: The result fact.
+ */
+Fact Fact::Select(Fact const& cond, Fact const& lhs, Fact const& rhs, Type type) {
+	return Fact(Range::Select(cond.range, lhs.range, rhs.range, type));
 }

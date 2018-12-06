@@ -25,32 +25,17 @@ namespace llvm {
 };
 
 class Fact;
-class IvalI64;
 class IvalF64;
 class Pass;
 class Range;
+class RangeBool;
 class RangeUndef;
-class RangeI64;
 class RangeF64;
+class RangeVecBool;
+class RangeVecI64;
+class RangeVecF64;
 
-/*
- * operation and king enumerators
- */
-enum class Op { Unk, Add, Sub, Mul };
-enum class Kind { Unk, Int, Flt };
-
-/*
- * type class
- */
-class Type {
-public:
-	Kind kind;
-	uint32_t width, count;
-
-	Type() { kind = Kind::Unk; width = 0; count = 0; }
-	Type(Kind _kind, uint32_t _width) { kind = _kind; width = _width; count = 1; }
-	Type(Kind _kind, uint32_t _width, uint32_t _count) { kind = _kind; width = _width; count = _count; }
-};
+#define fatal(...) do { fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n"); abort(); } while(0)
 
 /*
  * local headers
@@ -61,7 +46,5 @@ public:
 #include "rangei64.hpp"
 #include "rangef64.hpp"
 #include "range.hpp"
-
-#define fatal(...) do { fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n"); abort(); } while(0)
 
 #endif
