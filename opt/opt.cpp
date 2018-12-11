@@ -85,6 +85,7 @@ void OptIval(llvm::Function &func) {
 		Range range;
 		Type type = llvm_type(arg);
 
+
 		switch(type.kind) {
 		case Kind::Unk:
 			range = Range(RangeUndef());
@@ -92,18 +93,18 @@ void OptIval(llvm::Function &func) {
 
 		case Kind::Int:
 			if(type.width == 64)
-				range = Range(RangeVecI64::All(type.count));
+				range = Range(RangeVecI64(RangeI64::All()));
 
 			break;
 
 		case Kind::Flt:
 			if(type.width == 64)
-				range = Range(RangeVecF64::All(type.count));
+				range = Range(RangeVecF64(RangeF64::Limit()));
 
 			break;
 		}
 
-		pass.map[&arg] = Fact(Range(RangeF64::All()));
+		pass.map[&arg] = Fact(range);
 	}
 
 	for(auto &block : func) {
@@ -188,7 +189,7 @@ void OptIval(llvm::Function &func) {
 	}
 
 	//printf("STATS %s: %u/%u/%u\n", func.getName().data(), full, part, total);
-	pass.Dump(func);
+	//pass.Dump(func);
 }
 
 

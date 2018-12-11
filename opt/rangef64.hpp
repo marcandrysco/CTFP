@@ -11,6 +11,7 @@ public:
 
 	RangeF64(bool _nan) { nan = _nan; }
 	RangeF64(IvalF64 const& ival, bool _nan) { ivals.push_back(ival); nan = _nan; }
+	RangeF64(std::vector<IvalF64> const& _ivals, bool _nan) { ivals = _ivals; nan = _nan; }
 	~RangeF64() { }
 
 	bool Contains(double val) const;
@@ -24,6 +25,7 @@ public:
 	std::string Str() const;
 
 	static RangeF64 All() { return RangeF64(IvalF64::All(), true); }
+	static RangeF64 Limit() { return RangeF64(std::vector<IvalF64>{ IvalF64(-10e10,-10e-10), IvalF64(10e-10,10e10) }, false); }
 	static RangeF64 None() { return RangeF64(false); }
 	static RangeF64 Const(double val) { return isnan(val) ? RangeF64(true) : RangeF64(IvalF64::Const(val), false); }
 

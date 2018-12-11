@@ -223,7 +223,7 @@ Range Range::Mul(const Range &lhs, const Range &rhs, Type type) {
 	else if(std::holds_alternative<RangeVecF64>(lhs.var) && std::holds_alternative<RangeVecF64>(rhs.var))
 		return RangeVecF64::Mul(std::get<RangeVecF64>(lhs.var), std::get<RangeVecF64>(rhs.var));
 	else
-		fatal("Invalid multiplication.");
+		fatal("Invalid.");
 }
 
 
@@ -241,7 +241,7 @@ Range Range::And(const Range &lhs, const Range &rhs, Type type) {
 	if(IsPair<RangeVecI64>(lhs, rhs))
 		return RangeVecI64::And(std::get<RangeVecI64>(lhs.var), std::get<RangeVecI64>(rhs.var));
 	else
-		fatal("Invalid multiplication.");
+		fatal("Invalid and. %ld %ld", lhs.var.index(), rhs.var.index());
 }
 
 /**
@@ -258,7 +258,7 @@ Range Range::Or(const Range &lhs, const Range &rhs, Type type) {
 	if(IsPair<RangeVecI64>(lhs, rhs))
 		return RangeVecI64::Or(std::get<RangeVecI64>(lhs.var), std::get<RangeVecI64>(rhs.var));
 	else
-		fatal("Invalid multiplication.");
+		fatal("Invalid or.");
 }
 
 /**
@@ -275,7 +275,7 @@ Range Range::Xor(const Range &lhs, const Range &rhs, Type type) {
 	if(IsPair<RangeVecI64>(lhs, rhs))
 		return RangeVecI64::Xor(std::get<RangeVecI64>(lhs.var), std::get<RangeVecI64>(rhs.var));
 	else
-		fatal("Invalid multiplication.");
+		fatal("Invalid xor.");
 }
 
 
@@ -288,7 +288,7 @@ Range Range::Xor(const Range &lhs, const Range &rhs, Type type) {
  */
 Range Range::CmpOGT(Range const &lhs, Range const &rhs, Type type) {
 	if(IsUndef2(lhs, rhs))
-		return Range(type);
+		return Range(RangeUndef());
 
 	if(IsF64Pair(lhs, rhs))
 		return Range(RangeVecF64::CmpOGT(std::get<RangeVecF64>(lhs.var), std::get<RangeVecF64>(rhs.var)));
@@ -309,13 +309,16 @@ Range Range::Select(Range const& cond, Range const& lhs, Range const& rhs, Type 
 	if(IsUndef1(cond))
 		return Range(type);
 
-	if(!IsA<RangeVecBool>(cond))
-		fatal("Invalid select.");
+	if(!IsA<RangeVecBool>(cond)) {
+		fatal("Invalid select. %zd", cond.var.index());
+	}
 
 	if(IsPair<RangeVecF64>(lhs, rhs))
 		return Range(RangeVecF64::Select(std::get<RangeVecBool>(cond.var), std::get<RangeVecF64>(lhs.var), std::get<RangeVecF64>(rhs.var)));
 	else if(IsPair<RangeVecI64>(lhs, rhs))
 		return Range(RangeVecI64::Select(std::get<RangeVecBool>(cond.var), std::get<RangeVecI64>(lhs.var), std::get<RangeVecI64>(rhs.var)));
+	else if(IsPair<RangeVecBool>(lhs, rhs))
+		return Range(type);
 	else
-		fatal("Invalid select.");
+		fatal("Invalid select. 2");
 }
