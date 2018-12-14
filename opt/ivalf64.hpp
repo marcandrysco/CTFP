@@ -2,32 +2,37 @@
 #define IVALF64_HPP
 
 /*
- * 64-bit float class
+ * float class
  */
-class IvalF64 {
+template <class T> class IvalFlt {
 public:
-	double lo, hi;
+	int lsb;
+	T lo, hi;
 
-	IvalF64(double _lo, double _hi) { lo = _lo; hi = _hi; };
-	~IvalF64() { }
+	IvalFlt(T _lo, T _hi) { lo = _lo; hi = _hi; lsb = fp_lsb2(_lo, _hi); };
+	IvalFlt(T _lo, T _hi, int _lsb) { lo = _lo; hi = _hi; lsb = _lsb; };
+	~IvalFlt() { }
 
-	bool Contains(double val) const;
+	//int LSB() const { if((lo < 0.0) && (hi > 0.0)) return -
+	//};
+	bool Contains(T val) const;
 	bool HasSubnorm() const;
 
 	std::string Str() const;
 
-	static IvalF64 All() { return IvalF64(-INFINITY, INFINITY); }
-	static IvalF64 Const(double val) { return IvalF64(val, val); }
-	static IvalF64 Subnorm() { return IvalF64(fp64next(-DBL_MIN), fp64prev(DBL_MIN)); }
-	static IvalF64 SubnormNeg() { return IvalF64(fp64next(-DBL_MIN), fp64prev(-0.0)); }
-	static IvalF64 SubnormPos() { return IvalF64(fp64next(0.0), fp64prev(DBL_MIN)); }
+	static IvalFlt All() { return IvalFlt(-INFINITY, INFINITY); }
+	static IvalFlt Const(T val) { return IvalFlt(val, val); }
+	static IvalFlt SubnormNeg() { return IvalFlt(fp_next<T>(std::numeric_limits<T>::min()), fp_prev<T>(-0.0)); }
+	static IvalFlt SubnormPos() { return IvalFlt(fp_next<T>(-0.0), fp_prev<T>(std::numeric_limits<T>::min())); }
 
-	static IvalF64 Add(IvalF64 const& lhs, IvalF64 const& rhs);
-	static IvalF64 Sub(IvalF64 const& lhs, IvalF64 const& rhs);
-	static IvalF64 Mul(IvalF64 const& lhs, IvalF64 const& rhs);
+	static IvalFlt Add(IvalFlt const& lhs, IvalFlt const& rhs);
+	static IvalFlt Sub(IvalFlt const& lhs, IvalFlt const& rhs);
+	static IvalFlt Mul(IvalFlt const& lhs, IvalFlt const& rhs);
 
-	static bool Inside(IvalF64 const &ival, double val);
-	static bool Overlap(IvalF64 const &lhs, IvalF64 const &rhs);
+	static bool Overlap(IvalFlt const &lhs, IvalFlt const &rhs);
 };
+
+template class IvalFlt<double>;
+template class IvalFlt<float>;
 
 #endif

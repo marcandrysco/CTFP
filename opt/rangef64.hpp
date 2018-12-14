@@ -1,44 +1,44 @@
 #ifndef RANGEF64_HPP
 #define RANGEF64_HPP
 
-/*
- * 64-bit float range class
- */
-class RangeF64 {
+template <class T> class RangeFlt {
 public:
 	bool nan;
-	std::vector<IvalF64> ivals;
+	std::vector<IvalFlt<T>> ivals;
 
-	RangeF64(bool _nan) { nan = _nan; }
-	RangeF64(IvalF64 const& ival, bool _nan) { ivals.push_back(ival); nan = _nan; }
-	RangeF64(std::vector<IvalF64> const& _ivals, bool _nan) { ivals = _ivals; nan = _nan; }
-	~RangeF64() { }
+	RangeFlt(bool _nan) { nan = _nan; }
+	RangeFlt(IvalFlt<T> const& ival, bool _nan) { ivals.push_back(ival); nan = _nan; }
+	RangeFlt(std::vector<IvalFlt<T>> const& _ivals, bool _nan) { ivals = _ivals; nan = _nan; }
+	~RangeFlt() { }
 
-	bool Contains(double val) const;
+	bool Contains(T val) const;
 	bool HasSubnorm() const;
 
-	double Lower() const;
-	double Upper() const;
-	RangeF64 Below(double bound, bool nan) const;
-	RangeF64 Above(double bound, bool nan) const;
+	T Lower() const;
+	T Upper() const;
+	RangeFlt Below(T bound, bool nan) const;
+	RangeFlt Above(T bound, bool nan) const;
 
 	std::string Str() const;
 
-	static RangeF64 All() { return RangeF64(IvalF64::All(), true); }
-	static RangeF64 Limit() { return RangeF64(std::vector<IvalF64>{ IvalF64(-10e10,-10e-10), IvalF64(10e-10,10e10) }, false); }
-	static RangeF64 None() { return RangeF64(false); }
-	static RangeF64 Const(double val) { return isnan(val) ? RangeF64(true) : RangeF64(IvalF64::Const(val), false); }
+	static RangeFlt All() { return RangeFlt(IvalFlt<T>::All(), true); }
+	static RangeFlt Limit() { return RangeFlt(std::vector<IvalFlt<T>>{ IvalFlt<T>(-10e10, -10e-10, -20), IvalFlt<T>(10e-10, 10e10, -20) }, false); }
+	static RangeFlt None() { return RangeFlt(false); }
+	static RangeFlt Const(double val) { return isnan(val) ? RangeFlt<T>(true) : RangeFlt(IvalFlt<T>::Const(val), false); }
 
-	static RangeF64 FromI64(const RangeI64 &flt);
+	static RangeFlt FromI64(const RangeI64 &flt);
 
-	static RangeF64 Add(const RangeF64 &lhs, const RangeF64 &rhs);
-	static RangeF64 Sub(const RangeF64 &lhs, const RangeF64 &rhs);
-	static RangeF64 Mul(const RangeF64 &lhs, const RangeF64 &rhs);
+	static RangeFlt Add(const RangeFlt &lhs, const RangeFlt &rhs);
+	static RangeFlt Sub(const RangeFlt &lhs, const RangeFlt &rhs);
+	static RangeFlt Mul(const RangeFlt &lhs, const RangeFlt &rhs);
 
-	static RangeBool CmpOGT(RangeF64 const& lhs, RangeF64 const& rhs);
+	static RangeBool CmpOGT(RangeFlt const& lhs, RangeFlt const& rhs);
 
-	static RangeF64 Select(RangeBool const& cond, RangeF64 const& lhs, RangeF64 const& rhs);
+	static RangeFlt Select(RangeBool const& cond, RangeFlt const& lhs, RangeFlt const& rhs);
 };
+
+template class RangeFlt<double>;
+template class RangeFlt<float>;
 
 /*
  * vector of 64-bit floats range class

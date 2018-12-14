@@ -24,13 +24,19 @@ namespace llvm {
 	class Value;
 };
 
+template <class T> class IvalFlt;
+using IvalF64 = IvalFlt<double>;
+using IvalF32 = IvalFlt<float>;
+
+template <class T> class RangeFlt;
+using RangeF64 = RangeFlt<double>;
+using RangeF32 = RangeFlt<float>;
+
 class Fact;
-class IvalF64;
 class Pass;
 class Range;
 class RangeBool;
 class RangeUndef;
-class RangeF64;
 class RangeVecBool;
 class RangeVecI64;
 class RangeVecF64;
@@ -41,6 +47,8 @@ class RangeVecF64;
  * local headers
  */
 #include "defs.h"
+#include "fp.hpp"
+
 #include "ivali64.hpp"
 #include "ivalf64.hpp"
 #include "rangei64.hpp"

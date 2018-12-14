@@ -4,8 +4,8 @@ LD = g++
 CFLAGS = -O2 -fpic -Wall
 CXXFLAGS = -g -O2 -fpic -Wall -Werror -std=gnu++17 -I/usr/lib/llvm-6.0/include
 LDFLAGS = -lm
-OBJ = opt.o   ivali64.o   ivalf64.o   rangei64.o   rangef64.o   range.o
-INC = opt.hpp ivali64.hpp ivalf64.hpp rangei64.hpp rangef64.hpp range.hpp inc.hpp defs.h
+OBJ = opt.o   fp.o   ivali64.o   ivalf64.o   rangei64.o   rangef64.o   range.o
+INC = opt.hpp fp.hpp ivali64.hpp ivalf64.hpp rangei64.hpp rangef64.hpp range.hpp inc.hpp defs.h
 
 
 ### Build Rules

@@ -6,8 +6,8 @@
  *   @val: The value.
  *   &returns: True the value is in the interval.
  */
-bool IvalF64::Contains(double val) const {
-	return fp64gte(val, lo) && fp64lte(val, hi);
+template <class T> bool IvalFlt<T>::Contains(T val) const {
+	return fp_gte<T>(val, lo) && fp_lte<T>(val, hi);
 }
 
 /**
@@ -15,8 +15,14 @@ bool IvalF64::Contains(double val) const {
  *   @val: The value.
  *   &returns: True the value is in the interval.
  */
-bool IvalF64::HasSubnorm() const {
-	return IvalF64::Overlap(*this, IvalF64::SubnormNeg()) || IvalF64::Overlap(*this, IvalF64::SubnormPos());
+template <class T> bool IvalFlt<T>::HasSubnorm() const {
+	int exp;
+
+	std::frexp(std::numeric_limits<T>::min(), &exp);
+	if(lsb >= exp)
+		return false;
+
+	return IvalFlt::Overlap(*this, IvalFlt::SubnormNeg()) || IvalFlt::Overlap(*this, IvalFlt::SubnormPos());
 }
 
 
@@ -24,56 +30,57 @@ bool IvalF64::HasSubnorm() const {
  * Convert an interval to a string.
  *   &returns: The string.
  */
-std::string IvalF64::Str() const {
+template <class T> std::string IvalFlt<T>::Str() const {
 	char str[64];
 
-	snprintf(str, sizeof(str), "%.17e,%.17e", lo, hi);
+	snprintf(str, sizeof(str), "%.17e,%.17e,%d", lo, hi, lsb);
 
 	return std::string(str);
 }
 
 
-//std::vector<IvalF64> Inv(IvalF64 const& in) {
-	//if(in.lo == 0.0) {
-	//}
-//}
-
 /**
- * Add two 64-bit float intervals.
+ * Add two float intervals.
  *   @lhs: The left-hand side.
  *   @rhs: The right-hand side.
  *   &returns: The result interval.
  */
-IvalF64 IvalF64::Add(IvalF64 const& lhs, IvalF64 const& rhs) {
-	return IvalF64(lhs.lo + rhs.lo, lhs.hi + rhs.hi);
+template <class T> IvalFlt<T> IvalFlt<T>::Add(IvalFlt const& lhs, IvalFlt const& rhs) {
+	return IvalFlt(lhs.lo + rhs.lo, lhs.hi + rhs.hi, std::min(lhs.lsb, rhs.lsb));
 }
 
 /**
- * Subtract two 64-bit float intervals.
+ * Subtract two float intervals.
  *   @lhs: The left-hand side.
  *   @rhs: The right-hand side.
  *   &returns: The result interval.
  */
-IvalF64 IvalF64::Sub(IvalF64 const& lhs, IvalF64 const& rhs) {
-	return IvalF64(lhs.lo - rhs.lo, lhs.hi - rhs.hi);
+template <class T> IvalFlt<T> IvalFlt<T>::Sub(IvalFlt const& lhs, IvalFlt const& rhs) {
+	return IvalFlt(lhs.lo - rhs.lo, lhs.hi - rhs.hi, std::min(lhs.lsb, rhs.lsb));
 }
 
 /**
- * Multiply two 64-bit float intervals.
+ * Multiply two float intervals.
  *   @lhs: The left-hand side.
  *   @rhs: The right-hand side.
  *   &returns: The result interval.
  */
-IvalF64 IvalF64::Mul(IvalF64 const& lhs, IvalF64 const& rhs) {
+template <class T> IvalFlt<T> IvalFlt<T>::Mul(IvalFlt const& lhs, IvalFlt const& rhs) {
 	double a = lhs.lo * rhs.lo;
 	double b = lhs.hi * rhs.lo;
 	double c = lhs.lo * rhs.hi;
 	double d = lhs.hi * rhs.hi;
 
-	return IvalF64(std::min({ a, b, c, d }), std::max({ a, b, c, d }));
+	return IvalFlt(std::min({ a, b, c, d }), std::max({ a, b, c, d }), lhs.lsb + rhs.lsb);
 }
 
 
-bool IvalF64::Overlap(IvalF64 const &lhs, IvalF64 const &rhs) {
+/**
+ * Check if two intervals overlap.
+ *   @lhs: The left-hand side.
+ *   @rhs: The right-hand side.
+ *   &returns: True if they overlap.
+ */
+template <class T> bool IvalFlt<T>::Overlap(IvalFlt const &lhs, IvalFlt const &rhs) {
 	return lhs.Contains(rhs.lo) || lhs.Contains(rhs.hi) || rhs.Contains(lhs.lo) || rhs.Contains(lhs.hi);
 }

@@ -2,7 +2,7 @@
 #define IVALI64_HPP
 
 /*
- * 32-bit integer class
+ * integer class
  */
 template <class T> class IvalInt {
 public:

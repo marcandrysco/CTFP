@@ -1,14 +1,11 @@
 #include "inc.hpp"
 
-
-/** RangeF64 class **/
-
 /**
  * Check if a range contains a value.
  *   @val: The value.
  *   &returns: True the value is in the range.
  */
-bool RangeF64::Contains(double val) const {
+template <class T> bool RangeFlt<T>::Contains(T val) const {
 	for(auto &ival : ivals) {
 		if(ival.Contains(val))
 			return true;
@@ -22,7 +19,7 @@ bool RangeF64::Contains(double val) const {
  *   @val: The value.
  *   &returns: True the value is in the interval.
  */
-bool RangeF64::HasSubnorm() const {
+template <class T> bool RangeFlt<T>::HasSubnorm() const {
 	for(auto &ival : ivals) {
 		if(ival.HasSubnorm())
 			return true;
@@ -36,11 +33,11 @@ bool RangeF64::HasSubnorm() const {
  * Retrieve the lower value from the range.
  *   &returns: The lower value.
  */
-double RangeF64::Lower() const {
-	double min = DBL_MAX;
+template <class T> T RangeFlt<T>::Lower() const {
+	T min = std::numeric_limits<T>::max();
 
 	for(auto const &ival : ivals)
-		min = fmin(min, ival.lo);
+		min = std::fmin(min, ival.lo);
 
 	return min;
 }
@@ -49,11 +46,11 @@ double RangeF64::Lower() const {
  * Retrieve the upper value from the range.
  *   &returns: The upper value.
  */
-double RangeF64::Upper() const {
-	double max = -DBL_MAX;
+template <class T> T RangeFlt<T>::Upper() const {
+	T max = -std::numeric_limits<T>::max();
 
 	for(auto const &ival : ivals)
-		max = fmax(max, ival.hi);
+		max = std::fmax(max, ival.hi);
 
 	return max;
 }
@@ -64,12 +61,12 @@ double RangeF64::Upper() const {
  *   @nan: NaN flag.
  *   &returns: The bounded range.
  */
-RangeF64 RangeF64::Below(double bound, bool nan) const {
-	RangeF64 res(nan);
+template <class T> RangeFlt<T> RangeFlt<T>::Below(T bound, bool nan) const {
+	RangeFlt res(nan);
 
 	for(auto const &ival : ivals) {
 		if(ival.lo < bound)
-			res.ivals.push_back(IvalF64(ival.lo, std::fmin(ival.hi, bound)));
+			res.ivals.push_back(IvalFlt(ival.lo, std::fmin(ival.hi, bound)));
 	}
 
 	return res;
@@ -81,12 +78,12 @@ RangeF64 RangeF64::Below(double bound, bool nan) const {
  *   @nan: NaN flag.
  *   &returns: The bounded range.
  */
-RangeF64 RangeF64::Above(double bound, bool nan) const {
-	RangeF64 res(nan);
+template <class T> RangeFlt<T> RangeFlt<T>::Above(T bound, bool nan) const {
+	RangeFlt res(nan);
 
 	for(auto const &ival : ivals) {
 		if(ival.hi > bound)
-			res.ivals.push_back(IvalF64(std::fmax(ival.lo, bound), ival.hi));
+			res.ivals.push_back(IvalFlt(std::fmax(ival.lo, bound), ival.hi));
 	}
 
 	return res;
@@ -97,7 +94,7 @@ RangeF64 RangeF64::Above(double bound, bool nan) const {
  * Convert a range to a string.
  *   &returns: The string.
  */
-std::string RangeF64::Str() const {
+template <class T>std::string RangeFlt<T>::Str() const {
 	std::string ret;
 
 	if(nan)
@@ -115,8 +112,11 @@ std::string RangeF64::Str() const {
  *   @in: The integer range.
  *   &returns: The float range.
  */
-RangeF64 RangeF64::FromI64(const RangeI64 &in) {
-	RangeF64 res(false);
+template <class T> RangeFlt<T> RangeFlt<T>::FromI64(const RangeI64 &in) {
+	fatal("Unsupported types for `FromInt`.");
+}
+template <> RangeFlt<double> RangeFlt<double>::FromI64(const RangeI64 &in) {
+	RangeFlt<double> res(false);
 
 	double lo, hi;
 	static IvalI64 pos(0x0000000000000000, 0x7FF0000000000000);
@@ -153,15 +153,15 @@ RangeF64 RangeF64::FromI64(const RangeI64 &in) {
  *   @rhs: The right-hand side.
  *   &returns: The result range.
  */
-RangeF64 RangeF64::Add(const RangeF64 &lhs, const RangeF64 &rhs) {
-	RangeF64 res(lhs.nan || rhs.nan);
+template <class T> RangeFlt<T> RangeFlt<T>::Add(const RangeFlt<T> &lhs, const RangeFlt<T> &rhs) {
+	RangeFlt<T> res(lhs.nan || rhs.nan);
 
 	res.nan |= lhs.Contains(-INFINITY) && rhs.Contains(INFINITY);
 	res.nan |= lhs.Contains(INFINITY) && rhs.Contains(-INFINITY);
 
-	for(auto &x: lhs.ivals) {
+	for(auto &x : lhs.ivals) {
 		for(auto &y: rhs.ivals)
-			res.ivals.push_back(IvalF64::Add(x, y));
+			res.ivals.push_back(IvalFlt<T>::Add(x, y));
 	}
 
 	return res;
@@ -173,15 +173,15 @@ RangeF64 RangeF64::Add(const RangeF64 &lhs, const RangeF64 &rhs) {
  *   @rhs: The right-hand side.
  *   &returns: The result range.
  */
-RangeF64 RangeF64::Sub(const RangeF64 &lhs, const RangeF64 &rhs) {
-	RangeF64 res(lhs.nan || rhs.nan);
+template <class T> RangeFlt<T> RangeFlt<T>::Sub(const RangeFlt<T> &lhs, const RangeFlt<T> &rhs) {
+	RangeFlt<T> res(lhs.nan || rhs.nan);
 
 	res.nan |= lhs.Contains(INFINITY) && rhs.Contains(INFINITY);
 	res.nan |= lhs.Contains(-INFINITY) && rhs.Contains(-INFINITY);
 
-	for(auto &x: lhs.ivals) {
+	for(auto &x : lhs.ivals) {
 		for(auto &y: rhs.ivals)
-			res.ivals.push_back(IvalF64::Sub(x, y));
+			res.ivals.push_back(IvalFlt<T>::Sub(x, y));
 	}
 
 	return res;
@@ -193,15 +193,15 @@ RangeF64 RangeF64::Sub(const RangeF64 &lhs, const RangeF64 &rhs) {
  *   @rhs: The right-hand side.
  *   &returns: The result range.
  */
-RangeF64 RangeF64::Mul(const RangeF64 &lhs, const RangeF64 &rhs) {
-	RangeF64 res(lhs.nan || rhs.nan);
+template <class T> RangeFlt<T> RangeFlt<T>::Mul(const RangeFlt<T> &lhs, const RangeFlt<T> &rhs) {
+	RangeFlt<T> res(lhs.nan || rhs.nan);
 
 	res.nan |= (lhs.Contains(INFINITY) || lhs.Contains(-INFINITY)) && (rhs.Contains(0.0) || rhs.Contains(-0.0));
 	res.nan |= (lhs.Contains(0.0) || lhs.Contains(-0.0)) && (rhs.Contains(INFINITY) || rhs.Contains(-INFINITY));
 
-	for(auto &x: lhs.ivals) {
+	for(auto &x : lhs.ivals) {
 		for(auto &y: rhs.ivals)
-			res.ivals.push_back(IvalF64::Mul(x, y));
+			res.ivals.push_back(IvalFlt<T>::Mul(x, y));
 	}
 
 	return res;
@@ -214,7 +214,7 @@ RangeF64 RangeF64::Mul(const RangeF64 &lhs, const RangeF64 &rhs) {
  *   @rhs: The right-hand side.
  *   &returns: The result range.
  */
-RangeBool RangeF64::CmpOGT(RangeF64 const &lhs, RangeF64 const &rhs) {
+template <class T> RangeBool RangeFlt<T>::CmpOGT(RangeFlt<T> const &lhs, RangeFlt<T> const &rhs) {
 	bool istrue = lhs.Upper() > rhs.Lower();
 	bool isfalse = (lhs.Lower() <= rhs.Upper()) || lhs.nan || rhs.nan;
 
@@ -229,19 +229,19 @@ RangeBool RangeF64::CmpOGT(RangeF64 const &lhs, RangeF64 const &rhs) {
  *   @rhs: The right-hand side.
  *   &returns: The result range.
  */
-RangeF64 RangeF64::Select(RangeBool const& cond, RangeF64 const& lhs, RangeF64 const& rhs) {
-	RangeF64 res = RangeF64::None();
+template <class T> RangeFlt<T> RangeFlt<T>::Select(RangeBool const& cond, RangeFlt<T> const& lhs, RangeFlt<T> const& rhs) {
+	RangeFlt<T> res = RangeFlt<T>::None();
 
 	if(cond.istrue) {
 		res.nan |= lhs.nan;
 		for(auto const& ival: lhs.ivals)
-			res.ivals.push_back(IvalF64(ival));
+			res.ivals.push_back(IvalFlt<T>(ival));
 	}
 
 	if(cond.isfalse) {
 		res.nan |= rhs.nan;
 		for(auto const& ival: rhs.ivals)
-			res.ivals.push_back(IvalF64(ival));
+			res.ivals.push_back(IvalFlt<T>(ival));
 	}
 
 	return res;

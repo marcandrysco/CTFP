@@ -120,6 +120,7 @@ void OptIval(llvm::Function &func) {
 
 				if(!lhs->HasSubnorm() && !rhs->HasSubnorm() && !pass.map[&inst].HasSubnorm()) full++;
 				if(!lhs->HasSubnorm() || !rhs->HasSubnorm()) part++;
+				fprintf(stderr, "SAFE? %d\n", !lhs->HasSubnorm() && !rhs->HasSubnorm() && !pass.map[&inst].HasSubnorm());
 				total++;
 
 				break;
@@ -189,7 +190,7 @@ void OptIval(llvm::Function &func) {
 	}
 
 	//printf("STATS %s: %u/%u/%u\n", func.getName().data(), full, part, total);
-	//pass.Dump(func);
+	pass.Dump(func);
 }
 
 
