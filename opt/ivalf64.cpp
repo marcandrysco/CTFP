@@ -40,6 +40,20 @@ template <class T> std::string IvalFlt<T>::Str() const {
 
 
 /**
+ * Absolute value of a float interval.
+ *   @in: The input interval.
+ *   &returns: The magnitude interval.
+ */
+template <class T> IvalFlt<T> IvalFlt<T>::Abs(IvalFlt const& in) {
+	if((in.lo <= 0.0) && (in.hi >= 0.0))
+		return IvalFlt(0.0, std::max(-in.lo, in.hi));
+	else if(in.hi <= 0.0)
+		return IvalFlt(-in.hi, in.lo);
+	else
+		return in;
+}
+
+/**
  * Add two float intervals.
  *   @lhs: The left-hand side.
  *   @rhs: The right-hand side.

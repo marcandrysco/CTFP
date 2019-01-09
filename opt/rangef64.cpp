@@ -1,5 +1,14 @@
 #include "inc.hpp"
 
+
+/**
+ * Check if a range is undefined.
+ *   &returns: True if undefined.
+ */
+template <class T> bool RangeFlt<T>::IsUndef() const {
+	return !nan && (ivals.size() == 0);
+}
+
 /**
  * Check if a range contains a value.
  *   @val: The value.
@@ -91,11 +100,28 @@ template <class T> RangeFlt<T> RangeFlt<T>::Above(T bound, bool nan) const {
 
 
 /**
+ * Retrieve the constant value if constant, NaN otherwise.
+ *   &returns: The constant or NaN.
+ */
+template <class T> T RangeFlt<T>::GetConst() const {
+	if(nan || (ivals.size() != 1))
+		return NAN;
+
+	//if(ivals[0].IsConst())
+		//return ivals[0].lo;
+
+	return 0.0;
+}
+
+/**
  * Convert a range to a string.
  *   &returns: The string.
  */
-template <class T>std::string RangeFlt<T>::Str() const {
+template <class T> std::string RangeFlt<T>::Str() const {
 	std::string ret;
+
+	if(IsUndef())
+		return "Undef";
 
 	if(nan)
 		ret += "NaN";
@@ -108,43 +134,54 @@ template <class T>std::string RangeFlt<T>::Str() const {
 
 
 /**
- * Cast a 64-bit integer range to float ranges.
+ * Absolute value of a float range.
+ *   @in: The input.
+ *   &returns: The magnitude range.
+ */
+template <class T> RangeFlt<T> RangeFlt<T>::Abs(RangeFlt const& in) {
+	RangeFlt<T> res(in.nan);
+
+	for(auto &ival : in.ivals)
+		res.ivals.push_back(IvalFlt<T>::Abs(ival));
+
+	return res;
+}
+
+/**
+ * Cast a integer range to float ranges.
  *   @in: The integer range.
  *   &returns: The float range.
  */
-template <class T> RangeFlt<T> RangeFlt<T>::FromI64(const RangeI64 &in) {
-	fatal("Unsupported types for `FromInt`.");
-}
-template <> RangeFlt<double> RangeFlt<double>::FromI64(const RangeI64 &in) {
-	RangeFlt<double> res(false);
+template <class T> template <class U> RangeFlt<T> RangeFlt<T>::FromInt(const RangeInt<U> &in) {
+	RangeFlt<T> res(false);
 
-	double lo, hi;
-	static IvalI64 pos(0x0000000000000000, 0x7FF0000000000000);
-	static IvalI64 neg(0x8000000000000000, 0xFFF0000000000000);
+	T lo, hi;
 
 	for(auto &ival : in.ivals) {
-		if(IvalI64::Overlap(ival, IvalI64(0x7FF0000000000001, 0x7FFFFFFFFFFFFFFF)))
+		if(IvalInt<U>::Overlap(ival, IvalInt<U>::NanPos()))
 			res.nan = true;
-		else if(IvalI64::Overlap(ival, IvalI64(0xFFF0000000000001, 0xFFFFFFFFFFFFFFFF)))
+		else if(IvalInt<U>::Overlap(ival, IvalInt<U>::NanNeg()))
 			res.nan = true;
 
-		if(IvalI64::Overlap(ival, pos)) {
-			IvalI64 inter = IvalI64::Inter(ival, pos);
-			memcpy(&lo, &inter.lo, 8);
-			memcpy(&hi, &inter.hi, 8);
-			res.ivals.push_back(IvalF64(lo, hi));
+		if(IvalInt<U>::Overlap(ival, IvalInt<U>::NumPos())) {
+			IvalInt<U> inter = IvalInt<U>::Inter(ival, IvalInt<U>::NumPos());
+			memcpy(&lo, &inter.lo, sizeof(T));
+			memcpy(&hi, &inter.hi, sizeof(T));
+			res.ivals.push_back(IvalFlt<T>(lo, hi));
 		}
 
-		if(IvalI64::Overlap(ival, neg)) {
-			IvalI64 inter = IvalI64::Inter(ival, neg);
-			memcpy(&hi, &inter.lo, 8);
-			memcpy(&lo, &inter.hi, 8);
-			res.ivals.push_back(IvalF64(lo, hi));
+		if(IvalInt<U>::Overlap(ival, IvalInt<U>::NumNeg())) {
+			IvalInt<U> inter = IvalInt<U>::Inter(ival, IvalInt<U>::NumNeg());
+			memcpy(&hi, &inter.lo, sizeof(T));
+			memcpy(&lo, &inter.hi, sizeof(T));
+			res.ivals.push_back(IvalFlt<T>(lo, hi));
 		}
 	}
 
 	return res;
 }
+template RangeFlt<double> RangeFlt<double>::FromInt(const RangeInt<uint64_t> &in);
+template RangeFlt<float> RangeFlt<float>::FromInt(const RangeInt<uint32_t> &in);
 
 
 /**
@@ -215,8 +252,40 @@ template <class T> RangeFlt<T> RangeFlt<T>::Mul(const RangeFlt<T> &lhs, const Ra
  *   &returns: The result range.
  */
 template <class T> RangeBool RangeFlt<T>::CmpOGT(RangeFlt<T> const &lhs, RangeFlt<T> const &rhs) {
+	if(lhs.IsUndef() || rhs.IsUndef())
+		return RangeBool();
+
 	bool istrue = lhs.Upper() > rhs.Lower();
 	bool isfalse = (lhs.Lower() <= rhs.Upper()) || lhs.nan || rhs.nan;
+
+	return RangeBool(istrue, isfalse);
+}
+
+/**
+ * Comparison (OGT) of two floating-point ranges.
+ *   @lhs: The left-hand side.
+ *   @rhs: The right-hand side.
+ *   &returns: The result range.
+ */
+template <class T> RangeBool RangeFlt<T>::CmpOLT(RangeFlt<T> const &lhs, RangeFlt<T> const &rhs) {
+	if(lhs.IsUndef() || rhs.IsUndef())
+		return RangeBool();
+
+	bool istrue = lhs.Lower() < rhs.Upper();
+	bool isfalse = (lhs.Lower() >= rhs.Upper()) || lhs.nan || rhs.nan;
+
+	return RangeBool(istrue, isfalse);
+}
+
+/**
+ * Comparison (OGT) of two floating-point ranges.
+ *   @lhs: The left-hand side.
+ *   @rhs: The right-hand side.
+ *   &returns: The result range.
+ */
+template <class T> RangeBool RangeFlt<T>::CmpOEQ(RangeFlt<T> const &lhs, RangeFlt<T> const &rhs) {
+	bool istrue = lhs.Upper() < rhs.Lower();
+	bool isfalse = (lhs.Lower() >= rhs.Upper()) || lhs.nan || rhs.nan;
 
 	return RangeBool(istrue, isfalse);
 }
@@ -248,14 +317,14 @@ template <class T> RangeFlt<T> RangeFlt<T>::Select(RangeBool const& cond, RangeF
 }
 
 
-/** RangeVecF64 class **/
+/** RangeVecFlt class **/
 
 /**
  * Check if a range contains subnormal numbers.
  *   @val: The value.
  *   &returns: True the value is in the interval.
  */
-bool RangeVecF64::HasSubnorm() const {
+template <class T> bool RangeVecFlt<T>::HasSubnorm() const {
 	for(auto &scalar : scalars) {
 		if(scalar.HasSubnorm())
 			return true;
@@ -269,7 +338,7 @@ bool RangeVecF64::HasSubnorm() const {
  * Convert a range to a string.
  *   &returns: The string.
  */
-std::string RangeVecF64::Str() const {
+template <class T> std::string RangeVecFlt<T>::Str() const {
 	if(scalars.size() == 1)
 		return scalars[0].Str();
 
@@ -283,18 +352,50 @@ std::string RangeVecF64::Str() const {
 
 
 /**
+ * Absolute value of a vector of float ranges.
+ *   @in: The input range.
+ *   &returns: The mangitude range.
+ */
+template <class T> RangeVecFlt<T> RangeVecFlt<T>::Abs(RangeVecFlt<T> const& in) {
+	RangeVecFlt<T> res;
+
+	for(uint32_t i = 0; i < in.scalars.size(); i++)
+		res.scalars.push_back(RangeFlt<T>::Abs(in.scalars[i]));
+
+	return res;
+}
+
+/**
+ * Convert a vector of integer ranges to float ranges.
+ *   @in: The input range.
+ *   &returns: The output range.
+ */
+template <class T> template <class U> RangeVecFlt<T> RangeVecFlt<T>::FromInt(RangeVecInt<U> const& in) {
+	RangeVecFlt<T> res;
+
+	for(uint32_t i = 0; i < in.scalars.size(); i++)
+		res.scalars.push_back(RangeFlt<T>::FromInt(in.scalars[i]));
+
+	return res;
+
+}
+template RangeVecFlt<double> RangeVecFlt<double>::FromInt(const RangeVecInt<uint64_t> &in);
+template RangeVecFlt<float> RangeVecFlt<float>::FromInt(const RangeVecInt<uint32_t> &in);
+
+
+/**
  * Add two floating-point, vector ranges together.
  *   @lhs: The left-hand side.
  *   @rhs: The right-hand side.
  *   &returns: The result range.
  */
-RangeVecF64 RangeVecF64::Add(const RangeVecF64 &lhs, const RangeVecF64 &rhs) {
+template <class T> RangeVecFlt<T> RangeVecFlt<T>::Add(const RangeVecFlt<T> &lhs, const RangeVecFlt<T> &rhs) {
 	assert(lhs.scalars.size() == rhs.scalars.size());
 
-	RangeVecF64 res;
+	RangeVecFlt<T> res;
 
 	for(uint32_t i = 0; i < lhs.scalars.size(); i++)
-		res.scalars.push_back(RangeF64::Add(lhs.scalars[i], rhs.scalars[i]));
+		res.scalars.push_back(RangeFlt<T>::Add(lhs.scalars[i], rhs.scalars[i]));
 
 	return res;
 }
@@ -305,13 +406,13 @@ RangeVecF64 RangeVecF64::Add(const RangeVecF64 &lhs, const RangeVecF64 &rhs) {
  *   @rhs: The right-hand side.
  *   &returns: The result range.
  */
-RangeVecF64 RangeVecF64::Sub(const RangeVecF64 &lhs, const RangeVecF64 &rhs) {
+template <class T> RangeVecFlt<T> RangeVecFlt<T>::Sub(const RangeVecFlt<T> &lhs, const RangeVecFlt<T> &rhs) {
 	assert(lhs.scalars.size() == rhs.scalars.size());
 
-	RangeVecF64 res;
+	RangeVecFlt<T> res;
 
 	for(uint32_t i = 0; i < lhs.scalars.size(); i++)
-		res.scalars.push_back(RangeF64::Sub(lhs.scalars[i], rhs.scalars[i]));
+		res.scalars.push_back(RangeFlt<T>::Sub(lhs.scalars[i], rhs.scalars[i]));
 
 	return res;
 }
@@ -322,17 +423,34 @@ RangeVecF64 RangeVecF64::Sub(const RangeVecF64 &lhs, const RangeVecF64 &rhs) {
  *   @rhs: The right-hand side.
  *   &returns: The result range.
  */
-RangeVecF64 RangeVecF64::Mul(const RangeVecF64 &lhs, const RangeVecF64 &rhs) {
+template <class T> RangeVecFlt<T> RangeVecFlt<T>::Mul(const RangeVecFlt<T> &lhs, const RangeVecFlt<T> &rhs) {
 	assert(lhs.scalars.size() == rhs.scalars.size());
 
-	RangeVecF64 res;
+	RangeVecFlt<T> res;
 
 	for(uint32_t i = 0; i < lhs.scalars.size(); i++)
-		res.scalars.push_back(RangeF64::Mul(lhs.scalars[i], rhs.scalars[i]));
+		res.scalars.push_back(RangeFlt<T>::Mul(lhs.scalars[i], rhs.scalars[i]));
 
 	return res;
 }
 
+
+/**
+ * Comparison (OLT) of two floating-point, vector ranges.
+ *   @lhs: The left-hand side.
+ *   @rhs: The right-hand side.
+ *   &returns: The result range.
+ */
+template <class T> RangeVecBool RangeVecFlt<T>::CmpOLT(RangeVecFlt<T> const& lhs, RangeVecFlt<T> const& rhs) {
+	assert(lhs.scalars.size() == rhs.scalars.size());
+
+	RangeVecBool res;
+
+	for(uint32_t i = 0; i < lhs.scalars.size(); i++)
+		res.scalars.push_back(RangeFlt<T>::CmpOLT(lhs.scalars[i], rhs.scalars[i]));
+
+	return res;
+}
 
 /**
  * Comparison (OGT) of two floating-point, vector ranges.
@@ -340,13 +458,13 @@ RangeVecF64 RangeVecF64::Mul(const RangeVecF64 &lhs, const RangeVecF64 &rhs) {
  *   @rhs: The right-hand side.
  *   &returns: The result range.
  */
-RangeVecBool RangeVecF64::CmpOGT(RangeVecF64 const& lhs, RangeVecF64 const& rhs) {
+template <class T> RangeVecBool RangeVecFlt<T>::CmpOGT(RangeVecFlt<T> const& lhs, RangeVecFlt<T> const& rhs) {
 	assert(lhs.scalars.size() == rhs.scalars.size());
 
 	RangeVecBool res;
 
 	for(uint32_t i = 0; i < lhs.scalars.size(); i++)
-		res.scalars.push_back(RangeF64::CmpOGT(lhs.scalars[i], rhs.scalars[i]));
+		res.scalars.push_back(RangeFlt<T>::CmpOGT(lhs.scalars[i], rhs.scalars[i]));
 
 	return res;
 }
@@ -359,29 +477,14 @@ RangeVecBool RangeVecF64::CmpOGT(RangeVecF64 const& lhs, RangeVecF64 const& rhs)
  *   @rhs: The right-hand side.
  *   &returns: The result range.
  */
-RangeVecF64 RangeVecF64::Select(RangeVecBool const& cond, RangeVecF64 const& lhs, RangeVecF64 const& rhs) {
+template <class T> RangeVecFlt<T> RangeVecFlt<T>::Select(RangeVecBool const& cond, RangeVecFlt<T> const& lhs, RangeVecFlt<T> const& rhs) {
 	assert(cond.scalars.size() == lhs.scalars.size());
 	assert(cond.scalars.size() == rhs.scalars.size());
 
-	RangeVecF64 res;
+	RangeVecFlt<T> res;
 
 	for(uint32_t i = 0; i < cond.scalars.size(); i++)
-		res.scalars.push_back(RangeF64::Select(cond.scalars[i], lhs.scalars[i], rhs.scalars[i]));
-
-	return res;
-}
-
-
-/**
- * Cast a 64-bit integer range to float ranges.
- *   @in: The integer range.
- *   &returns: The float range.
- */
-RangeVecF64 RangeVecF64::FromI64(const RangeVecI64 &in) {
-	RangeVecF64 res;
-
-	for(uint32_t i = 0; i < in.scalars.size(); i++)
-		res.scalars.push_back(RangeF64::FromI64(in.scalars[i]));
+		res.scalars.push_back(RangeFlt<T>::Select(cond.scalars[i], lhs.scalars[i], rhs.scalars[i]));
 
 	return res;
 }

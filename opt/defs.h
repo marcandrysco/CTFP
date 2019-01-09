@@ -4,7 +4,7 @@
 /*
  * operation and king enumerators
  */
-enum class Op { Unk, Add, Sub, Mul, And, Or, Xor, FtoI, ItoF, CmpOLT, CmpOGT, Select };
+enum class Op { Unk, Add, Sub, Mul, And, Or, Xor, FtoI, ItoF, CmpOLT, CmpOGT, CmpOEQ, Select, Insert, Extract, Abs, Sqrt };
 enum class Kind { Unk, Int, Flt };
 
 /*

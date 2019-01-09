@@ -19,10 +19,22 @@ bool IsUndef2(const Range &lhs, const Range &rhs) {
 	return std::holds_alternative<RangeUndef>(lhs.var) || std::holds_alternative<RangeUndef>(rhs.var);
 }
 
+
+/**
+ * Check if a range is a given type.
+ *   @in: The input range.
+ *   &returns: True if is the given class.
+ */
 template<class T> bool IsA(const Range &in) {
 	return std::holds_alternative<T>(in.var);
 }
 
+/**
+ * Check if a pair of ranges are  given type.
+ *   @lhs: The left-hand range.
+ *   @rhs: The right-hand range.
+ *   &returns: True if is the given class.
+ */
 template<class T> bool IsPair(const Range &lhs, const Range &rhs) {
 	return std::holds_alternative<T>(lhs.var) && std::holds_alternative<T>(rhs.var);
 }
@@ -46,6 +58,33 @@ bool IsF64(const Range &in) {
  */
 bool IsF64Pair(Range const &lhs, Range const &rhs) {
 	return IsF64(lhs) && IsF64(rhs);
+}
+
+
+/**
+ * Check if every elements of the range must be true.
+ *   &returns: True if must be true.
+ */
+bool RangeVecBool::IsTrue() const {
+	bool f = true;
+
+	for(uint32_t i = 0; i < scalars.size(); i++) 
+		f &= scalars[i].IsTrue();
+
+	return f;
+}
+
+/**
+ * Check if every elements of the range must be false.
+ *   &returns: True if must be false.
+ */
+bool RangeVecBool::IsFalse() const {
+	bool f = true;
+
+	for(uint32_t i = 0; i < scalars.size(); i++) 
+		f &= scalars[i].IsFalse();
+
+	return f;
 }
 
 
@@ -121,13 +160,17 @@ bool Range::HasSubnorm() const {
  *   &returns: The string.
  */
 std::string Range::Str() const {
-	if(std::holds_alternative<RangeUndef>(var))
+	if(IsA<RangeUndef>(*this))
 		return "undef";
-	else if(std::holds_alternative<RangeVecBool>(var))
+	else if(IsA<RangeVecBool>(*this))
 		return std::get<RangeVecBool>(var).Str();
-	else if(std::holds_alternative<RangeVecI64>(var))
+	else if(IsA<RangeVecI32>(*this))
+		return std::get<RangeVecI32>(var).Str();
+	else if(IsA<RangeVecI64>(*this))
 		return std::get<RangeVecI64>(var).Str();
-	else if(std::holds_alternative<RangeVecF64>(var))
+	else if(IsA<RangeVecF32>(*this))
+		return std::get<RangeVecF32>(var).Str();
+	else if(IsA<RangeVecF64>(*this))
 		return std::get<RangeVecF64>(var).Str();
 	else
 		fatal("Invalid range type.");
@@ -142,11 +185,14 @@ std::string Range::Str() const {
 Range Range::ItoF(const Range &in, Type type) {
 	if(IsUndef1(in))
 		return Range(type);
-	
-	if(std::holds_alternative<RangeVecF64>(in.var))
+	else if(IsA<RangeVecF32>(in))
+		return Range(std::get<RangeVecF32>(in.var));
+	else if(IsA<RangeVecF64>(in))
 		return Range(std::get<RangeVecF64>(in.var));
-	else if(std::holds_alternative<RangeVecI64>(in.var))
-		return Range(RangeVecF64::FromI64(std::get<RangeVecI64>(in.var)));
+	else if(IsA<RangeVecI32>(in))
+		return Range(RangeVecF32::FromInt<uint32_t>(std::get<RangeVecI32>(in.var)));
+	else if(IsA<RangeVecI64>(in))
+		return Range(RangeVecF64::FromInt<uint64_t>(std::get<RangeVecI64>(in.var)));
 	else
 		fatal("Invalid cast.");
 }
@@ -160,11 +206,31 @@ Range Range::ItoF(const Range &in, Type type) {
 Range Range::FtoI(const Range &in, Type type) {
 	if(IsUndef1(in))
 		return Range(type);
-	
-	if(std::holds_alternative<RangeVecI64>(in.var))
+	else if(IsA<RangeVecI32>(in))
+		return Range(std::get<RangeVecI32>(in.var));
+	else if(IsA<RangeVecI64>(in))
 		return Range(std::get<RangeVecI64>(in.var));
-	else if(std::holds_alternative<RangeVecF64>(in.var))
-		return Range(RangeVecI64::FromF64(std::get<RangeVecF64>(in.var)));
+	else if(IsA<RangeVecF32>(in))
+		return Range(RangeVecI32::FromFlt<float>(std::get<RangeVecF32>(in.var)));
+	else if(IsA<RangeVecF64>(in))
+		return Range(RangeVecI64::FromFlt<double>(std::get<RangeVecF64>(in.var)));
+	else
+		fatal("Invalid cast.");
+}
+
+/**
+ * Absolute value of a range.
+ *   @in: The input range.
+ *   @type: The type.
+ *   &returns: The result range.
+ */
+Range Range::Abs(Range const& in, Type type) {
+	if(IsUndef1(in))
+		return Range(type);
+	else if(IsA<RangeVecF32>(in))
+		return Range(RangeVecF32::Abs(std::get<RangeVecF32>(in.var)));
+	else if(IsA<RangeVecF64>(in))
+		return Range(RangeVecF64::Abs(std::get<RangeVecF64>(in.var)));
 	else
 		fatal("Invalid cast.");
 }
@@ -179,10 +245,9 @@ Range Range::FtoI(const Range &in, Type type) {
 Range Range::Add(const Range &lhs, const Range &rhs, Type type) {
 	if(IsUndef2(lhs, rhs))
 		return Range(type);
-
-	if(std::holds_alternative<RangeVecI64>(lhs.var) && std::holds_alternative<RangeVecI64>(rhs.var))
-		fatal("stub"); // return RangeVecI64::Add(std::get<RangeVecI64>(lhs), std::get<RangeVecI64>(rhs));
-	else if(std::holds_alternative<RangeVecF64>(lhs.var) && std::holds_alternative<RangeVecF64>(rhs.var))
+	else if(IsPair<RangeVecF32>(lhs, rhs))
+		return RangeVecF32::Add(std::get<RangeVecF32>(lhs.var), std::get<RangeVecF32>(rhs.var));
+	else if(IsPair<RangeVecF64>(lhs, rhs))
 		return RangeVecF64::Add(std::get<RangeVecF64>(lhs.var), std::get<RangeVecF64>(rhs.var));
 	else
 		fatal("Invalid addition.");
@@ -198,10 +263,9 @@ Range Range::Add(const Range &lhs, const Range &rhs, Type type) {
 Range Range::Sub(const Range &lhs, const Range &rhs, Type type) {
 	if(IsUndef2(lhs, rhs))
 		return Range(type);
-
-	if(std::holds_alternative<RangeVecI64>(lhs.var) && std::holds_alternative<RangeVecI64>(rhs.var))
-		fatal("stub"); // return RangeVecI64::Sub(std::get<RangeVecI64>(lhs), std::get<RangeVecI64>(rhs));
-	else if(std::holds_alternative<RangeVecF64>(lhs.var) && std::holds_alternative<RangeVecF64>(rhs.var))
+	else if(IsPair<RangeVecF32>(lhs, rhs))
+		return RangeVecF32::Sub(std::get<RangeVecF32>(lhs.var), std::get<RangeVecF32>(rhs.var));
+	else if(IsPair<RangeVecF64>(lhs, rhs))
 		return RangeVecF64::Sub(std::get<RangeVecF64>(lhs.var), std::get<RangeVecF64>(rhs.var));
 	else
 		fatal("Invalid subtraction.");
@@ -217,10 +281,9 @@ Range Range::Sub(const Range &lhs, const Range &rhs, Type type) {
 Range Range::Mul(const Range &lhs, const Range &rhs, Type type) {
 	if(IsUndef2(lhs, rhs))
 		return Range(type);
-
-	if(std::holds_alternative<RangeVecI64>(lhs.var) && std::holds_alternative<RangeVecI64>(rhs.var))
-		fatal("stub"); // return RangeVecI64::Mul(std::get<RangeVecI64>(lhs), std::get<RangeVecI64>(rhs));
-	else if(std::holds_alternative<RangeVecF64>(lhs.var) && std::holds_alternative<RangeVecF64>(rhs.var))
+	else if(IsPair<RangeVecF32>(lhs, rhs))
+		return RangeVecF32::Mul(std::get<RangeVecF32>(lhs.var), std::get<RangeVecF32>(rhs.var));
+	else if(IsPair<RangeVecF64>(lhs, rhs))
 		return RangeVecF64::Mul(std::get<RangeVecF64>(lhs.var), std::get<RangeVecF64>(rhs.var));
 	else
 		fatal("Invalid.");
@@ -280,6 +343,23 @@ Range Range::Xor(const Range &lhs, const Range &rhs, Type type) {
 
 
 /**
+ * Comparison (OLT) on two ranges.
+ *   @lhs: The left-hand side.
+ *   @rhs: The right-hand side.
+ *   @type: The type.
+ *   &returns: The result range.
+ */
+Range Range::CmpOLT(Range const &lhs, Range const &rhs, Type type) {
+	if(IsUndef2(lhs, rhs))
+		return Range(RangeUndef());
+
+	if(IsF64Pair(lhs, rhs))
+		return Range(RangeVecF64::CmpOLT(std::get<RangeVecF64>(lhs.var), std::get<RangeVecF64>(rhs.var)));
+	else
+		fatal("Invalid comparison (OLT).");
+}
+
+/**
  * Comparison (OGT) on two ranges.
  *   @lhs: The left-hand side.
  *   @rhs: The right-hand side.
@@ -309,9 +389,8 @@ Range Range::Select(Range const& cond, Range const& lhs, Range const& rhs, Type 
 	if(IsUndef1(cond))
 		return Range(type);
 
-	if(!IsA<RangeVecBool>(cond)) {
-		fatal("Invalid select. %zd", cond.var.index());
-	}
+	if(!IsA<RangeVecBool>(cond))
+		fatal("Invalid select (%zd).", cond.var.index());
 
 	if(IsPair<RangeVecF64>(lhs, rhs))
 		return Range(RangeVecF64::Select(std::get<RangeVecBool>(cond.var), std::get<RangeVecF64>(lhs.var), std::get<RangeVecF64>(rhs.var)));
@@ -320,5 +399,5 @@ Range Range::Select(Range const& cond, Range const& lhs, Range const& rhs, Type 
 	else if(IsPair<RangeVecBool>(lhs, rhs))
 		return Range(type);
 	else
-		fatal("Invalid select. 2");
+		fatal("Invalid select (%zd, %zd).", lhs.var.index(), rhs.var.index());
 }

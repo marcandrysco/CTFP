@@ -38,6 +38,51 @@ template <class T> std::string IvalInt<T>::Str() const {
 
 
 /**
+ * Create an interval for negative non-NaN.
+ *   &returns: The interval.
+ */
+template <class T> IvalInt<T> IvalInt<T>::NumNeg() {
+	fatal("Unsupported type for `NumNeg`.");
+}
+template <> IvalInt<uint64_t> IvalInt<uint64_t>::NumNeg() {
+	return IvalInt<uint64_t>(0x0000000000000000, 0x7FF0000000000000);
+}
+
+/**
+ * Create an interval for positive non-NaN.
+ *   &returns: The interval.
+ */
+template <class T> IvalInt<T> IvalInt<T>::NumPos() {
+	fatal("Unsupported type for `NumPos`.");
+}
+template <> IvalInt<uint64_t> IvalInt<uint64_t>::NumPos() {
+	return IvalInt<uint64_t>(0x8000000000000000, 0xFFF0000000000000);
+}
+
+/**
+ * Create an interval for negative NaN.
+ *   &returns: The interval.
+ */
+template <class T> IvalInt<T> IvalInt<T>::NanNeg() {
+	fatal("Unsupported type for `NanNeg`.");
+}
+template <> IvalInt<uint64_t> IvalInt<uint64_t>::NanNeg() {
+	return IvalInt<uint64_t>(0xFFF0000000000001, 0xFFFFFFFFFFFFFFFF);
+}
+
+/**
+ * Create an interval for positive NaN.
+ *   &returns: The interval.
+ */
+template <class T> IvalInt<T> IvalInt<T>::NanPos() {
+	fatal("Unsupported type for `NanPos`.");
+}
+template <> IvalInt<uint64_t> IvalInt<uint64_t>::NanPos() {
+	return IvalInt<uint64_t>(0x7FF0000000000001, 0x7FFFFFFFFFFFFFFF);
+}
+
+
+/**
  * Check if a value fall inside an interval.
  *   @ival: The interval.
  *   @val: The value.

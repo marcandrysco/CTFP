@@ -18,6 +18,10 @@ public:
 
 	static IvalInt<T> All() { return IvalInt(0, std::numeric_limits<T>::max()); }
 	static IvalInt<T> Const(T val) { return IvalInt(val, val); }
+	static IvalInt<T> NumNeg();
+	static IvalInt<T> NumPos();
+	static IvalInt<T> NanNeg();
+	static IvalInt<T> NanPos();
 
 	static T Ones() { return std::numeric_limits<T>::max(); }
 

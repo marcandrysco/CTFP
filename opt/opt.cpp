@@ -30,6 +30,7 @@ public:
 
 	bool HasSubnorm() const { return range.HasSubnorm(); }
 
+	static Fact Abs(Fact const& in, Type type);
 	static Fact ItoF(Fact const& in, Type type);
 	static Fact FtoI(Fact const& in, Type type);
 
@@ -41,6 +42,7 @@ public:
 	static Fact Or(Fact const& lhs, Fact const& rhs, Type type);
 	static Fact Xor(Fact const& lhs, Fact const& rhs, Type type);
 
+	static Fact CmpOLT(Fact const& lhs, Fact const& rhs, Type type);
 	static Fact CmpOGT(Fact const& lhs, Fact const& rhs, Type type);
 
 	static Fact Select(Fact const& cond, Fact const& lhs, Fact const& rhs, Type type);
@@ -99,7 +101,8 @@ void OptIval(llvm::Function &func) {
 
 		case Kind::Flt:
 			if(type.width == 64)
-				range = Range(RangeVecF64(RangeF64::Limit()));
+				//range = Range(RangeVecF64(RangeF64::Limit()));
+				range = Range(RangeVecF64(RangeF64::All()));
 
 			break;
 		}
@@ -120,7 +123,6 @@ void OptIval(llvm::Function &func) {
 
 				if(!lhs->HasSubnorm() && !rhs->HasSubnorm() && !pass.map[&inst].HasSubnorm()) full++;
 				if(!lhs->HasSubnorm() || !rhs->HasSubnorm()) part++;
-				fprintf(stderr, "SAFE? %d\n", !lhs->HasSubnorm() && !rhs->HasSubnorm() && !pass.map[&inst].HasSubnorm());
 				total++;
 
 				break;
@@ -159,12 +161,20 @@ void OptIval(llvm::Function &func) {
 				pass.map[&inst] = Fact::Xor(pass.Get(inst.getOperand(0)), pass.Get(inst.getOperand(1)), info.type);
 				break;
 
+			case Op::CmpOLT:
+				pass.map[&inst] = Fact::CmpOLT(pass.Get(inst.getOperand(0)), pass.Get(inst.getOperand(1)), info.type);
+				break;
+
 			case Op::CmpOGT:
 				pass.map[&inst] = Fact::CmpOGT(pass.Get(inst.getOperand(0)), pass.Get(inst.getOperand(1)), info.type);
 				break;
 
 			case Op::Select:
 				pass.map[&inst] = Fact::Select(pass.Get(inst.getOperand(0)), pass.Get(inst.getOperand(1)), pass.Get(inst.getOperand(2)), info.type);
+				break;
+
+			case Op::Abs:
+				pass.map[&inst] = Fact::Abs(pass.Get(inst.getOperand(0)), info.type);
 				break;
 
 			case Op::ItoF:
@@ -177,6 +187,33 @@ void OptIval(llvm::Function &func) {
 				pass.map[&inst] = Fact::FtoI(*in, info.type);
 				break;
 
+			case Op::Insert:
+				if(llvm::isa<llvm::ConstantInt>(inst.getOperand(2))) {
+					int32_t idx = llvm::cast<llvm::ConstantInt>(inst.getOperand(2))->getZExtValue();
+
+					Range vec = pass.Get(inst.getOperand(0)).range;
+					Range val = pass.Get(inst.getOperand(1)).range;
+
+					if(std::holds_alternative<RangeVecF32>(vec.var)) {
+						fatal("stub");
+					}
+					else if(std::holds_alternative<RangeVecF64>(vec.var)) {
+						if(std::holds_alternative<RangeVecF64>(val.var)) {
+							RangeVecF64 range = std::get<RangeVecF64>(vec.var);
+							range.scalars[idx] = std::get<RangeVecF64>(val.var).scalars[0];
+							pass.map[&inst] = Fact(range);
+						}
+						else
+							pass.map[&inst] = Fact();
+					}
+					else
+						pass.map[&inst] = Fact();
+				}
+				else
+					pass.map[&inst] = Fact();
+				
+				break;
+
 			default:
 				break;
 			}
@@ -187,6 +224,30 @@ void OptIval(llvm::Function &func) {
 	if(fp != NULL) {
 		fprintf(fp, "%u\n%u\n%u\n", full, part, total);
 		fclose(fp);
+	}
+
+	for(auto &block : func) {
+		for(auto &inst : block) {
+			Info info = llvm_info(inst);
+
+			switch(info.op) {
+			case Op::Select:
+				{
+					Range cond = pass.Get(inst.getOperand(0)).range;
+
+					if(std::holds_alternative<RangeVecBool>(cond.var)) {
+						if(std::get<RangeVecBool>(cond.var).IsTrue())
+							inst.replaceAllUsesWith(inst.getOperand(1));
+						else if(std::get<RangeVecBool>(cond.var).IsFalse())
+							inst.replaceAllUsesWith(inst.getOperand(2));
+					}
+				}
+				break;
+
+			default:
+				break;
+			}
+		}
 	}
 
 	//printf("STATS %s: %u/%u/%u\n", func.getName().data(), full, part, total);
@@ -222,6 +283,16 @@ Type llvm_type(llvm::Value const& val) {
 		return Type(Kind::Flt, 32);
 	else if(val.getType()->isDoubleTy())
 		return Type(Kind::Flt, 64);
+	else if(val.getType()->isVectorTy()) {
+		uint32_t cnt = val.getType()->getVectorNumElements();
+
+		if(val.getType()->getScalarType()->isFloatTy())
+			return Type(Kind::Flt, 32, cnt);
+		else if(val.getType()->getScalarType()->isDoubleTy())
+			return Type(Kind::Flt, 64, cnt);
+		else
+			return Type();
+	}
 	else
 		return Type();
 }
@@ -266,8 +337,28 @@ Op llvm_op(llvm::Instruction const& inst) {
 		switch(llvm::cast<llvm::FCmpInst>(&inst)->getPredicate()) {
 		case llvm::CmpInst::FCMP_OLT: return Op::CmpOLT; break;
 		case llvm::CmpInst::FCMP_OGT: return Op::CmpOGT; break;
+		case llvm::CmpInst::FCMP_OEQ: return Op::CmpOEQ; break;
 		default: return Op::Unk;
 		}
+
+	case llvm::Instruction::InsertElement:
+		return Op::Insert;
+
+	case llvm::Instruction::ExtractElement:
+		return Op::Extract;
+
+	case llvm::Instruction::Call:
+		{
+			const llvm::CallInst *call = llvm::cast<llvm::CallInst>(&inst);
+
+			if(call->getCalledFunction()->getName() == "llvm.fabs.f64")
+				return Op::Abs;
+			if(call->getCalledFunction()->getName() == "llvm.fabs.v2f64")
+				return Op::Abs;
+			else
+				return Op::Unk;
+		}
+		break;
 
 	default:
 		return Op::Unk;
@@ -327,7 +418,23 @@ Fact& Pass::Get(llvm::Value *value) {
 	if(find != map.end())
 		return find->second;
 
-	if(llvm::isa<llvm::ConstantFP>(value)) {
+	if(llvm::isa<llvm::UndefValue>(value)) {
+		Type type = llvm_type(*value);
+
+		switch(type.kind) {
+		case Kind::Flt:
+			if(type.width == 32)
+				return map[value] = Fact(Range(RangeVecF32::Undef(type.count)));
+			else if(type.width == 64)
+				return map[value] = Fact(Range(RangeVecF64::Undef(type.count)));
+			else
+				return map[value] = Fact();
+
+		default:
+			return map[value] = Fact();
+		}
+	}
+	else if(llvm::isa<llvm::ConstantFP>(value)) {
 		llvm::ConstantFP *fp = llvm::cast<llvm::ConstantFP>(value);
 
 		if(value->getType()->isFloatTy())
@@ -351,12 +458,118 @@ Fact& Pass::Get(llvm::Value *value) {
 
 		return map[value];
 	}
+	else if(llvm::isa<llvm::ConstantDataVector>(value)) {
+		llvm::ConstantDataVector *vec = llvm::cast<llvm::ConstantDataVector>(value);
+		uint32_t i, n = vec->getNumElements();
+
+		if(vec->getType()->getElementType()->isIntegerTy(32)) {
+			RangeVecI32 range;
+
+			for(i = 0; i < n; i++)
+				range.scalars.push_back(RangeI32::Const(vec->getElementAsInteger(i)));
+
+			return map[value] = Fact(Range(range));
+		}
+		else if(vec->getType()->getElementType()->isIntegerTy(64)) {
+			RangeVecI64 range;
+
+			for(i = 0; i < n; i++)
+				range.scalars.push_back(RangeI64::Const(vec->getElementAsInteger(i)));
+
+			return map[value] = Fact(Range(range));
+		}
+		else if(vec->getType()->getElementType()->isFloatTy()) {
+			RangeVecF32 range;
+
+			for(i = 0; i < n; i++)
+				range.scalars.push_back(RangeF32::Const(vec->getElementAsFloat(i)));
+
+			return map[value] = Fact(Range(range));
+		}
+		else if(vec->getType()->getElementType()->isDoubleTy()) {
+			RangeVecF64 range;
+
+			for(i = 0; i < n; i++)
+				range.scalars.push_back(RangeF64::Const(vec->getElementAsDouble(i)));
+
+			return map[value] = Fact(Range(range));
+		}
+		else
+			return map[value] = Fact();
+	}
+	else if(llvm::isa<llvm::ConstantVector>(value)) {
+		llvm::ConstantVector *vec = llvm::cast<llvm::ConstantVector>(value);
+		uint32_t i, n = vec->getType()->getNumElements();
+
+		if(vec->getType()->getElementType()->isFloatTy()) {
+			RangeVecF32 range;
+
+			for(i = 0; i < n; i++) {
+				llvm::Constant *c = vec->getAggregateElement(i);
+
+				if(llvm::isa<llvm::ConstantFP>(c))
+					range.scalars.push_back(RangeF32::Const(llvm::cast<llvm::ConstantFP>(c)->getValueAPF().convertToFloat()));
+				else if(llvm::isa<llvm::UndefValue>(c))
+					range.scalars.push_back(RangeF32::Undef());
+				else
+					range.scalars.push_back(RangeF32::All());
+			}
+
+			return map[value] = Fact(Range(range));
+		}
+		else if(vec->getType()->getElementType()->isDoubleTy()) {
+			RangeVecF64 range;
+
+			for(i = 0; i < n; i++) {
+				llvm::Constant *c = vec->getAggregateElement(i);
+
+				if(llvm::isa<llvm::ConstantFP>(c))
+					range.scalars.push_back(RangeF64::Const(llvm::cast<llvm::ConstantFP>(c)->getValueAPF().convertToDouble()));
+				else if(llvm::isa<llvm::UndefValue>(c))
+					range.scalars.push_back(RangeF64::Undef());
+				else
+					range.scalars.push_back(RangeF64::All());
+			}
+
+			return map[value] = Fact(Range(range));
+		}
+		else
+			return map[value] = Fact();
+	}
+	else if(llvm::isa<llvm::ConstantAggregateZero>(value)) {
+		llvm::ConstantAggregateZero *zero = llvm::cast<llvm::ConstantAggregateZero>(value);
+
+		if(zero->getType()->isVectorTy()) {
+			if(zero->getType()->getVectorElementType()->isIntegerTy(32))
+				return map[value] = Fact(Range(RangeVecI32::Const(0, zero->getType()->getVectorNumElements())));
+			else if(zero->getType()->getVectorElementType()->isIntegerTy(64))
+				return map[value] = Fact(Range(RangeVecI64::Const(0, zero->getType()->getVectorNumElements())));
+			else if(zero->getType()->getVectorElementType()->isFloatTy())
+				return map[value] = Fact(Range(RangeVecF32::Const(0.0, zero->getType()->getVectorNumElements())));
+			else if(zero->getType()->getVectorElementType()->isDoubleTy())
+				return map[value] = Fact(Range(RangeVecF64::Const(0.0, zero->getType()->getVectorNumElements())));
+			else
+				return map[value] = Fact();
+		}
+		else
+			return map[value] = Fact();
+	}
 	else
 		return map[value] = Fact();
 }
 
 
 /** Fact Class **/
+
+/**
+ * Absolute value.
+ *   @in: The input.
+ *   @type: The type.
+ *   &returns: The result fact.
+ */
+Fact Fact::Abs(Fact const& in, Type type) {
+	return Fact(Range::Abs(in.range, type));
+}
 
 /**
  * Cast an integer to float.
@@ -445,6 +658,17 @@ Fact Fact::Xor(Fact const& lhs, Fact const& rhs, Type type) {
 	return Fact(Range::Xor(lhs.range, rhs.range, type));
 }
 
+
+/**
+ * Comparison (OLT) on two facts.
+ *   @lhs: The left-hand side.
+ *   @rhs: The right-hand side.
+ *   @type: The type.
+ *   &returns: The result fact.
+ */
+Fact Fact::CmpOLT(Fact const& lhs, Fact const& rhs, Type type) {
+	return Fact(Range::CmpOLT(lhs.range, rhs.range, type));
+}
 
 /**
  * Comparison (OGT) on two facts.

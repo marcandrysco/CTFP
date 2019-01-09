@@ -12,13 +12,15 @@ public:
 	RangeInt(IvalInt<T> const& ival) { ivals.push_back(ival); }
 	~RangeInt() { }
 
+	bool IsUndef() const;
+
 	std::string Str() const;
 
 	static RangeInt<T> All() { return RangeInt(IvalInt<T>::All()); }
 	static RangeInt<T> None() { return RangeInt<T>(); }
 	static RangeInt<T> Const(T val) { return RangeInt<T>(IvalInt<T>::Const(val)); }
 
-	static RangeInt<T> FromF64(const RangeF64 &flt);
+	template <class U> static RangeInt<T> FromFlt(const RangeFlt<U> &flt);
 
 	static RangeInt<T> And(RangeInt const& lhs, RangeInt const& rhs);
 	static RangeInt<T> Or(RangeInt const& lhs, RangeInt const& rhs);
@@ -27,36 +29,36 @@ public:
 	static RangeInt<T> Select(RangeBool const& cond, RangeInt const& lhs, RangeInt const& rhs);
 };
 
-using RangeI64 = RangeInt<uint64_t>;
 template class RangeInt<uint64_t>;
-
+template class RangeInt<uint32_t>;
 
 /*
- * vector of 64-bit integers range class
+ * integer vector range class
  */
-class RangeVecI64 {
+template <class T> class RangeVecInt {
 public:
-	std::vector<RangeI64> scalars;
+	std::vector<RangeInt<T>> scalars;
 
-	RangeVecI64() { }
-	RangeVecI64(RangeI64 scalar) { scalars.push_back(scalar); }
-	RangeVecI64(std::vector<RangeI64> _scalars) { scalars = _scalars; }
-	~RangeVecI64() { }
+	RangeVecInt<T>() { }
+	RangeVecInt<T>(RangeInt<T> scalar) { scalars.push_back(scalar); }
+	RangeVecInt<T>(std::vector<RangeInt<T>> _scalars) { scalars = _scalars; }
+	~RangeVecInt<T>() { }
 
 	std::string Str() const;
 
-	static RangeVecI64 All(uint32_t width) { RangeVecI64 res; for(uint32_t i = 0; i < width; i++) res.scalars.push_back(RangeI64::All()); return res; }
-	static RangeVecI64 Const(uint64_t val, uint32_t width) { RangeVecI64 res; for(uint32_t i = 0; i < width; i++) res.scalars.push_back(RangeI64::Const(val)); return res; }
+	static RangeVecInt<T> All(uint32_t width) { RangeVecInt<T> res; for(uint32_t i = 0; i < width; i++) res.scalars.push_back(RangeInt<T>::All()); return res; }
+	static RangeVecInt<T> Const(T val, uint32_t width) { RangeVecInt<T> res; for(uint32_t i = 0; i < width; i++) res.scalars.push_back(RangeInt<T>::Const(val)); return res; }
 
-	static RangeVecI64 Add(const RangeVecI64 &lhs, const RangeVecI64 &rhs);
+	static RangeVecInt<T> And(const RangeVecInt<T> &lhs, const RangeVecInt<T> &rhs);
+	static RangeVecInt<T> Or(const RangeVecInt<T> &lhs, const RangeVecInt<T> &rhs);
+	static RangeVecInt<T> Xor(const RangeVecInt<T> &lhs, const RangeVecInt<T> &rhs);
 
-	static RangeVecI64 And(const RangeVecI64 &lhs, const RangeVecI64 &rhs);
-	static RangeVecI64 Or(const RangeVecI64 &lhs, const RangeVecI64 &rhs);
-	static RangeVecI64 Xor(const RangeVecI64 &lhs, const RangeVecI64 &rhs);
+	template <class U> static RangeVecInt<T> FromFlt(RangeVecFlt<U> const& flt);
 
-	static RangeVecI64 FromF64(const RangeVecF64 &in);
-
-	static RangeVecI64 Select(RangeVecBool const& cond, RangeVecI64 const& lhs, RangeVecI64 const& rhs);
+	static RangeVecInt<T> Select(RangeVecBool const& cond, RangeVecInt<T> const& lhs, RangeVecInt<T> const& rhs);
 };
+
+template class RangeVecInt<uint64_t>;
+template class RangeVecInt<uint32_t>;
 
 #endif

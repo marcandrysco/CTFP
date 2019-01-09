@@ -31,4 +31,4 @@ opt.o: opt.cpp $(INC) Makefile llvm.hpp.gch
 
 
 run: all
-	opt test.ll -o test.ll.opt -load ./opt.so -ctfp-opt
+	opt mul.ll -o mul.ll.opt -load ./opt.so -ctfp-opt -dce -S
