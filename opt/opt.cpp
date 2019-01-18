@@ -76,10 +76,10 @@ Op llvm_op(llvm::Instruction const& inst);
 void OptIval(llvm::Function &func) {
 	Pass pass;
 
-	uint32_t part = 0, full = 0, total = 0;
+	uint32_t part = 0, full = 0, total = 0, rem = 0;
 	FILE *fp = fopen("STATS", "r");
 	if(fp != NULL) {
-		if(fscanf(fp, "%u\n%u\n%u\n", &full, &part, &total) < 0);
+		if(fscanf(fp, "%u\n%u\n%u\n%u\n", &full, &part, &total, &rem) < 0);
 		fclose(fp);
 	}
 
@@ -195,7 +195,13 @@ void OptIval(llvm::Function &func) {
 					Range val = pass.Get(inst.getOperand(1)).range;
 
 					if(std::holds_alternative<RangeVecF32>(vec.var)) {
-						fatal("stub");
+						if(std::holds_alternative<RangeVecF32>(val.var)) {
+							RangeVecF32 range = std::get<RangeVecF32>(vec.var);
+							range.scalars[idx] = std::get<RangeVecF32>(val.var).scalars[0];
+							pass.map[&inst] = Fact(range);
+						}
+						else
+							pass.map[&inst] = Fact();
 					}
 					else if(std::holds_alternative<RangeVecF64>(vec.var)) {
 						if(std::holds_alternative<RangeVecF64>(val.var)) {
@@ -220,12 +226,6 @@ void OptIval(llvm::Function &func) {
 		}
 	}
 
-	fp = fopen("STATS", "w");
-	if(fp != NULL) {
-		fprintf(fp, "%u\n%u\n%u\n", full, part, total);
-		fclose(fp);
-	}
-
 	for(auto &block : func) {
 		for(auto &inst : block) {
 			Info info = llvm_info(inst);
@@ -236,10 +236,15 @@ void OptIval(llvm::Function &func) {
 					Range cond = pass.Get(inst.getOperand(0)).range;
 
 					if(std::holds_alternative<RangeVecBool>(cond.var)) {
-						if(std::get<RangeVecBool>(cond.var).IsTrue())
+
+						if(std::get<RangeVecBool>(cond.var).IsTrue()) {
 							inst.replaceAllUsesWith(inst.getOperand(1));
-						else if(std::get<RangeVecBool>(cond.var).IsFalse())
+							rem++;
+						}
+						else if(std::get<RangeVecBool>(cond.var).IsFalse()) {
 							inst.replaceAllUsesWith(inst.getOperand(2));
+							rem++;
+						}
 					}
 				}
 				break;
@@ -250,8 +255,14 @@ void OptIval(llvm::Function &func) {
 		}
 	}
 
+	fp = fopen("STATS", "w");
+	if(fp != NULL) {
+		fprintf(fp, "%u\n%u\n%u\n%u\n", full, part, total, rem);
+		fclose(fp);
+	}
+
 	//printf("STATS %s: %u/%u/%u\n", func.getName().data(), full, part, total);
-	pass.Dump(func);
+	//pass.Dump(func);
 }
 
 
@@ -350,6 +361,9 @@ Op llvm_op(llvm::Instruction const& inst) {
 	case llvm::Instruction::Call:
 		{
 			const llvm::CallInst *call = llvm::cast<llvm::CallInst>(&inst);
+
+			if(call->getCalledFunction() == nullptr)
+				return Op::Unk;
 
 			if(call->getCalledFunction()->getName() == "llvm.fabs.f64")
 				return Op::Abs;

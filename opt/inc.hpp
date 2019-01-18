@@ -51,7 +51,7 @@ class RangeBool;
 class RangeUndef;
 class RangeVecBool;
 
-#define fatal(...) do { fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n"); abort(); } while(0)
+#define fatal(...) do { fprintf(stderr, "%s:%u:", __FILE__, __LINE__); fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n"); abort(); } while(0)
 
 /*
  * local headers
