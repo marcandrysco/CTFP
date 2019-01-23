@@ -300,11 +300,14 @@ Range Range::Mul(const Range &lhs, const Range &rhs, Type type) {
 Range Range::And(const Range &lhs, const Range &rhs, Type type) {
 	if(IsUndef2(lhs, rhs))
 		return Range(type);
-
-	if(IsPair<RangeVecI64>(lhs, rhs))
+	else if(IsPair<RangeVecBool>(lhs, rhs))
+		return RangeVecBool::And(std::get<RangeVecBool>(lhs.var), std::get<RangeVecBool>(rhs.var));
+	else if(IsPair<RangeVecI32>(lhs, rhs))
+		return RangeVecI32::And(std::get<RangeVecI32>(lhs.var), std::get<RangeVecI32>(rhs.var));
+	else if(IsPair<RangeVecI64>(lhs, rhs))
 		return RangeVecI64::And(std::get<RangeVecI64>(lhs.var), std::get<RangeVecI64>(rhs.var));
 	else
-		fatal("Invalid and. %ld %ld", lhs.var.index(), rhs.var.index());
+		fatal("Invalid and. (%ld %ld)", lhs.var.index(), rhs.var.index());
 }
 
 /**
@@ -317,11 +320,14 @@ Range Range::And(const Range &lhs, const Range &rhs, Type type) {
 Range Range::Or(const Range &lhs, const Range &rhs, Type type) {
 	if(IsUndef2(lhs, rhs))
 		return Range(type);
-
-	if(IsPair<RangeVecI64>(lhs, rhs))
+	else if(IsPair<RangeVecBool>(lhs, rhs))
+		return RangeVecBool::Or(std::get<RangeVecBool>(lhs.var), std::get<RangeVecBool>(rhs.var));
+	else if(IsPair<RangeVecI32>(lhs, rhs))
+		return RangeVecI32::Or(std::get<RangeVecI32>(lhs.var), std::get<RangeVecI32>(rhs.var));
+	else if(IsPair<RangeVecI64>(lhs, rhs))
 		return RangeVecI64::Or(std::get<RangeVecI64>(lhs.var), std::get<RangeVecI64>(rhs.var));
 	else
-		fatal("Invalid or.");
+		fatal("Invalid or. (%ld %ld)", lhs.var.index(), rhs.var.index());
 }
 
 /**
@@ -334,11 +340,14 @@ Range Range::Or(const Range &lhs, const Range &rhs, Type type) {
 Range Range::Xor(const Range &lhs, const Range &rhs, Type type) {
 	if(IsUndef2(lhs, rhs))
 		return Range(type);
-
-	if(IsPair<RangeVecI64>(lhs, rhs))
+	else if(IsPair<RangeVecBool>(lhs, rhs))
+		return RangeVecBool::Xor(std::get<RangeVecBool>(lhs.var), std::get<RangeVecBool>(rhs.var));
+	else if(IsPair<RangeVecI32>(lhs, rhs))
+		return RangeVecI32::Xor(std::get<RangeVecI32>(lhs.var), std::get<RangeVecI32>(rhs.var));
+	else if(IsPair<RangeVecI64>(lhs, rhs))
 		return RangeVecI64::Xor(std::get<RangeVecI64>(lhs.var), std::get<RangeVecI64>(rhs.var));
 	else
-		fatal("Invalid xor.");
+		fatal("Invalid xor. (%ld %ld)", lhs.var.index(), rhs.var.index());
 }
 
 
@@ -388,6 +397,8 @@ Range Range::CmpOGT(Range const &lhs, Range const &rhs, Type type) {
 Range Range::Select(Range const& cond, Range const& lhs, Range const& rhs, Type type) {
 	if(IsUndef1(cond))
 		return Range(type);
+	else if(IsUndef2(lhs, rhs))
+		return Range(RangeUndef());
 
 	if(!IsA<RangeVecBool>(cond))
 		fatal("Invalid select (%zd).", cond.var.index());

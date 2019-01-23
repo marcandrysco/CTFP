@@ -30,5 +30,8 @@ opt.o: opt.cpp $(INC) Makefile llvm.hpp.gch
 	$(CXX) -c $(CXXFLAGS) $< -o $@
 
 
-run: all
-	opt mul.ll -o mul.ll.opt -load ./opt.so -ctfp-opt -dce -S
+run: 
+	opt mul.ll -o mul.opt.ll -load ./opt.so -ctfp-opt -S
+	opt mul.opt.ll -o mul.opt.dce.ll -dce -S
+	clang mul.opt.ll -o mul.opt.s -S
+	clang mul.opt.dce.ll -o mul.opt.dce.s -S

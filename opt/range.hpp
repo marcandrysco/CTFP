@@ -27,6 +27,18 @@ public:
 	bool IsFalse() const { return !istrue; }
 
 	std::string Str() const;
+
+	static RangeBool And(RangeBool const& lhs, RangeBool const& rhs) {
+		return RangeBool(lhs.istrue && rhs.istrue, lhs.isfalse || rhs.isfalse);
+	}
+
+	static RangeBool Or(RangeBool const& lhs, RangeBool const& rhs) {
+		return RangeBool(lhs.istrue || rhs.istrue, lhs.isfalse && rhs.isfalse);
+	}
+
+	static RangeBool Xor(RangeBool const& lhs, RangeBool const& rhs) {
+		return RangeBool((lhs.istrue && rhs.isfalse) || (lhs.isfalse && rhs.istrue), (lhs.istrue && rhs.istrue) || (lhs.isfalse && rhs.isfalse));
+	}
 };
 
 /*
@@ -43,6 +55,39 @@ public:
 	bool IsFalse() const;
 
 	std::string Str() const;
+
+	static RangeVecBool And(RangeVecBool const& lhs, RangeVecBool const& rhs) {
+		assert(lhs.scalars.size() == rhs.scalars.size());
+
+		RangeVecBool res;
+
+		for(size_t i = 0; i < lhs.scalars.size(); i++)
+			res.scalars.push_back(RangeBool::And(lhs.scalars[i], rhs.scalars[i]));
+
+		return res;
+	}
+
+	static RangeVecBool Or(RangeVecBool const& lhs, RangeVecBool const& rhs) {
+		assert(lhs.scalars.size() == rhs.scalars.size());
+
+		RangeVecBool res;
+
+		for(size_t i = 0; i < lhs.scalars.size(); i++)
+			res.scalars.push_back(RangeBool::Or(lhs.scalars[i], rhs.scalars[i]));
+
+		return res;
+	}
+
+	static RangeVecBool Xor(RangeVecBool const& lhs, RangeVecBool const& rhs) {
+		assert(lhs.scalars.size() == rhs.scalars.size());
+
+		RangeVecBool res;
+
+		for(size_t i = 0; i < lhs.scalars.size(); i++)
+			res.scalars.push_back(RangeBool::Xor(lhs.scalars[i], rhs.scalars[i]));
+
+		return res;
+	}
 };
 
 /*

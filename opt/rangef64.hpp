@@ -39,6 +39,7 @@ public:
 	static RangeFlt Sub(const RangeFlt &lhs, const RangeFlt &rhs);
 	static RangeFlt Mul(const RangeFlt &lhs, const RangeFlt &rhs);
 
+	static RangeBool CmpUNE(RangeFlt const& lhs, RangeFlt const& rhs);
 	static RangeBool CmpOGT(RangeFlt const& lhs, RangeFlt const& rhs);
 	static RangeBool CmpOLT(RangeFlt const& lhs, RangeFlt const& rhs);
 	static RangeBool CmpOEQ(RangeFlt const& lhs, RangeFlt const& rhs);

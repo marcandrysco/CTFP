@@ -246,6 +246,22 @@ template <class T> RangeFlt<T> RangeFlt<T>::Mul(const RangeFlt<T> &lhs, const Ra
 
 
 /**
+ * Comparison (UNE) of two floating-point ranges.
+ *   @lhs: The left-hand side.
+ *   @rhs: The right-hand side.
+ *   &returns: The result range.
+ */
+template <class T> RangeBool RangeFlt<T>::CmpUNE(RangeFlt<T> const &lhs, RangeFlt<T> const &rhs) {
+	if(lhs.IsUndef() || rhs.IsUndef())
+		return RangeBool();
+
+	bool istrue = lhs.nan || rhs.nan;
+	bool isfalse = false;
+
+	return RangeBool(istrue, isfalse);
+}
+
+/**
  * Comparison (OGT) of two floating-point ranges.
  *   @lhs: The left-hand side.
  *   @rhs: The right-hand side.
