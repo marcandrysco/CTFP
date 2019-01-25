@@ -7,6 +7,7 @@
 #include <llvm/IR/LegacyPassManager.h>
 #include <llvm/Transforms/IPO/PassManagerBuilder.h>
 #include <llvm/Transforms/Utils/Cloning.h>
+#include <llvm/Transforms/Scalar.h>
 #include <llvm/Linker/Linker.h>
 #include <llvm/IR/DiagnosticInfo.h>
 #include <llvm/IR/CFG.h>
@@ -358,5 +359,6 @@ RegisterPass<CTFP> X("ctfp", "Constant Time Floating-Point");
 
 static void registerCTFP(const PassManagerBuilder &, legacy::PassManagerBase &PM) {
     PM.add(new CTFP());
+    //PM.add(createConstantPropagationPass());
 }
 static RegisterStandardPasses RegisterCTFP(PassManagerBuilder::EP_OptimizerLast, registerCTFP);
