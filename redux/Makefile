@@ -3,7 +3,7 @@ CPU=skylake
 #CPU=barcelona
 
 #all: prover
-all: ctfp.bc ctfp-llvm.so ctfp-clean.so ctfp-math-1.so ctfp-math-2.so
+all: ctfp.bc ctfp-llvm.so ctfp-clean.so ctfp-math-1.so ctfp-math-2.so ctfp-math-3.so
 
 ## LLVM Generator
 
@@ -59,10 +59,13 @@ ctfp-clean.so: clean.cpp Makefile
 ## Math Library
 
 ctfp-math-1.so: $(MATH) Makefile ctfp-llvm.so math/libm.h ctfp.bc
-	CTFP_VER=1 CTFP_DIR=. clang -shared -O2 -Wall -march=native -fpic $(MATH) -o $@ -fplugin=./ctfp-llvm.so -nostdlib
+	CTFP_VER=1 CTFP_DIR=. clang -shared -O2 -Wall -march=native -fpic $(MATH) -o $@ -fplugin=./ctfp-llvm.so -fplugin=../opt/opt.so -nostdlib
 
 ctfp-math-2.so: $(MATH) Makefile ctfp-llvm.so math/libm.h ctfp.bc
-	CTFP_VER=2 CTFP_DIR=. clang -shared -O2 -Wall -march=native -fpic $(MATH) -o $@ -fplugin=./ctfp-llvm.so -nostdlib
+	CTFP_VER=2 CTFP_DIR=. clang -shared -O2 -Wall -march=native -fpic $(MATH) -o $@ -fplugin=./ctfp-llvm.so -fplugin=../opt/opt.so -nostdlib
+
+ctfp-math-3.so: $(MATH) Makefile ctfp-llvm.so math/libm.h ctfp.bc
+	CTFP_VER=3 CTFP_DIR=. clang -shared -O2 -Wall -march=native -fpic $(MATH) -o $@ -fplugin=./ctfp-llvm.so -fplugin=../opt/opt.so -nostdlib
 
 
 ## Test Tool

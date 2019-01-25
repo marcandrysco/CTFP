@@ -191,6 +191,8 @@ struct CTFP : public FunctionPass {
 			return false;
 		else if(func.getName().str().find("ctfp_full_") == 0)
 			return false;
+		else if(func.getName().str().find("ctfp_fast_") == 0)
+			return false;
 
 		Module *mod = func.getParent();
 		if(mod->getFunction("ctfp_restrict_add_f32v4") == nullptr) {
@@ -314,6 +316,8 @@ struct CTFP : public FunctionPass {
 					sel = "restrict";
 				else if(strcmp(ver, "2") == 0)
 					sel = "full";
+				else if(strcmp(ver, "3") == 0)
+					sel = "fast";
 				else
 					fprintf(stderr, "Invalid CTFP version.\n"), abort();
 
@@ -339,6 +343,8 @@ struct CTFP : public FunctionPass {
 				if(regex_match(name, std::regex("^ctfp_restrict_.*$")))
 					func->eraseFromParent();
 				else if(regex_match(name, std::regex("^ctfp_full_.*$")))
+					func->eraseFromParent();
+				else if(regex_match(name, std::regex("^ctfp_fast_.*$")))
 					func->eraseFromParent();
 			}
 		}

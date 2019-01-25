@@ -167,8 +167,10 @@ z3_call (fn, a, b, env) =
 llvm_main :: Bool -> IO ()
 llvm_main dbg = 
   let
-    fns1 = [ "restrict_sqrt", "full_sqrt" ]
-    fns2 = [ "restrict_add", "restrict_sub", "restrict_mul", "restrict_div", "full_add", "full_sub", "full_mul", "full_div" ]
+    -- fns1 = [ "restrict_sqrt", "full_sqrt" {-, "fast_sqrt"-} ]
+    -- fns2 = [ "restrict_add", "restrict_sub", "restrict_mul", "restrict_div", "full_add", "full_sub", "full_mul", "full_div" {-, "fast_add", "fast_sub", "fast_mul", "fast_div"-} ]
+    fns1 = [ "restrict_sqrt", "full_sqrt", "fast_sqrt" ]
+    fns2 = [ "restrict_add", "restrict_sub", "restrict_mul", "restrict_div", "full_add", "full_sub", "full_mul", "full_div", "fast_add", "fast_sub", "fast_mul", "fast_div" ]
     f ty =
       let
         post = type2post ty
@@ -183,6 +185,11 @@ llvm_main dbg =
            llvm_func2 full_mul ty  ( "ctfp_full_mul_"  ++ post) dbg
            llvm_func2 full_div ty  ( "ctfp_full_div_"  ++ post) dbg
            llvm_func1 full_sqrt ty ( "ctfp_full_sqrt_" ++ post) dbg
+           llvm_func2 fast_add ty  ( "ctfp_fast_add_"  ++ post) dbg
+           llvm_func2 fast_sub ty  ( "ctfp_fast_sub_"  ++ post) dbg
+           llvm_func2 fast_mul ty  ( "ctfp_fast_mul_"  ++ post) dbg
+           llvm_func2 fast_div ty  ( "ctfp_fast_div_"  ++ post) dbg
+           llvm_func1 fast_sqrt ty ( "ctfp_fast_sqrt_" ++ post) dbg
   in
     do llvm_prelude
        mapM f typelist
@@ -696,11 +703,13 @@ val_oddexp = Int ( dec "0x00800000", dec " 0x0010000000000000" )
 val_pow4 = Int ( dec "0x00FFFFFF", dec "0x001FFFFFFFFFFFFF" )
 
 -- constants
-addmin = Float ( "9.86076131526264760e-32", "2.00416836000897278e-292" )
-mulmin = Float ( "1.08420217248550443e-19", "1.49166814624004135e-154" )
-divmin = Float ( "1.08420217248550443e-19", "1.49166814624004135e-154" )
-divmax = Float ( "4.61168601842738790e+18", "3.35195198248564927e+153" )
-fltmin = Float ( "1.17549435082228751e-38", "2.22507385850720138e-308" )
+addmin  = Float ( "9.86076131526264760e-32", "2.00416836000897278e-292" )
+mulmin  = Float ( "1.08420217248550443e-19", "1.49166814624004135e-154" )
+divmin  = Float ( "1.08420217248550443e-19", "1.49166814624004135e-154" )
+divmax  = Float ( "4.61168601842738790e+18", "3.35195198248564927e+153" )
+fltmin  = Float ( "1.17549435082228751e-38", "2.22507385850720138e-308" )
+fastmin = Float ( "5.960464477539063e-8",    "5.960464477539063e-8" )
+fastmax = Float ( "16777216.0",              "9007199254740992.0" )
 
 addoff = Float ( "1.67772160000000000e+07", "9.007199254740992e+15" )
 addcmp = Float ( "1.97215226305252951e-31", "2.004168360008973e-292" )
@@ -801,6 +810,52 @@ full_div =
 -- sqrt
 full_sqrt :: FP1 -> FP1
 full_sqrt = restrict_sqrt
+
+
+-- ## FAST ## --
+
+-- addition
+fast_add :: FP2 -> FP1
+fast_add =
+  with_underflow1 fastmin True @@
+  with_underflow2 fastmin True @@
+  FAdd
+
+-- subtraction
+fast_sub :: FP2 -> FP1
+fast_sub =
+  with_underflow1 fastmin True @@
+  with_underflow2 fastmin True @@
+  FSub
+
+-- multiplication
+fast_mul :: FP2 -> FP1
+fast_mul =
+  --do_sign @@
+  with_underflow1 fastmin True @@
+  with_underflow2 fastmin True @@
+  FMul
+
+-- division
+fast_div :: FP2 -> FP1
+fast_div =
+  do_sign2 @@
+  with_underflow1 fastmin True @@
+  with_underflow2 fastmin True @@
+  with_overflow1 fastmax @@
+  with_overflow2 fastmax @@
+  safediv
+
+-- sqrt
+fast_sqrt :: FP1 -> FP1
+fast_sqrt =
+  with_underflow fltmin @@
+  with_dummy val_nan  val_nan  val_dummy @@
+  with_dummy val_inf  val_inf  val_dummy @@
+  neg_sqrt @@
+  zero_sqrt @@
+  blind_sqrt @@
+  FSqrt
 
 
 -- get a name
