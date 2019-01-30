@@ -817,23 +817,23 @@ full_sqrt = restrict_sqrt
 -- addition
 fast_add :: FP2 -> FP1
 fast_add =
-  with_underflow1 fastmin True @@
-  with_underflow2 fastmin True @@
+  --with_underflow1 fastmin True @@
+  --with_underflow2 fastmin True @@
   FAdd
 
 -- subtraction
 fast_sub :: FP2 -> FP1
 fast_sub =
-  with_underflow1 fastmin True @@
-  with_underflow2 fastmin True @@
+  --with_underflow1 fastmin True @@
+  --with_underflow2 fastmin True @@
   FSub
 
 -- multiplication
 fast_mul :: FP2 -> FP1
 fast_mul =
   --do_sign @@
-  with_underflow1 fastmin True @@
-  with_underflow2 fastmin True @@
+  --with_underflow1 fastmin True @@
+  --with_underflow2 fastmin True @@
   FMul
 
 -- division
