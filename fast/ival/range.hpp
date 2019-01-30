@@ -1136,6 +1136,21 @@ public:
 	static Range FtoI(const Range &in, Type type);
 
 
+	Range Protect(Type type, double min) {
+		if(IsA<RangeUnk>(*this)) {
+			if(type.kind != Kind::Flt)
+				fatal("Invalid range type.");
+
+			return Range(type).Protect(type, min);
+		}
+		else if(IsA<RangeVecF32>(*this))
+			return std::get<RangeVecF32>(var).Protect(min);
+		else if(IsA<RangeVecF64>(*this))
+			return std::get<RangeVecF64>(var).Protect(min);
+		else
+			fatal("Invalid range type.");
+	}
+
 	/**
 	 * Absolute value of a range.
 	 *   @in: The input range.

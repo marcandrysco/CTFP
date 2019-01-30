@@ -52,8 +52,8 @@ bool ctfp_func(llvm::Function& func) {
 	if(mod->getFunction("ctfp_restrict_add_f32v4") == nullptr) {
 		llvm::SMDiagnostic err;
 		const char *dir = getenv("CTFP_DIR");
-		dir = "../redux";
 		if(dir == nullptr)
+			//dir = "../redux";
 			fprintf(stderr, "Missing 'CTFP_DIR' variable.\n"), abort();
 
 		std::string path = std::string(dir) + std::string("/ctfp.bc");
@@ -96,7 +96,6 @@ bool ctfp_func(llvm::Function& func) {
 		}
 
 		pass.map[&arg] = range;
-		std::cout << "arg " << arg.getName().data() << "\n    " << range.Str() << "\n";
 	}
 
 	for(llvm::BasicBlock &block : func)
@@ -147,7 +146,6 @@ static const double safemin64 = 1.1102230246251565e-16;
 void ctfp_block(llvm::BasicBlock& block, Pass& pass) {
 	auto iter = block.begin();
 
-	std::cout << block.getName().data() << ":\n";
 	while(iter != block.end()) {
 		llvm::Instruction *inst = &*iter++;
 		Info info = Pass::GetInfo(*inst);
@@ -155,74 +153,74 @@ void ctfp_block(llvm::BasicBlock& block, Pass& pass) {
 		if(((info.op == Op::Add) || (info.op == Op::Sub)) && (info.type.kind == Kind::Flt) && (info.type.width == 32)) {
 			llvm::Value *lhs = inst->getOperand(0);
 			if(!pass.GetRange(lhs).IsSafe(addmin32)) {
-				Range safe = std::get<RangeVecF32>(pass.map[lhs].var).Protect(safemin32);
+				Range safe = pass.map[lhs].Protect(info.type, safemin32);
 				ctfp_protect(inst, 0, safemin32);
-				printf("Protect!\n");
+				//printf("Protect!\n");
 				pass.map[inst->getOperand(0)] = safe;
 			}
 
 			llvm::Value *rhs = inst->getOperand(1);
 			if(!pass.GetRange(rhs).IsSafe(addmin32)) {
-				Range safe = std::get<RangeVecF32>(pass.map[rhs].var).Protect(safemin32);
+				Range safe = pass.map[rhs].Protect(info.type, safemin32);
 				ctfp_protect(inst, 1, safemin32);
-				printf("Protect!\n");
+				//printf("Protect!\n");
 				pass.map[inst->getOperand(1)] = safe;
 			}
 		}
 		else if(((info.op == Op::Add) || (info.op == Op::Sub)) && (info.type.kind == Kind::Flt) && (info.type.width == 64)) {
 			llvm::Value *lhs = inst->getOperand(0);
 			if(!pass.GetRange(lhs).IsSafe(addmin64)) {
-				Range safe = std::get<RangeVecF64>(pass.map[lhs].var).Protect(safemin64);
+				Range safe = pass.map[lhs].Protect(info.type, safemin64);
 				ctfp_protect(inst, 0, safemin64);
-				printf("Protect!\n");
+				//printf("Protect!\n");
 				pass.map[inst->getOperand(0)] = safe;
 			}
 
 			llvm::Value *rhs = inst->getOperand(1);
 			if(!pass.GetRange(rhs).IsSafe(addmin64)) {
-				Range safe = std::get<RangeVecF64>(pass.map[rhs].var).Protect(safemin64);
+				Range safe = pass.map[rhs].Protect(info.type, safemin64);
 				ctfp_protect(inst, 1, safemin64);
-				printf("Protect!\n");
+				//printf("Protect!\n");
 				pass.map[inst->getOperand(1)] = safe;
 			}
 		}
 		else if((info.op == Op::Mul) && (info.type.kind == Kind::Flt) && (info.type.width == 32)) {
 			llvm::Value *lhs = inst->getOperand(0);
 			if(!pass.GetRange(lhs).IsSafe(mulmin32)) {
-				Range safe = std::get<RangeVecF32>(pass.map[lhs].var).Protect(safemin32);
+				Range safe = pass.map[lhs].Protect(info.type, safemin32);
 				ctfp_protect(inst, 0, safemin32);
-				printf("Protect!\n");
+				//printf("Protect!\n");
 				pass.map[inst->getOperand(0)] = safe;
 			}
 
 			llvm::Value *rhs = inst->getOperand(1);
 			if(!pass.GetRange(rhs).IsSafe(mulmin32)) {
-				Range safe = std::get<RangeVecF32>(pass.map[rhs].var).Protect(safemin32);
+				Range safe = pass.map[rhs].Protect(info.type, safemin32);
 				ctfp_protect(inst, 1, safemin32);
-				printf("Protect!\n");
+				//printf("Protect!\n");
 				pass.map[inst->getOperand(1)] = safe;
 			}
 		}
 		else if((info.op == Op::Mul) && (info.type.kind == Kind::Flt) && (info.type.width == 64)) {
 			llvm::Value *lhs = inst->getOperand(0);
 			if(!pass.GetRange(lhs).IsSafe(mulmin64)) {
-				Range safe = std::get<RangeVecF64>(pass.map[lhs].var).Protect(safemin64);
+				Range safe = pass.map[lhs].Protect(info.type, safemin64);
 				ctfp_protect(inst, 0, safemin64);
-				printf("Protect!\n");
+				//printf("Protect!\n");
 				pass.map[inst->getOperand(0)] = safe;
 			}
 
 			llvm::Value *rhs = inst->getOperand(1);
 			if(!pass.GetRange(rhs).IsSafe(mulmin64)) {
-				Range safe = std::get<RangeVecF64>(pass.map[rhs].var).Protect(safemin64);
+				Range safe = pass.map[rhs].Protect(info.type, safemin64);
 				ctfp_protect(inst, 1, safemin64);
-				printf("Protect!\n");
+				//printf("Protect!\n");
 				pass.map[inst->getOperand(1)] = safe;
 			}
 		}
 
 
-		pass.Proc(*inst);
+		//pass.Proc(*inst);
 		//pass.map[iter - 1] = pass.map[inst];
 
 		const char *op = nullptr;
@@ -243,14 +241,16 @@ void ctfp_block(llvm::BasicBlock& block, Pass& pass) {
 			pass.map[use->get()] = range;
 		}
 
-		inst->print(llvm::outs());
-		std::cout << "\n";
+		if(0) {
+			inst->print(llvm::outs());
+			std::cout << "\n";
 
-		auto fact = pass.map.find(inst);
-		if(fact != pass.map.end())
-			printf("    %s\n", fact->second.Str().data());
-		else
-			printf("    missing\n");
+			auto fact = pass.map.find(inst);
+			if(fact != pass.map.end())
+				printf("    %s\n", fact->second.Str().data());
+			else
+				printf("    missing\n");
+		}
 	}
 }
 
@@ -261,7 +261,6 @@ void ctfp_block(llvm::BasicBlock& block, Pass& pass) {
  *   @safe: The safe value.
  */
 void ctfp_protect(llvm::Instruction *inst, unsigned int i, double safe) {
-
 	llvm::Value *op = inst->getOperand(i);
 	llvm::LLVMContext &ctx = inst->getContext();
 	llvm::Module *mod = inst->getParent()->getParent()->getParent();

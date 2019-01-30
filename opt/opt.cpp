@@ -394,9 +394,13 @@ static llvm::RegisterPass<CtfpOpt> X("ctfp-opt", "CtfpOpt", false, false);
 
 #include <llvm/IR/LegacyPassManager.h>
 #include <llvm/Transforms/IPO/PassManagerBuilder.h>
+#include <llvm/Transforms/IPO/PassManagerBuilder.h>
+#include <llvm/Transforms/Scalar.h>
 
 static void registerCTFP2(const llvm::PassManagerBuilder &, llvm::legacy::PassManagerBase &PM) {
     PM.add(new CtfpOpt());
+    //PM.add(llvm::createEarlyCSEPass());
+    //PM.add(llvm::createConstantPropagation());
 }
 static llvm::RegisterStandardPasses RegisterCTFP(llvm::PassManagerBuilder::EP_OptimizerLast, registerCTFP2);
 

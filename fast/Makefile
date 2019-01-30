@@ -1,6 +1,6 @@
 CXX = g++
 LD  = g++
-CXXFLAGS = -g -Wall -Werror -O2 -std=gnu++2a -fpic
+CXXFLAGS = -g -Wall -Werror -O2 -std=gnu++17 -fpic
 LDFLAGS = -lm
 
 IVAL = ival/inc.hpp \
