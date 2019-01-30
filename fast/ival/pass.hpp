@@ -324,6 +324,9 @@ public:
 		case llvm::Instruction::FMul:
 			return Op::Mul;
 
+		case llvm::Instruction::FDiv:
+			return Op::Div;
+
 		case llvm::Instruction::And:
 			return Op::And;
 
@@ -367,6 +370,8 @@ public:
 
 				if(call->getCalledFunction()->getName().startswith("llvm.fabs."))
 					return Op::Abs;
+				else if(call->getCalledFunction()->getName().startswith("llvm.sqrt."))
+					return Op::Sqrt;
 				else
 					return Op::Unk;
 			}

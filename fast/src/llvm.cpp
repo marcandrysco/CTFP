@@ -28,6 +28,9 @@
 bool ctfp_func(llvm::Function &func);
 void ctfp_block(llvm::BasicBlock& block, Pass& pass);
 void ctfp_protect(llvm::Instruction *inst, unsigned int i, double safe);
+void ctfp_replace(llvm::Instruction *inst, const char *id);
+
+void ctfp_cleanup(llvm::Module& mod);
 
 
 /**
@@ -44,6 +47,23 @@ bool ctfp_func(llvm::Function& func) {
 		return false;
 	else if(func.getName().str().find("ctfp_fast_") == 0)
 		return false;
+
+	llvm::Module *mod = func.getParent();
+	if(mod->getFunction("ctfp_restrict_add_f32v4") == nullptr) {
+		llvm::SMDiagnostic err;
+		const char *dir = getenv("CTFP_DIR");
+		dir = "../redux";
+		if(dir == nullptr)
+			fprintf(stderr, "Missing 'CTFP_DIR' variable.\n"), abort();
+
+		std::string path = std::string(dir) + std::string("/ctfp.bc");
+		std::unique_ptr<llvm::Module> parse = llvm::parseIRFile(path, err, func.getContext());
+		if(parse == nullptr)
+			fprintf(stderr, "Failed to load CTFP bitcode (%s).\n", path.c_str()), abort();
+
+		if(llvm::Linker::linkModules(*mod, std::move(parse)))
+			fprintf(stderr, "Link failed.\n"), abort();
+	}
 
 	int i = 0;
 	for(auto &arg : func.args()) {
@@ -82,7 +102,31 @@ bool ctfp_func(llvm::Function& func) {
 	for(llvm::BasicBlock &block : func)
 		ctfp_block(block, pass);
 
+	ctfp_cleanup(*func.getParent());
+
 	return true;
+}
+
+
+/**
+ * Cleanup the leftover CTFP functions.
+ *   @mod: The module.
+ */
+void ctfp_cleanup(llvm::Module& mod)
+{
+	auto iter = mod.begin();
+
+	while(iter != mod.end()) {
+		llvm::Function *func = &*iter++;
+
+		std::string name = func->getName().str();
+		if(regex_match(name, std::regex("^ctfp_restrict_.*$")))
+			func->eraseFromParent();
+		else if(regex_match(name, std::regex("^ctfp_full_.*$")))
+			func->eraseFromParent();
+		else if(regex_match(name, std::regex("^ctfp_fast_.*$")))
+			func->eraseFromParent();
+	}
 }
 
 static const float addmin32 = 9.86076131526264760e-32f;
@@ -177,7 +221,27 @@ void ctfp_block(llvm::BasicBlock& block, Pass& pass) {
 			}
 		}
 
+
 		pass.Proc(*inst);
+		//pass.map[iter - 1] = pass.map[inst];
+
+		const char *op = nullptr;
+
+		switch(info.op) {
+		case Op::Add: op = "add"; break;
+		case Op::Sub: op = "sub"; break;
+		case Op::Mul: op = "mul"; break;
+		case Op::Div: op = "div"; break;
+		case Op::Sqrt: op = "sqrt"; break;
+		default: break;
+		}
+
+		if(op != nullptr) {
+			llvm::Use *use = &*inst->use_begin();
+			Range range = pass.map[inst];
+			ctfp_replace(inst, (std::string("ctfp_fast_") + op + "_f" + std::to_string(info.type.width) + "v" + std::to_string(info.type.count)).data());
+			pass.map[use->get()] = range;
+		}
 
 		inst->print(llvm::outs());
 		std::cout << "\n";
@@ -257,6 +321,99 @@ void ctfp_protect(llvm::Instruction *inst, unsigned int i, double safe) {
 	llvm::Instruction *done = llvm::CallInst::Create(llvm::cast<llvm::Function>(copysign)->getFunctionType(), copysign, { tofp, op }, "", inst);
 
 	inst->setOperand(i, done);
+}
+
+using namespace llvm;
+
+void ctfp_replace(Instruction *inst, const char *id) {
+	Module *mod = inst->getParent()->getParent()->getParent();
+	LLVMContext &ctx = mod->getContext();
+
+	Function *func = mod->getFunction(id);
+	if(func == NULL)
+		fprintf(stderr, "Missing CTFP function '%s'.\n", id), abort();
+
+	std::vector<Value *> args;
+
+	if(isa<CallInst>(inst)) {
+		CallInst *call = cast<CallInst>(inst);
+		for(unsigned int i = 0; i < call->getNumArgOperands(); i++) {
+			Value *op = inst->getOperand(i);
+			llvm::Type *arg = func->getFunctionType()->getParamType(i);
+
+			if(op->getType() == arg)
+				args.push_back(op);
+			else
+				fprintf(stderr, "Mismatched types. %d %d %s\n", i, inst->getNumOperands(), inst->getOpcodeName()), op->getType()->dump(), fprintf(stderr, "::\n"), func->getFunctionType()->dump(), exit(1);
+		}
+	}
+	else {
+		for(unsigned int i = 0; i < inst->getNumOperands(); i++) {
+			Value *op = inst->getOperand(i);
+			llvm::Type *arg = func->getFunctionType()->getParamType(i);
+
+			if(op->getType() == arg) {
+				args.push_back(op);
+			}
+			else if(op->getType()->getPointerTo() == arg) {
+				fprintf(stderr, "Error\n"), abort();
+				AllocaInst *alloc = new AllocaInst(op->getType(), 0);
+				alloc->setAlignment(32);
+				alloc->insertBefore(&*inst->getParent()->getParent()->front().getFirstInsertionPt());
+
+				StoreInst *store = new StoreInst(op, alloc);
+				store->setAlignment(32);
+				store->insertBefore(inst);
+
+				args.push_back(alloc);
+
+				assert(op->getType()->getPointerTo() == alloc->getType());
+			}
+			else if((op->getType() == VectorType::get(llvm::Type::getFloatTy(ctx), 2)) && arg->isDoubleTy()) {
+				fprintf(stderr, "Error\n"), abort();
+				CastInst *cast = CastInst::Create(Instruction::BitCast, op, llvm::Type::getDoubleTy(ctx));
+				cast->insertBefore(inst);
+
+				args.push_back(cast);
+			}
+			else
+				fprintf(stderr, "Mismatched types. %d %d %s\n", i, inst->getNumOperands(), inst->getOpcodeName()), op->getType()->dump(), fprintf(stderr, "::\n"), func->getFunctionType()->dump(), exit(1);
+		}
+	}
+
+	CallInst *call = CallInst::Create(func, args);
+	call->insertBefore(inst);
+
+	if(func->getReturnType() == inst->getType()) {
+		inst->replaceAllUsesWith(call);
+	}
+	else if((inst->getType() == VectorType::get(llvm::Type::getFloatTy(ctx), 2)) && func->getReturnType()->isDoubleTy()) {
+		fprintf(stderr, "Error\n"), abort();
+		CastInst *cast = CastInst::Create(Instruction::BitCast, call, VectorType::get(llvm::Type::getFloatTy(ctx), 2));
+		cast->insertBefore(inst);
+
+		inst->replaceAllUsesWith(cast);
+	}
+	else
+		fprintf(stderr, "Mismatched types.\n"), func->getReturnType()->dump(), inst->getType()->dump(), inst->dump(), exit(1);
+
+	for(unsigned int i = 0; i < inst->getNumOperands(); i++) {
+		Value *op = inst->getOperand(i);
+		llvm::Type *arg = func->getFunctionType()->getParamType(i);
+		if(op->getType()->getPointerTo() == arg) {
+			AttributeList set = call->getAttributes();
+			set = set.addAttribute(ctx, i + 1, Attribute::getWithAlignment(ctx, 32));
+			set = set.addAttribute(ctx, i + 1, Attribute::NonNull);
+			set = set.addAttribute(ctx, i + 1, Attribute::ByVal);
+			call->setAttributes(set);
+		}
+	}
+
+	inst->eraseFromParent();
+
+	InlineFunctionInfo info;
+	bool suc = InlineFunction(call, info);
+	assert(suc == true);
 }
 
 
