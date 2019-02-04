@@ -708,8 +708,6 @@ mulmin  = Float ( "1.08420217248550443e-19", "1.49166814624004135e-154" )
 divmin  = Float ( "1.08420217248550443e-19", "1.49166814624004135e-154" )
 divmax  = Float ( "4.61168601842738790e+18", "3.35195198248564927e+153" )
 fltmin  = Float ( "1.17549435082228751e-38", "2.22507385850720138e-308" )
-fastmin = Float ( "5.960464477539063e-8",    "5.960464477539063e-8" )
-fastmax = Float ( "16777216.0",              "9007199254740992.0" )
 
 addoff = Float ( "1.67772160000000000e+07", "9.007199254740992e+15" )
 addcmp = Float ( "1.97215226305252951e-31", "2.004168360008973e-292" )
@@ -840,10 +838,10 @@ fast_mul =
 fast_div :: FP2 -> FP1
 fast_div =
   do_sign2 @@
-  with_underflow1 fastmin True @@
-  with_underflow2 fastmin True @@
-  with_overflow1 fastmax @@
-  with_overflow2 fastmax @@
+  with_underflow1 divmin True @@
+  with_underflow2 divmin True @@
+  with_overflow1 divmax @@
+  with_overflow2 divmax @@
   safediv
 
 -- sqrt

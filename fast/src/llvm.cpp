@@ -220,7 +220,7 @@ void ctfp_block(llvm::BasicBlock& block, Pass& pass) {
 		}
 
 
-		//pass.Proc(*inst);
+		pass.Proc(*inst);
 		//pass.map[iter - 1] = pass.map[inst];
 
 		const char *op = nullptr;
@@ -234,7 +234,7 @@ void ctfp_block(llvm::BasicBlock& block, Pass& pass) {
 		default: break;
 		}
 
-		if(op != nullptr) {
+		if((op != nullptr) && (info.type.width > 0)) {
 			llvm::Use *use = &*inst->use_begin();
 			Range range = pass.map[inst];
 			ctfp_replace(inst, (std::string("ctfp_fast_") + op + "_f" + std::to_string(info.type.width) + "v" + std::to_string(info.type.count)).data());

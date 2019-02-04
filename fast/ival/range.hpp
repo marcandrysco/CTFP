@@ -1340,8 +1340,12 @@ public:
 		if(!IsA<RangeVecBool>(cond))
 			fatal("Invalid select (%zd).", cond.var.index());
 
-		if(IsPair<RangeVecF64>(lhs, rhs))
+		if(IsPair<RangeVecF32>(lhs, rhs))
+			return Range(RangeVecF32::Select(std::get<RangeVecBool>(cond.var), std::get<RangeVecF32>(lhs.var), std::get<RangeVecF32>(rhs.var)));
+		else if(IsPair<RangeVecF64>(lhs, rhs))
 			return Range(RangeVecF64::Select(std::get<RangeVecBool>(cond.var), std::get<RangeVecF64>(lhs.var), std::get<RangeVecF64>(rhs.var)));
+		else if(IsPair<RangeVecI32>(lhs, rhs))
+			return Range(RangeVecI32::Select(std::get<RangeVecBool>(cond.var), std::get<RangeVecI32>(lhs.var), std::get<RangeVecI32>(rhs.var)));
 		else if(IsPair<RangeVecI64>(lhs, rhs))
 			return Range(RangeVecI64::Select(std::get<RangeVecBool>(cond.var), std::get<RangeVecI64>(lhs.var), std::get<RangeVecI64>(rhs.var)));
 		else if(IsPair<RangeVecBool>(lhs, rhs))

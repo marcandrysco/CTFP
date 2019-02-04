@@ -25,7 +25,6 @@ public:
 		int exp;
 
 		frexp(min, &exp);
-		printf("%d %d\n", lsb, exp);
 		if(lsb >= exp)
 			return true;
 
