@@ -187,6 +187,12 @@ public:
 			map[&inst] = Range::Mul(*lhs, *rhs, info.type);
 			break;
 
+		case Op::Div:
+			lhs = &GetRange(inst.getOperand(0));
+			rhs = &GetRange(inst.getOperand(1));
+			map[&inst] = Range::Div(*lhs, *rhs, info.type);
+			break;
+
 		case Op::And:
 			map[&inst] = Range::And(GetRange(inst.getOperand(0)), GetRange(inst.getOperand(1)), info.type);
 			break;

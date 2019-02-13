@@ -331,6 +331,25 @@ public:
 	}
 
 	/**
+	 * Compute the inverse of a range.
+	 *   &returns: The inverse.
+	 */
+	RangeFlt<T> Invert() const {
+		RangeFlt<T> res(nan);
+
+		for(auto const &ival : ivals) {
+			if(fp_lte<T>(ival.hi, -0.0) || fp_gte<T>(ival.lo, 0.0))
+				res.ivals.push_back(IvalFlt<T>(T(1.0) / ival.hi, T(1.0) / ival.lo));
+			else {
+				res.ivals.push_back(IvalFlt<T>(-INFINITY, T(1.0) / ival.lo));
+				res.ivals.push_back(IvalFlt<T>(T(1.0) / ival.hi, INFINITY));
+			}
+		}
+
+		return res;
+	}
+
+	/**
 	 * Protect values below a minimum.
 	 *   @min: The minimum.
 	 *   &returns: The removed range.
@@ -413,7 +432,7 @@ public:
 	 *   @rhs: The right-hand side.
 	 *   &returns: The result range.
 	 */
-	static RangeFlt Add(const RangeFlt &lhs, const RangeFlt &rhs) {
+	static RangeFlt Add(const RangeFlt& lhs, const RangeFlt& rhs) {
 		RangeFlt<T> res(lhs.nan || rhs.nan);
 
 		res.nan |= lhs.Contains(-INFINITY) && rhs.Contains(INFINITY);
@@ -433,7 +452,7 @@ public:
 	 *   @rhs: The right-hand side.
 	 *   &returns: The result range.
 	 */
-	static RangeFlt Sub(const RangeFlt &lhs, const RangeFlt &rhs) {
+	static RangeFlt Sub(const RangeFlt& lhs, const RangeFlt& rhs) {
 		RangeFlt<T> res(lhs.nan || rhs.nan);
 
 		res.nan |= lhs.Contains(INFINITY) && rhs.Contains(INFINITY);
@@ -453,7 +472,7 @@ public:
 	 *   @rhs: The right-hand side.
 	 *   &returns: The result range.
 	 */
-	static RangeFlt Mul(const RangeFlt &lhs, const RangeFlt &rhs) {
+	static RangeFlt Mul(const RangeFlt& lhs, const RangeFlt& rhs) {
 		RangeFlt<T> res(lhs.nan || rhs.nan);
 
 		res.nan |= (lhs.Contains(INFINITY) || lhs.Contains(-INFINITY)) && (rhs.Contains(0.0) || rhs.Contains(-0.0));
@@ -465,6 +484,16 @@ public:
 		}
 
 		return res;
+	}
+
+	/**
+	 * Divide two floating-point ranges.
+	 *   @lhs: The left-hand side.
+	 *   @rhs: The right-hand side.
+	 *   &returns: The result range.
+	 */
+	static RangeFlt Div(const RangeFlt& lhs, const RangeFlt& rhs) {
+		return RangeFlt<T>::Mul(lhs, rhs.Invert());
 	}
 
 
@@ -682,6 +711,23 @@ public:
 
 		for(uint32_t i = 0; i < lhs.scalars.size(); i++)
 			res.scalars.push_back(RangeFlt<T>::Mul(lhs.scalars[i], rhs.scalars[i]));
+
+		return res;
+	}
+
+	/**
+	 * Divide two floating-point ranges.
+	 *   @lhs: The left-hand side.
+	 *   @rhs: The right-hand side.
+	 *   &returns: The result range.
+	 */
+	static RangeVecFlt<T> Div(RangeVecFlt<T> const& lhs, RangeVecFlt<T> const& rhs) {
+		assert(lhs.scalars.size() == rhs.scalars.size());
+
+		RangeVecFlt<T> res;
+
+		for(uint32_t i = 0; i < lhs.scalars.size(); i++)
+			res.scalars.push_back(RangeFlt<T>::Div(lhs.scalars[i], rhs.scalars[i]));
 
 		return res;
 	}
@@ -1218,6 +1264,24 @@ public:
 			return RangeVecF32::Mul(std::get<RangeVecF32>(lhs.var), std::get<RangeVecF32>(rhs.var));
 		else if(IsPair<RangeVecF64>(lhs, rhs))
 			return RangeVecF64::Mul(std::get<RangeVecF64>(lhs.var), std::get<RangeVecF64>(rhs.var));
+		else
+			fatal("Invalid.");
+	}
+
+	/**
+	 * Divide two ranges.
+	 *   @lhs: The left-hand side.
+	 *   @rhs: The right-hand side.
+	 *   @type: The type.
+	 *   &returns: The result range.
+	 */
+	static Range Div(const Range &lhs, const Range &rhs, Type type) {
+		if(IsUnk2(lhs, rhs))
+			return Range(type);
+		else if(IsPair<RangeVecF32>(lhs, rhs))
+			return RangeVecF32::Div(std::get<RangeVecF32>(lhs.var), std::get<RangeVecF32>(rhs.var));
+		else if(IsPair<RangeVecF64>(lhs, rhs))
+			return RangeVecF64::Div(std::get<RangeVecF64>(lhs.var), std::get<RangeVecF64>(rhs.var));
 		else
 			fatal("Invalid.");
 	}

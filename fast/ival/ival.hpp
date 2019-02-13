@@ -67,9 +67,14 @@ public:
 	 *   &returns: The protected interval.
 	 */
 	IvalFlt<T> Protect(T min) const {
-		int exp;
-		frexp(min, &exp);
-		return IvalFlt<T>(lo, hi, std::max(lsb, exp));
+		if(min < 1.0) {
+			int exp;
+			frexp(min, &exp);
+
+			return IvalFlt<T>(lo, hi, std::max(lsb, exp));
+		}
+		else
+			return IvalFlt<T>(std::max<T>(lo, -min), std::max<T>(hi, min), lsb);
 	}
 
 	/**

@@ -837,17 +837,17 @@ fast_mul =
 -- division
 fast_div :: FP2 -> FP1
 fast_div =
-  do_sign2 @@
-  with_underflow1 divmin True @@
-  with_underflow2 divmin True @@
-  with_overflow1 divmax @@
-  with_overflow2 divmax @@
+  --do_sign2 @@
+  --with_underflow1 divmin True @@
+  --with_underflow2 divmin True @@
+  --with_overflow1 divmax @@
+  --with_overflow2 divmax @@
   safediv
 
 -- sqrt
 fast_sqrt :: FP1 -> FP1
 fast_sqrt =
-  with_underflow fltmin @@
+  --with_underflow fltmin @@
   with_dummy val_nan  val_nan  val_dummy @@
   with_dummy val_inf  val_inf  val_dummy @@
   neg_sqrt @@
