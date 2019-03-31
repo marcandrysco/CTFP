@@ -21,6 +21,9 @@
 
 #include "../ival/inc.hpp"
 
+#include "../ctfp.bc.c"
+
+enum mode_e { rest_v, full_v, fast_v, flags_v, stats_v };
 
 /*
  * local declarations
@@ -32,6 +35,23 @@ void ctfp_replace(llvm::Instruction *inst, const char *id);
 
 void ctfp_cleanup(llvm::Module& mod);
 
+enum mode_e ctfp_mode;
+
+
+void ctfp_link(unsigned char *prog, unsigned int len, llvm::Module &mod)
+{
+	llvm::SMDiagnostic err;
+	std::unique_ptr<llvm::WritableMemoryBuffer> mem = llvm::WritableMemoryBuffer::getNewUninitMemBuffer(len);
+
+	memcpy(mem->getBufferStart(), prog, len);
+
+	std::unique_ptr<llvm::Module> parse = llvm::parseIR(mem->getMemBufferRef(), err, mod.getContext());
+	if(parse == nullptr)
+		fprintf(stderr, "Failed to load CTFP bitcode.\n"), abort();
+
+	if(llvm::Linker::linkModules(mod, std::move(parse)))
+		fprintf(stderr, "Link failed.\n"), abort();
+}
 
 /**
  * Run CTFP on a function.
@@ -51,15 +71,13 @@ bool ctfp_func(llvm::Function& func) {
 	llvm::Module *mod = func.getParent();
 	if(mod->getFunction("ctfp_restrict_add_f32v4") == nullptr) {
 		llvm::SMDiagnostic err;
-		const char *dir = getenv("CTFP_DIR");
-		if(dir == nullptr)
-			dir = "../redux";
-			//fprintf(stderr, "Missing 'CTFP_DIR' variable.\n"), abort();
+		std::unique_ptr<llvm::WritableMemoryBuffer> mem = llvm::WritableMemoryBuffer::getNewUninitMemBuffer(ctfp_bc_len);
 
-		std::string path = std::string(dir) + std::string("/ctfp.bc");
-		std::unique_ptr<llvm::Module> parse = llvm::parseIRFile(path, err, func.getContext());
+		memcpy(mem->getBufferStart(), ctfp_bc, ctfp_bc_len);
+
+		std::unique_ptr<llvm::Module> parse = llvm::parseIR(mem->getMemBufferRef(), err, func.getContext());
 		if(parse == nullptr)
-			fprintf(stderr, "Failed to load CTFP bitcode (%s).\n", path.c_str()), abort();
+			fprintf(stderr, "Failed to load CTFP bitcode.\n"), abort();
 
 		if(llvm::Linker::linkModules(*mod, std::move(parse)))
 			fprintf(stderr, "Link failed.\n"), abort();
@@ -80,17 +98,17 @@ bool ctfp_func(llvm::Function& func) {
 
 		case Kind::Int:
 			if(type.width == 32)
-				range = Range(RangeVecI32(RangeI32::All()));
+				range = Range(RangeVecI32(std::vector<RangeI32>(type.count, RangeI32::All())));
 			else if(type.width == 64)
-				range = Range(RangeVecI64(RangeI64::All()));
+				range = Range(RangeVecI64(std::vector<RangeI64>(type.count, RangeI64::All())));
 
 			break;
 
 		case Kind::Flt:
 			if(type.width == 32)
-				range = Range(RangeVecF32(RangeF32::All()));
+				range = Range(RangeVecF32(std::vector<RangeF32>(type.count, RangeF32::All())));
 			else if(type.width == 64)
-				range = Range(RangeVecF64(RangeF64::All()));
+				range = Range(RangeVecF64(std::vector<RangeF64>(type.count, RangeF64::All())));
 
 			break;
 		}
@@ -147,163 +165,196 @@ static const double safemax64 = 9007199254740992.0;
  */
 void ctfp_block(llvm::BasicBlock& block, Pass& pass) {
 	auto iter = block.begin();
+	llvm::Module *mod = block.getParent()->getParent();
 
 	while(iter != block.end()) {
 		llvm::Instruction *inst = &*iter++;
 		Info info = Pass::GetInfo(*inst);
 
-		if(((info.op == Op::Add) || (info.op == Op::Sub)) && (info.type.kind == Kind::Flt) && (info.type.width == 32)) {
-			llvm::Value *lhs = inst->getOperand(0);
-			if(!pass.GetRange(lhs).IsSafe(addmin32)) {
-				Range safe = pass.map[lhs].Protect(info.type, safemin32);
-				ctfp_protect(inst, 0, safemin32);
-				//printf("Protect!\n");
-				pass.map[inst->getOperand(0)] = safe;
+		if(ctfp_mode == fast_v) {
+			if(((info.op == Op::Add) || (info.op == Op::Sub)) && (info.type.kind == Kind::Flt) && (info.type.width == 32)) {
+				llvm::Value *lhs = inst->getOperand(0);
+				if(!pass.GetRange(lhs).IsSafe(addmin32)) {
+					Range safe = pass.map[lhs].Protect(info.type, safemin32);
+					ctfp_protect(inst, 0, safemin32);
+					//printf("Protect!\n");
+					pass.map[inst->getOperand(0)] = safe;
+				}
+
+				llvm::Value *rhs = inst->getOperand(1);
+				if(!pass.GetRange(rhs).IsSafe(addmin32)) {
+					Range safe = pass.map[rhs].Protect(info.type, safemin32);
+					ctfp_protect(inst, 1, safemin32);
+					//printf("Protect!\n");
+					pass.map[inst->getOperand(1)] = safe;
+				}
+			}
+			else if(((info.op == Op::Add) || (info.op == Op::Sub)) && (info.type.kind == Kind::Flt) && (info.type.width == 64)) {
+				llvm::Value *lhs = inst->getOperand(0);
+				if(!pass.GetRange(lhs).IsSafe(addmin64)) {
+					Range safe = pass.map[lhs].Protect(info.type, safemin64);
+					ctfp_protect(inst, 0, safemin64);
+					//printf("Protect!\n");
+					pass.map[inst->getOperand(0)] = safe;
+				}
+
+				llvm::Value *rhs = inst->getOperand(1);
+				if(!pass.GetRange(rhs).IsSafe(addmin64)) {
+					Range safe = pass.map[rhs].Protect(info.type, safemin64);
+					ctfp_protect(inst, 1, safemin64);
+					//printf("Protect!\n");
+					pass.map[inst->getOperand(1)] = safe;
+				}
+			}
+			else if((info.op == Op::Mul) && (info.type.kind == Kind::Flt) && (info.type.width == 32)) {
+				llvm::Value *lhs = inst->getOperand(0);
+				if(!pass.GetRange(lhs).IsSafe(mulmin32)) {
+					Range safe = pass.map[lhs].Protect(info.type, safemin32);
+					ctfp_protect(inst, 0, safemin32);
+					//printf("Protect!\n");
+					pass.map[inst->getOperand(0)] = safe;
+				}
+
+				llvm::Value *rhs = inst->getOperand(1);
+				if(!pass.GetRange(rhs).IsSafe(mulmin32)) {
+					Range safe = pass.map[rhs].Protect(info.type, safemin32);
+					ctfp_protect(inst, 1, safemin32);
+					//printf("Protect!\n");
+					pass.map[inst->getOperand(1)] = safe;
+				}
+			}
+			else if((info.op == Op::Mul) && (info.type.kind == Kind::Flt) && (info.type.width == 64)) {
+				llvm::Value *lhs = inst->getOperand(0);
+				if(!pass.GetRange(lhs).IsSafe(mulmin64)) {
+					Range safe = pass.map[lhs].Protect(info.type, safemin64);
+					ctfp_protect(inst, 0, safemin64);
+					//printf("Protect!\n");
+					pass.map[inst->getOperand(0)] = safe;
+				}
+
+				llvm::Value *rhs = inst->getOperand(1);
+				if(!pass.GetRange(rhs).IsSafe(mulmin64)) {
+					Range safe = pass.map[rhs].Protect(info.type, safemin64);
+					ctfp_protect(inst, 1, safemin64);
+					//printf("Protect!\n");
+					pass.map[inst->getOperand(1)] = safe;
+				}
+			}
+			else if((info.op == Op::Div) && (info.type.kind == Kind::Flt) && (info.type.width == 32)) {
+				llvm::Value *lhs = inst->getOperand(0);
+				if(!pass.GetRange(lhs).IsSafe(mulmin32)) {
+					Range safe = pass.map[lhs].Protect(info.type, safemin32);
+					ctfp_protect(inst, 0, safemin32);
+					//printf("Protect!\n");
+					pass.map[inst->getOperand(0)] = safe;
+				}
+
+				llvm::Value *rhs = inst->getOperand(1);
+				if(!pass.GetRange(rhs).IsSafe(divmax32)) {
+					Range safe = pass.map[rhs].Protect(info.type, safemax32);
+					ctfp_protect(inst, 1, safemax32);
+					//printf("Protect!\n");
+					pass.map[inst->getOperand(1)] = safe;
+				}
+			}
+			else if((info.op == Op::Div) && (info.type.kind == Kind::Flt) && (info.type.width == 64)) {
+				llvm::Value *lhs = inst->getOperand(0);
+				if(!pass.GetRange(lhs).IsSafe(mulmin64)) {
+					Range safe = pass.map[lhs].Protect(info.type, safemin64);
+					ctfp_protect(inst, 0, safemin64);
+					//printf("Protect!\n");
+					pass.map[inst->getOperand(0)] = safe;
+				}
+
+				llvm::Value *rhs = inst->getOperand(1);
+				if(!pass.GetRange(rhs).IsSafe(divmax64)) {
+					Range safe = pass.map[rhs].Protect(info.type, safemax64);
+					ctfp_protect(inst, 1, safemax64);
+					//printf("Protect!\n");
+					pass.map[inst->getOperand(1)] = safe;
+				}
+			}
+			else if((info.op == Op::Sqrt) && (info.type.kind == Kind::Flt) && (info.type.width == 32)) {
+				llvm::Value *in = inst->getOperand(0);
+				if(!pass.GetRange(in).IsSafe(FLT_MIN)) {
+					Range safe = pass.map[in].Protect(info.type, safemin64);
+					ctfp_protect(inst, 0, safemin32);
+					//printf("Protect!\n");
+					pass.map[inst->getOperand(0)] = safe;
+				}
+			}
+			else if((info.op == Op::Sqrt) && (info.type.kind == Kind::Flt) && (info.type.width == 64)) {
+				llvm::Value *in = inst->getOperand(0);
+				if(!pass.GetRange(in).IsSafe(DBL_MIN)) {
+					Range safe = pass.map[in].Protect(info.type, safemin64);
+					ctfp_protect(inst, 0, safemin64);
+					//printf("Protect!\n");
+					pass.map[inst->getOperand(0)] = safe;
+				}
 			}
 
-			llvm::Value *rhs = inst->getOperand(1);
-			if(!pass.GetRange(rhs).IsSafe(addmin32)) {
-				Range safe = pass.map[rhs].Protect(info.type, safemin32);
-				ctfp_protect(inst, 1, safemin32);
-				//printf("Protect!\n");
-				pass.map[inst->getOperand(1)] = safe;
+			pass.Proc(*inst);
+			//pass.map[iter - 1] = pass.map[inst];
+
+			const char *op = nullptr;
+
+			switch(info.op) {
+			case Op::Add: op = "add"; break;
+			case Op::Sub: op = "sub"; break;
+			case Op::Mul: op = "mul"; break;
+			case Op::Div: op = "div"; break;
+			case Op::Sqrt: op = "sqrt"; break;
+			default: break;
+			}
+
+			if((op != nullptr) && (info.type.width > 0)) {
+				llvm::Use *use = &*inst->use_begin();
+				Range range = pass.map[inst];
+				ctfp_replace(inst, (std::string("ctfp_fast_") + op + "_f" + std::to_string(info.type.width) + "v" + std::to_string(info.type.count)).data());
+				pass.map[use->get()] = range;
 			}
 		}
-		else if(((info.op == Op::Add) || (info.op == Op::Sub)) && (info.type.kind == Kind::Flt) && (info.type.width == 64)) {
-			llvm::Value *lhs = inst->getOperand(0);
-			if(!pass.GetRange(lhs).IsSafe(addmin64)) {
-				Range safe = pass.map[lhs].Protect(info.type, safemin64);
-				ctfp_protect(inst, 0, safemin64);
-				//printf("Protect!\n");
-				pass.map[inst->getOperand(0)] = safe;
+		else if(ctfp_mode == rest_v) {
+			const char *op = nullptr;
+
+			switch(info.op) {
+			case Op::Add: op = "add"; break;
+			case Op::Sub: op = "sub"; break;
+			case Op::Mul: op = "mul"; break;
+			case Op::Div: op = "div"; break;
+			case Op::Sqrt: op = "sqrt"; break;
+			default: break;
 			}
 
-			llvm::Value *rhs = inst->getOperand(1);
-			if(!pass.GetRange(rhs).IsSafe(addmin64)) {
-				Range safe = pass.map[rhs].Protect(info.type, safemin64);
-				ctfp_protect(inst, 1, safemin64);
-				//printf("Protect!\n");
-				pass.map[inst->getOperand(1)] = safe;
-			}
-		}
-		else if((info.op == Op::Mul) && (info.type.kind == Kind::Flt) && (info.type.width == 32)) {
-			llvm::Value *lhs = inst->getOperand(0);
-			if(!pass.GetRange(lhs).IsSafe(mulmin32)) {
-				Range safe = pass.map[lhs].Protect(info.type, safemin32);
-				ctfp_protect(inst, 0, safemin32);
-				//printf("Protect!\n");
-				pass.map[inst->getOperand(0)] = safe;
-			}
-
-			llvm::Value *rhs = inst->getOperand(1);
-			if(!pass.GetRange(rhs).IsSafe(mulmin32)) {
-				Range safe = pass.map[rhs].Protect(info.type, safemin32);
-				ctfp_protect(inst, 1, safemin32);
-				//printf("Protect!\n");
-				pass.map[inst->getOperand(1)] = safe;
+			if((op != nullptr) && (info.type.width > 0)) {
+				//llvm::Use *use = &*inst->use_begin();
+				//Range range = pass.map[inst];
+				ctfp_replace(inst, (std::string("ctfp_restrict_") + op + "_f" + std::to_string(info.type.width) + "v" + std::to_string(info.type.count)).data());
+				//pass.map[use->get()] = range;
 			}
 		}
-		else if((info.op == Op::Mul) && (info.type.kind == Kind::Flt) && (info.type.width == 64)) {
-			llvm::Value *lhs = inst->getOperand(0);
-			if(!pass.GetRange(lhs).IsSafe(mulmin64)) {
-				Range safe = pass.map[lhs].Protect(info.type, safemin64);
-				ctfp_protect(inst, 0, safemin64);
-				//printf("Protect!\n");
-				pass.map[inst->getOperand(0)] = safe;
-			}
-
-			llvm::Value *rhs = inst->getOperand(1);
-			if(!pass.GetRange(rhs).IsSafe(mulmin64)) {
-				Range safe = pass.map[rhs].Protect(info.type, safemin64);
-				ctfp_protect(inst, 1, safemin64);
-				//printf("Protect!\n");
-				pass.map[inst->getOperand(1)] = safe;
-			}
+		else if(ctfp_mode == flags_v) {
 		}
-		else if((info.op == Op::Div) && (info.type.kind == Kind::Flt) && (info.type.width == 32)) {
-			llvm::Value *lhs = inst->getOperand(0);
-			if(!pass.GetRange(lhs).IsSafe(mulmin32)) {
-				Range safe = pass.map[lhs].Protect(info.type, safemin32);
-				ctfp_protect(inst, 0, safemin32);
-				//printf("Protect!\n");
-				pass.map[inst->getOperand(0)] = safe;
+		else if(ctfp_mode == stats_v) {
+			char name[64] = { '\0' };
+
+			switch(info.op) {
+			case Op::Add: snprintf(name, sizeof(name), "fp%uv%u_add", info.type.width, info.type.count); break;
+			case Op::Sub: snprintf(name, sizeof(name), "fp%uv%u_sub", info.type.width, info.type.count); break;
+			case Op::Mul: snprintf(name, sizeof(name), "fp%uv%u_mul", info.type.width, info.type.count); break;
+			case Op::Div: snprintf(name, sizeof(name), "fp%uv%u_div", info.type.width, info.type.count); break;
+			case Op::Sqrt: snprintf(name, sizeof(name), "fp%uv%u_sqrt", info.type.width, info.type.count); break;
+			default: break;
 			}
 
-			llvm::Value *rhs = inst->getOperand(1);
-			if(!pass.GetRange(rhs).IsSafe(divmax32)) {
-				Range safe = pass.map[rhs].Protect(info.type, safemax32);
-				ctfp_protect(inst, 1, safemax32);
-				//printf("Protect!\n");
-				pass.map[inst->getOperand(1)] = safe;
+			if(name[0] != '\0') {
+				auto type = llvm::FunctionType::get(inst->getType(), { inst->getType(), inst->getType() }, false);
+				llvm::Constant *func = mod->getOrInsertFunction(name, type);
+				//std::vector<llvm::Value*> ops = { inst->getOperand(0), inst->getOperand(1) };
+				std::vector<llvm::Value*> ops(inst->op_begin(), inst->op_end());
+				llvm::CallInst *call = llvm::CallInst::Create(type, func, ops, "", inst);
+				inst->replaceAllUsesWith(call);
 			}
-		}
-		else if((info.op == Op::Div) && (info.type.kind == Kind::Flt) && (info.type.width == 64)) {
-			llvm::Value *lhs = inst->getOperand(0);
-			if(!pass.GetRange(lhs).IsSafe(mulmin64)) {
-				Range safe = pass.map[lhs].Protect(info.type, safemin64);
-				ctfp_protect(inst, 0, safemin64);
-				//printf("Protect!\n");
-				pass.map[inst->getOperand(0)] = safe;
-			}
-
-			llvm::Value *rhs = inst->getOperand(1);
-			if(!pass.GetRange(rhs).IsSafe(divmax64)) {
-				Range safe = pass.map[rhs].Protect(info.type, safemax64);
-				ctfp_protect(inst, 1, safemax64);
-				//printf("Protect!\n");
-				pass.map[inst->getOperand(1)] = safe;
-			}
-		}
-		else if((info.op == Op::Sqrt) && (info.type.kind == Kind::Flt) && (info.type.width == 32)) {
-			llvm::Value *in = inst->getOperand(0);
-			if(!pass.GetRange(in).IsSafe(FLT_MIN)) {
-				Range safe = pass.map[in].Protect(info.type, safemin64);
-				ctfp_protect(inst, 0, safemin32);
-				//printf("Protect!\n");
-				pass.map[inst->getOperand(0)] = safe;
-			}
-		}
-		else if((info.op == Op::Sqrt) && (info.type.kind == Kind::Flt) && (info.type.width == 64)) {
-			llvm::Value *in = inst->getOperand(0);
-			if(!pass.GetRange(in).IsSafe(DBL_MIN)) {
-				Range safe = pass.map[in].Protect(info.type, safemin64);
-				ctfp_protect(inst, 0, safemin64);
-				//printf("Protect!\n");
-				pass.map[inst->getOperand(0)] = safe;
-			}
-		}
-
-
-		pass.Proc(*inst);
-		//pass.map[iter - 1] = pass.map[inst];
-
-		const char *op = nullptr;
-
-		switch(info.op) {
-		case Op::Add: op = "add"; break;
-		case Op::Sub: op = "sub"; break;
-		case Op::Mul: op = "mul"; break;
-		case Op::Div: op = "div"; break;
-		case Op::Sqrt: op = "sqrt"; break;
-		default: break;
-		}
-
-		if((op != nullptr) && (info.type.width > 0)) {
-			llvm::Use *use = &*inst->use_begin();
-			Range range = pass.map[inst];
-			ctfp_replace(inst, (std::string("ctfp_fast_") + op + "_f" + std::to_string(info.type.width) + "v" + std::to_string(info.type.count)).data());
-			pass.map[use->get()] = range;
-		}
-
-		if(0) {
-			inst->print(llvm::outs());
-			std::cout << "\n";
-
-			auto fact = pass.map.find(inst);
-			if(fact != pass.map.end())
-				printf("    %s\n", fact->second.Str().data());
-			else
-				printf("    missing\n");
 		}
 	}
 }
@@ -364,7 +415,7 @@ void ctfp_protect(llvm::Instruction *inst, unsigned int i, double safe) {
 	llvm::Constant *fabs = mod->getOrInsertFunction("llvm.fabs" + post, llvm::FunctionType::get(op->getType(), { op->getType() } , false));
 	llvm::Instruction *abs = llvm::CallInst::Create(llvm::cast<llvm::Function>(fabs)->getFunctionType(), fabs, { op }, "", inst);
 
-	llvm::CmpInst *cmp = llvm::FCmpInst::Create(llvm::Instruction::OtherOps::FCmp, llvm::CmpInst::FCMP_OLT, abs, llvm::ConstantFP::get(op->getType(), safe), "", inst);
+	llvm::CmpInst *cmp = llvm::FCmpInst::Create(llvm::Instruction::OtherOps::FCmp, (safe < 1.0) ? llvm::CmpInst::FCMP_OLT : llvm::CmpInst::FCMP_OGT, abs, llvm::ConstantFP::get(op->getType(), safe), "", inst);
 	llvm::SelectInst *sel = llvm::SelectInst::Create(cmp, zero, ones, "", inst);
 	llvm::CastInst *toint = llvm::CastInst::CreateBitOrPointerCast(op, cast, "", inst);
 	llvm::BinaryOperator *mask = llvm::BinaryOperator::Create(llvm::Instruction::BinaryOps::And, toint, sel, "", inst);
@@ -480,6 +531,18 @@ namespace {
 		static char ID;
 
 		CTFP() : FunctionPass(ID) {
+			if(strcmp(CTFP_MODE, "REST") == 0)
+				ctfp_mode = rest_v;
+			else if(strcmp(CTFP_MODE, "FULL") == 0)
+				ctfp_mode = full_v;
+			else if(strcmp(CTFP_MODE, "FAST") == 0)
+				ctfp_mode = fast_v;
+			else if(strcmp(CTFP_MODE, "FLAGS") == 0)
+				ctfp_mode = flags_v;
+			else if(strcmp(CTFP_MODE, "STATS") == 0)
+				ctfp_mode = stats_v;
+			else
+				fatal("Unknown or missing CTFP_MODE definition.");
 		}
 
 		~CTFP() {

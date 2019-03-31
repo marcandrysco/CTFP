@@ -3,27 +3,128 @@ LD  = g++
 CXXFLAGS = -g -Wall -Werror -O2 -std=gnu++17 -fpic
 LDFLAGS = -lm
 
+#CPU=ivybridge
+CPU=skylake
+#CPU=barcelona
+
+
 IVAL = ival/inc.hpp \
        ival/fp.hpp \
        ival/ival.hpp \
        ival/range.hpp \
        ival/pass.hpp \
 
-all: ctfp-fast.so ctfp-fast-math.so
+# All Targets
 
-ctfp-fast.so: src/llvm.o Makefile
-	$(LD) -shared $(LDFLAGS) src/llvm.o -o $@ `llvm-config --ldflags --libs`
+all: ctfp.bc \
+     ctfp-rest.so \
+     ctfp-full.so \
+     ctfp-fast.so \
+     ctfp-flags.so \
+     ctfp-stats.so \
+     ctfp-stats-runtime.o \
+     ctfp-rest-math.so \
+     ctfp-full-math.so \
+     ctfp-fast-math.so \
+
+
+## LLVM Generator
+
+gen: gen.hs Makefile
+	ghc $< -o $@
+	touch $@
+
+
+## CTFP Targets
+
+ctfp.z3: gen Makefile
+	./gen z3
+
+ctfp.ll: gen Makefile
+	./gen > ctfp.ll
+
+ctfp.cse.ll: ctfp.ll
+	opt -early-cse -dce ctfp.ll -S > ctfp.cse.ll
+
+ctfp.bc: ctfp.cse.ll ctfp-clean.so
+	opt -load ./ctfp-clean.so -always-inline -ctfp-clean ctfp.cse.ll > ctfp.bc
+	llc -O3 -mcpu=$(CPU) ctfp.bc -o ctfp.o -filetype=obj
+	objdump -d ctfp.o -M intel > ctfp.s
+
+ctfp.bc.c: ctfp.bc
+	xxd -i ctfp.bc > ctfp.bc.c
+
+ctfp.dbg.ll: gen Makefile ctfp-clean.so
+	./gen debug > ctfp.dbg.ll
+
+ctfp.dbg.bc: ctfp.dbg.ll Makefile
+	opt -early-cse -always-inline ctfp.dbg.ll > ctfp.dbg.bc
+
+
+## Cleaning Pass
+
+ctfp-clean.so: src/clean.cpp Makefile
+	clang++ -shared -O2 -Wall -march=native -fpic $< -o $@ -std=gnu++11
+
+
+## CTFP Modules
+
+ctfp-fast.so: src/llvm-fast.o Makefile
+	$(LD) -shared $(LDFLAGS) $< -o $@ `llvm-config --ldflags --libs`
+
+ctfp-rest.so: src/llvm-rest.o Makefile
+	$(LD) -shared $(LDFLAGS) $< -o $@ `llvm-config --ldflags --libs`
+
+ctfp-full.so: src/llvm-full.o Makefile
+	$(LD) -shared $(LDFLAGS) $< -o $@ `llvm-config --ldflags --libs`
+
+ctfp-flags.so: src/llvm-flags.o Makefile
+	$(LD) -shared $(LDFLAGS) $< -o $@ `llvm-config --ldflags --libs`
+
+ctfp-stats.so: src/llvm-stats.o Makefile
+	$(LD) -shared $(LDFLAGS) $< -o $@ `llvm-config --ldflags --libs`
+
+ctfp-stats-runtime.o: src/stats.c Makefile
+	gcc -c -O2 -Wall -march=native -Wno-psabi -fPIC $< -o $@ -lm -lpthread
 
 ctfp-fast-math.so: $(MATH) Makefile ctfp-fast.so
-	CTFP_DIR=../redux clang -shared -O2 -Wall -march=native -fpic $(MATH) -o $@ -fplugin=./ctfp-fast.so -nostdlib
+	clang -shared -O2 -Wall -march=native -fpic $(MATH) -o $@ -fplugin=./ctfp-fast.so -nostdlib
 
-src/llvm.o: src/llvm.cpp $(IVAL) Makefile
-	$(CXX) $(CXXFLAGS) $< -c -o $@
+ctfp-rest-math.so: $(MATH) Makefile ctfp-rest.so
+	clang -shared -O2 -Wall -march=native -fpic $(MATH) -o $@ -fplugin=./ctfp-rest.so -nostdlib
+
+ctfp-full-math.so: $(MATH) Makefile ctfp-full.so
+	clang -shared -O2 -Wall -march=native -fpic $(MATH) -o $@ -fplugin=./ctfp-full.so -nostdlib
+
+ctfp-flags-math.so: $(MATH) Makefile ctfp-flags.so
+	clang -shared -O2 -Wall -march=native -fpic $(MATH) -o $@ -fplugin=./ctfp-flags.so -nostdlib
+
+src/llvm-fast.o: src/llvm.cpp $(IVAL) ctfp.bc.c Makefile
+	$(CXX) $(CXXFLAGS) $< -c -o $@ -DCTFP_MODE=\"FAST\"
+
+src/llvm-rest.o: src/llvm.cpp $(IVAL) ctfp.bc.c Makefile
+	$(CXX) $(CXXFLAGS) $< -c -o $@ -DCTFP_MODE=\"REST\"
+
+src/llvm-full.o: src/llvm.cpp $(IVAL) ctfp.bc.c Makefile
+	$(CXX) $(CXXFLAGS) $< -c -o $@ -DCTFP_MODE=\"FULL\"
+
+src/llvm-flags.o: src/llvm.cpp $(IVAL) ctfp.bc.c Makefile
+	$(CXX) $(CXXFLAGS) $< -c -o $@ -DCTFP_MODE=\"FLAGS\"
+
+src/llvm-stats.o: src/llvm.cpp $(IVAL) ctfp.bc.c Makefile
+	$(CXX) $(CXXFLAGS) $< -c -o $@ -DCTFP_MODE=\"STATS\"
+
+
+## Clean Rules
+
+clean:
+	rm -f ctfp.bc ctfp-*.so src/*.o
+
 
 run: all
-	clang test.c -O2 -o test.fast.ll -S -emit-llvm -fplugin=./ctfp-fast.so
-	clang check.c test.fast.ll -o check
-	./check
+	clang test.c -O2 -o test.ll -S -emit-llvm -fplugin=./ctfp-fast.so
+	#clang test.ll ctfp-stats-runtime.o -lm -o test.bin
+	#./test.bin
 
 
 ## Math files

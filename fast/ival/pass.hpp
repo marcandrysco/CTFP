@@ -221,6 +221,10 @@ public:
 			map[&inst] = Range::Abs(GetRange(inst.getOperand(0)), info.type);
 			break;
 
+		case Op::Sqrt:
+			map[&inst] = Range::Sqrt(GetRange(inst.getOperand(0)), info.type);
+			break;
+
 		case Op::ItoF:
 			//in = &GetRange(inst.getOperand(0));
 			//map[&inst] = Range::ItoF(*in, info.type);
@@ -241,6 +245,9 @@ public:
 				if(std::holds_alternative<RangeVecF32>(vec.var)) {
 					if(std::holds_alternative<RangeVecF32>(val.var)) {
 						RangeVecF32 range = std::get<RangeVecF32>(vec.var);
+						if((int)idx >= (int)range.scalars.size())
+							fprintf(stderr,"vector mismatch, idx=%d, len= %lu\n", idx, range.scalars.size()), abort();
+
 						range.scalars[idx] = std::get<RangeVecF32>(val.var).scalars[0];
 						map[&inst] = range;
 					}
@@ -250,6 +257,9 @@ public:
 				else if(std::holds_alternative<RangeVecF64>(vec.var)) {
 					if(std::holds_alternative<RangeVecF64>(val.var)) {
 						RangeVecF64 range = std::get<RangeVecF64>(vec.var);
+						if((int)idx >= (int)range.scalars.size())
+							fprintf(stderr,"vector mismatch, idx=%d, len= %lu\n", idx, range.scalars.size()), abort();
+
 						range.scalars[idx] = std::get<RangeVecF64>(val.var).scalars[0];
 						map[&inst] = range;
 					}
@@ -267,6 +277,8 @@ public:
 		default:
 			break;
 		}
+
+		map[&inst] = map[&inst].Compact(128);
 	}
 
 	/**

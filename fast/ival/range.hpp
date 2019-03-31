@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cmath>
 #include <variant>
 
 /*
@@ -363,6 +364,28 @@ public:
 		return res;
 	}
 
+	/**
+	 * Compact a range.
+	 *   @cap: The capacity.
+	 *   &returns: The comapcted range.
+	 */
+	RangeFlt Compact(uint32_t cap) const {
+		if(ivals.size() > cap) {
+			RangeFlt res(nan);
+			T lo = INFINITY, hi = -INFINITY;
+
+			for(auto const &ival : ivals) {
+				lo = std::min<T>(lo, ival.lo);
+				hi = std::max<T>(hi, ival.lo);
+			}
+
+			res.ivals.push_back(IvalFlt<T>(lo, hi));
+
+			return res;
+		}
+		else
+			return *this;
+	}
 
 	/**
 	 * Convert a range to a string.
@@ -423,7 +446,28 @@ public:
 		return res;
 	}
 
-	//template <class U> static RangeFlt<T> FromInt(const RangeInt<U> &in);
+	/**
+	 * Square root of a float range.
+	 *   @in: The input.
+	 *   &returns: The result range.
+	 */
+	static RangeFlt Sqrt(RangeFlt const& in) {
+		RangeFlt<T> res(false);
+
+		for(auto const &ival : in.ivals) {
+			double lo = ival.lo;
+
+			if(ival.lo < -0.0) {
+				lo = -0.0;
+				res.nan = true;
+			}
+
+			if(ival.hi >= -0.0)
+				res.ivals.push_back(IvalFlt<T>(std::sqrt(lo), std::sqrt(ival.hi)));
+		}
+
+		return res;
+	}
 
 
 	/**
@@ -628,6 +672,20 @@ public:
 	}
 
 	/**
+	 * Compact a range.
+	 *   @cap: The capacity.
+	 *   &returns: The comapcted range.
+	 */
+	RangeVecFlt Compact(uint32_t cap) const {
+		RangeVecFlt<T> res;
+
+		for(uint32_t i = 0; i < scalars.size(); i++)
+			res.scalars.push_back(scalars[i].Compact(cap));
+
+		return res;
+	}
+
+	/**
 	 * Convert a range to a string.
 	 *   &returns: The string.
 	 */
@@ -662,7 +720,19 @@ public:
 		return res;
 	}
 
-	//template <class U> static RangeVecFlt<T> FromInt(RangeVecInt<U> const &in);
+	/**
+	 * Square root of floating-point ranges.
+	 *   @in: The input range.
+	 *   &returns: The result range.
+	 */
+	static RangeVecFlt<T> Sqrt(RangeVecFlt<T> const& in) {
+		RangeVecFlt<T> res;
+
+		for(uint32_t i = 0; i < in.scalars.size(); i++)
+			res.scalars.push_back(RangeFlt<T>::Sqrt(in.scalars[i]));
+
+		return res;
+	}
 
 	/**
 	 * Add two floating-point ranges together.
@@ -775,13 +845,21 @@ public:
 	 *   &returns: The result range.
 	 */
 	static RangeVecFlt Select(RangeVecBool const& cond, RangeVecFlt<T> const& lhs, RangeVecFlt<T> const& rhs) {
-		assert(cond.scalars.size() == lhs.scalars.size());
-		assert(cond.scalars.size() == rhs.scalars.size());
+		assert(lhs.scalars.size() == rhs.scalars.size());
 
 		RangeVecFlt<T> res;
 
-		for(uint32_t i = 0; i < cond.scalars.size(); i++)
-			res.scalars.push_back(RangeFlt<T>::Select(cond.scalars[i], lhs.scalars[i], rhs.scalars[i]));
+		if(cond.scalars.size() == 1) {
+			for(uint32_t i = 0; i < cond.scalars.size(); i++)
+				res.scalars.push_back(RangeFlt<T>::Select(cond.scalars[0], lhs.scalars[i], rhs.scalars[i]));
+		}
+		else {
+			assert(cond.scalars.size() == lhs.scalars.size());
+			assert(cond.scalars.size() == rhs.scalars.size());
+
+			for(uint32_t i = 0; i < cond.scalars.size(); i++)
+				res.scalars.push_back(RangeFlt<T>::Select(cond.scalars[i], lhs.scalars[i], rhs.scalars[i]));
+		}
 
 		return res;
 	}
@@ -1197,6 +1275,16 @@ public:
 			fatal("Invalid range type.");
 	}
 
+	Range Compact(double cap) {
+		if(IsA<RangeVecF32>(*this))
+			return Range(std::get<RangeVecF32>(var).Compact(cap));
+		else if(IsA<RangeVecF64>(*this))
+			return Range(std::get<RangeVecF64>(var).Compact(cap));
+		else
+			return *this;
+	}
+
+
 	/**
 	 * Absolute value of a range.
 	 *   @in: The input range.
@@ -1211,7 +1299,24 @@ public:
 		else if(IsA<RangeVecF64>(in))
 			return Range(RangeVecF64::Abs(std::get<RangeVecF64>(in.var)));
 		else
-			fatal("Invalid cast.");
+			fatal("Invalid absolute value.");
+	}
+
+	/**
+	 * Square root of a range.
+	 *   @in: The input range.
+	 *   @type: The type.
+	 *   &returns: The result range.
+	 */
+	static Range Sqrt(Range const& in, Type type) {
+		if(IsUnk1(in))
+			return Range(type);
+		else if(IsA<RangeVecF32>(in))
+			return Range(RangeVecF32::Sqrt(std::get<RangeVecF32>(in.var)));
+		else if(IsA<RangeVecF64>(in))
+			return Range(RangeVecF64::Sqrt(std::get<RangeVecF64>(in.var)));
+		else
+			fatal("Invalid square root.");
 	}
 
 	/**
