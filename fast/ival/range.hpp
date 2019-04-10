@@ -850,14 +850,14 @@ public:
 		RangeVecFlt<T> res;
 
 		if(cond.scalars.size() == 1) {
-			for(uint32_t i = 0; i < cond.scalars.size(); i++)
+			for(uint32_t i = 0; i < lhs.scalars.size(); i++)
 				res.scalars.push_back(RangeFlt<T>::Select(cond.scalars[0], lhs.scalars[i], rhs.scalars[i]));
 		}
 		else {
 			assert(cond.scalars.size() == lhs.scalars.size());
 			assert(cond.scalars.size() == rhs.scalars.size());
 
-			for(uint32_t i = 0; i < cond.scalars.size(); i++)
+			for(uint32_t i = 0; i < lhs.scalars.size(); i++)
 				res.scalars.push_back(RangeFlt<T>::Select(cond.scalars[i], lhs.scalars[i], rhs.scalars[i]));
 		}
 

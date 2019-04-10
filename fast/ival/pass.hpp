@@ -274,7 +274,45 @@ public:
 			
 			break;
 
+		case Op::Extract:
+			if(llvm::isa<llvm::ConstantInt>(inst.getOperand(1))) {
+				int32_t idx = llvm::cast<llvm::ConstantInt>(inst.getOperand(1))->getZExtValue();
+
+				Range vec = GetRange(inst.getOperand(0));
+				if(std::holds_alternative<RangeVecF32>(vec.var)) {
+					RangeVecF32 range = std::get<RangeVecF32>(vec.var);
+					if((int)idx >= (int)range.scalars.size()) {
+						inst.print(llvm::outs());
+						std::cout << "\n";
+						inst.getParent()->print(llvm::outs());
+						std::cout << "\n";
+						fprintf(stderr,"vector mismatch, idx=%d, len= %lu\n", idx, range.scalars.size()), abort();
+					}
+
+					map[&inst] = Range(range.scalars[idx]);
+				}
+				else if(std::holds_alternative<RangeVecF64>(vec.var)) {
+					RangeVecF64 range = std::get<RangeVecF64>(vec.var);
+					if((int)idx >= (int)range.scalars.size()) {
+						inst.print(llvm::outs());
+						std::cout << "\n";
+						inst.getParent()->print(llvm::outs());
+						std::cout << "\n";
+						fprintf(stderr,"vector mismatch, idx=%d, len= %lu\n", idx, range.scalars.size()), abort();
+					}
+
+					map[&inst] = Range(range.scalars[idx]);
+				}
+				else
+					map[&inst] = Range();
+			}
+			else
+				map[&inst] = Range();
+
+			break;
+
 		default:
+			map[&inst] = Range();
 			break;
 		}
 

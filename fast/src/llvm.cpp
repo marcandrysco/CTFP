@@ -23,7 +23,7 @@
 
 #include "../ctfp.bc.c"
 
-enum mode_e { rest_v, full_v, fast_v, flags_v, stats_v };
+enum mode_e { basic_v, rest_v, full_v, fast_v, flags_v, stats_v };
 
 /*
  * local declarations
@@ -53,6 +53,53 @@ void ctfp_link(unsigned char *prog, unsigned int len, llvm::Module &mod)
 		fprintf(stderr, "Link failed.\n"), abort();
 }
 
+void ctfp_flags(llvm::Instruction *inst)
+{
+	llvm::LLVMContext &ctx = inst->getContext();
+	llvm::Module *mod = inst->getParent()->getParent()->getParent();
+	llvm::Type *i32 = llvm::Type::getInt32Ty(ctx);
+	llvm::FunctionType *ftype = llvm::FunctionType::get(llvm::Type::getVoidTy(ctx), { llvm::Type::getInt8PtrTy(ctx) }, false);
+	llvm::Value *ptr32 = new llvm::AllocaInst(i32, 0, nullptr, "", inst->getParent()->getParent()->getEntryBlock().getFirstNonPHI());
+	llvm::Value *ptr8 = new llvm::BitCastInst(ptr32, llvm::Type::getInt8PtrTy(ctx), "", inst);
+	llvm::CallInst::Create(ftype, mod->getOrInsertFunction("llvm.x86.sse.stmxcsr", ftype), { ptr8 }, "", inst);
+	llvm::Value *orig = new llvm::LoadInst(ptr32, "", inst);
+	llvm::Value *repl = llvm::BinaryOperator::Create(llvm::BinaryOperator::BinaryOps::Or, orig, llvm::ConstantInt::get(i32, 0x8040), "", inst);
+	new llvm::StoreInst(repl, ptr32, "", inst);
+	llvm::CallInst::Create(ftype, mod->getOrInsertFunction("llvm.x86.sse.ldmxcsr", ftype), { ptr8 }, "", inst);
+}
+
+/**
+ * Apply the hack to the entire function.
+ *   @func: The function.
+ */
+void ctfp_hack(llvm::Function& func) {
+	llvm::LLVMContext &ctx = func.getContext();
+
+	for(llvm::BasicBlock &block : func) {
+		for(llvm::Instruction &inst : block) {
+			if((inst.getOpcode() != llvm::Instruction::FAdd) && (inst.getOpcode() != llvm::Instruction::FSub) && (inst.getOpcode() != llvm::Instruction::FMul) && (inst.getOpcode() != llvm::Instruction::FDiv))
+				continue;
+
+			if(!inst.getType()->isFloatTy() && !inst.getType()->isDoubleTy())
+				continue;
+
+			llvm::Type *itype = inst.getType()->isFloatTy() ? llvm::Type::getInt32Ty(ctx) : llvm::Type::getInt64Ty(ctx);
+			llvm::Type *type = llvm::VectorType::get(inst.getType(), 4);
+			llvm::UndefValue *undef = llvm::UndefValue::get(type);
+			llvm::Constant *zero = llvm::ConstantInt::get(itype, 0);
+
+			if(llvm::isa<llvm::BinaryOperator>(inst)) {
+				llvm::Instruction::BinaryOps op = llvm::cast<llvm::BinaryOperator>(inst).getOpcode();
+				llvm::Instruction *lhs = llvm::InsertElementInst::Create(undef, inst.getOperand(0), zero, "", &inst);
+				llvm::Instruction *rhs = llvm::InsertElementInst::Create(undef, inst.getOperand(1), zero, "", &inst);
+				llvm::Instruction *ret = llvm::BinaryOperator::Create(op, lhs, rhs, "", &inst);
+				llvm::Instruction *done = llvm::ExtractElementInst::Create(ret, zero, "", &inst);
+				inst.replaceAllUsesWith(done);
+			}
+		}
+	}
+}
+
 /**
  * Run CTFP on a function.
  *   @func: The function.
@@ -67,6 +114,8 @@ bool ctfp_func(llvm::Function& func) {
 		return false;
 	else if(func.getName().str().find("ctfp_fast_") == 0)
 		return false;
+
+	ctfp_hack(func);
 
 	llvm::Module *mod = func.getParent();
 	if(mod->getFunction("ctfp_restrict_add_f32v4") == nullptr) {
@@ -116,6 +165,17 @@ bool ctfp_func(llvm::Function& func) {
 		pass.map[&arg] = range;
 	}
 
+	if(ctfp_mode == flags_v) {
+		for(llvm::BasicBlock &block : func) {
+			for(llvm::Instruction &inst : block) {
+				if(inst.getOpcode() == llvm::Instruction::Call)
+					ctfp_flags(&inst);
+			}
+		}
+
+		ctfp_flags(func.getEntryBlock().getFirstNonPHI());
+	}
+
 	for(llvm::BasicBlock &block : func)
 		ctfp_block(block, pass);
 
@@ -152,10 +212,11 @@ static const float mulmin32 = 1.08420217248550443e-19f;
 static const double mulmin64 = 1.49166814624004135e-154;
 static const float divmax32 = 4.61168601842738790e+18f;
 static const double divmax64 = 3.35195198248564927e+153;
-static const float safemin32 = 5.960464477539063e-8f;
-static const double safemin64 = 1.1102230246251565e-16;
-static const float safemax32 = 16777216.0f;
-static const double safemax64 = 9007199254740992.0;
+#define SQR(x) (x*x)
+static const float safemin32 = SQR(5.960464477539063e-8f);
+static const double safemin64 = SQR(1.1102230246251565e-16);
+static const float safemax32 = SQR(16777216.0f);
+static const double safemax64 = SQR(9007199254740992.0);
 
 /**
  * Run CTFP on a block.
@@ -170,6 +231,17 @@ void ctfp_block(llvm::BasicBlock& block, Pass& pass) {
 	while(iter != block.end()) {
 		llvm::Instruction *inst = &*iter++;
 		Info info = Pass::GetInfo(*inst);
+
+		const char *op = nullptr;
+
+		switch(info.op) {
+		case Op::Add: op = "add"; break;
+		case Op::Sub: op = "sub"; break;
+		case Op::Mul: op = "mul"; break;
+		case Op::Div: op = "div"; break;
+		case Op::Sqrt: op = "sqrt"; break;
+		default: break;
+		}
 
 		if(ctfp_mode == fast_v) {
 			if(((info.op == Op::Add) || (info.op == Op::Sub)) && (info.type.kind == Kind::Flt) && (info.type.width == 32)) {
@@ -307,7 +379,7 @@ void ctfp_block(llvm::BasicBlock& block, Pass& pass) {
 			default: break;
 			}
 
-			if((op != nullptr) && (info.type.width > 0)) {
+			if((op != nullptr) && (info.type.width > 0) && (inst->getNumUses() > 0)) {
 				llvm::Use *use = &*inst->use_begin();
 				Range range = pass.map[inst];
 				ctfp_replace(inst, (std::string("ctfp_fast_") + op + "_f" + std::to_string(info.type.width) + "v" + std::to_string(info.type.count)).data());
@@ -333,7 +405,29 @@ void ctfp_block(llvm::BasicBlock& block, Pass& pass) {
 				//pass.map[use->get()] = range;
 			}
 		}
+		else if(ctfp_mode == full_v) {
+			if((op != nullptr) && (info.type.width > 0)) {
+				//llvm::Use *use = &*inst->use_begin();
+				//Range range = pass.map[inst];
+				ctfp_replace(inst, (std::string("ctfp_full_") + op + "_f" + std::to_string(info.type.width) + "v" + std::to_string(info.type.count)).data());
+				//pass.map[use->get()] = range;
+			}
+		}
+		else if(ctfp_mode == basic_v) {
+			if((op != nullptr) && (info.type.width > 0) && (inst->getNumUses() > 0)) {
+				llvm::Use *use = &*inst->use_begin();
+				Range range = pass.map[inst];
+				ctfp_replace(inst, (std::string("ctfp_fast_") + op + "_f" + std::to_string(info.type.width) + "v" + std::to_string(info.type.count)).data());
+				pass.map[use->get()] = range;
+			}
+		}
 		else if(ctfp_mode == flags_v) {
+			if((op != nullptr) && (info.type.width > 0) && (inst->getNumUses() > 0)) {
+				llvm::Use *use = &*inst->use_begin();
+				Range range = pass.map[inst];
+				ctfp_replace(inst, (std::string("ctfp_fast_") + op + "_f" + std::to_string(info.type.width) + "v" + std::to_string(info.type.count)).data());
+				pass.map[use->get()] = range;
+			}
 		}
 		else if(ctfp_mode == stats_v) {
 			char name[64] = { '\0' };
@@ -531,7 +625,9 @@ namespace {
 		static char ID;
 
 		CTFP() : FunctionPass(ID) {
-			if(strcmp(CTFP_MODE, "REST") == 0)
+			if(strcmp(CTFP_MODE, "BASIC") == 0)
+				ctfp_mode = basic_v;
+			else if(strcmp(CTFP_MODE, "REST") == 0)
 				ctfp_mode = rest_v;
 			else if(strcmp(CTFP_MODE, "FULL") == 0)
 				ctfp_mode = full_v;

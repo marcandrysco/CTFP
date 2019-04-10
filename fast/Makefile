@@ -17,15 +17,18 @@ IVAL = ival/inc.hpp \
 # All Targets
 
 all: ctfp.bc \
+     ctfp-basic.so \
      ctfp-rest.so \
      ctfp-full.so \
      ctfp-fast.so \
      ctfp-flags.so \
      ctfp-stats.so \
      ctfp-stats-runtime.o \
+     ctfp-basic-math.so \
      ctfp-rest-math.so \
      ctfp-full-math.so \
      ctfp-fast-math.so \
+     ctfp-flags-math.so \
 
 
 ## LLVM Generator
@@ -69,13 +72,16 @@ ctfp-clean.so: src/clean.cpp Makefile
 
 ## CTFP Modules
 
-ctfp-fast.so: src/llvm-fast.o Makefile
+ctfp-basic.so: src/llvm-basic.o Makefile
 	$(LD) -shared $(LDFLAGS) $< -o $@ `llvm-config --ldflags --libs`
 
 ctfp-rest.so: src/llvm-rest.o Makefile
 	$(LD) -shared $(LDFLAGS) $< -o $@ `llvm-config --ldflags --libs`
 
 ctfp-full.so: src/llvm-full.o Makefile
+	$(LD) -shared $(LDFLAGS) $< -o $@ `llvm-config --ldflags --libs`
+
+ctfp-fast.so: src/llvm-fast.o Makefile
 	$(LD) -shared $(LDFLAGS) $< -o $@ `llvm-config --ldflags --libs`
 
 ctfp-flags.so: src/llvm-flags.o Makefile
@@ -87,8 +93,8 @@ ctfp-stats.so: src/llvm-stats.o Makefile
 ctfp-stats-runtime.o: src/stats.c Makefile
 	gcc -c -O2 -Wall -march=native -Wno-psabi -fPIC $< -o $@ -lm -lpthread
 
-ctfp-fast-math.so: $(MATH) Makefile ctfp-fast.so
-	clang -shared -O2 -Wall -march=native -fpic $(MATH) -o $@ -fplugin=./ctfp-fast.so -nostdlib
+ctfp-basic-math.so: $(MATH) Makefile ctfp-basic.so
+	clang -shared -O2 -Wall -march=native -fpic $(MATH) -o $@ -fplugin=./ctfp-basic.so -nostdlib
 
 ctfp-rest-math.so: $(MATH) Makefile ctfp-rest.so
 	clang -shared -O2 -Wall -march=native -fpic $(MATH) -o $@ -fplugin=./ctfp-rest.so -nostdlib
@@ -96,17 +102,23 @@ ctfp-rest-math.so: $(MATH) Makefile ctfp-rest.so
 ctfp-full-math.so: $(MATH) Makefile ctfp-full.so
 	clang -shared -O2 -Wall -march=native -fpic $(MATH) -o $@ -fplugin=./ctfp-full.so -nostdlib
 
+ctfp-fast-math.so: $(MATH) Makefile ctfp-fast.so
+	clang -shared -O2 -Wall -march=native -fpic $(MATH) -o $@ -fplugin=./ctfp-fast.so -nostdlib
+
 ctfp-flags-math.so: $(MATH) Makefile ctfp-flags.so
 	clang -shared -O2 -Wall -march=native -fpic $(MATH) -o $@ -fplugin=./ctfp-flags.so -nostdlib
 
-src/llvm-fast.o: src/llvm.cpp $(IVAL) ctfp.bc.c Makefile
-	$(CXX) $(CXXFLAGS) $< -c -o $@ -DCTFP_MODE=\"FAST\"
+src/llvm-basic.o: src/llvm.cpp $(IVAL) ctfp.bc.c Makefile
+	$(CXX) $(CXXFLAGS) $< -c -o $@ -DCTFP_MODE=\"BASIC\"
 
 src/llvm-rest.o: src/llvm.cpp $(IVAL) ctfp.bc.c Makefile
 	$(CXX) $(CXXFLAGS) $< -c -o $@ -DCTFP_MODE=\"REST\"
 
 src/llvm-full.o: src/llvm.cpp $(IVAL) ctfp.bc.c Makefile
 	$(CXX) $(CXXFLAGS) $< -c -o $@ -DCTFP_MODE=\"FULL\"
+
+src/llvm-fast.o: src/llvm.cpp $(IVAL) ctfp.bc.c Makefile
+	$(CXX) $(CXXFLAGS) $< -c -o $@ -DCTFP_MODE=\"FAST\"
 
 src/llvm-flags.o: src/llvm.cpp $(IVAL) ctfp.bc.c Makefile
 	$(CXX) $(CXXFLAGS) $< -c -o $@ -DCTFP_MODE=\"FLAGS\"
@@ -122,7 +134,7 @@ clean:
 
 
 run: all
-	clang test.c -O2 -o test.ll -S -emit-llvm -fplugin=./ctfp-fast.so
+	clang test.c -O2 -o test.ll -S -emit-llvm -fplugin=./ctfp-flags.so
 	#clang test.ll ctfp-stats-runtime.o -lm -o test.bin
 	#./test.bin
 
